@@ -1,9 +1,16 @@
 import { Link } from 'react-router-dom';
-import { pipelinesFor, fmtDate } from '../../data/seed';
+import { dataSource, pipelinesFor, fmtDate } from '../../data/seed';
+import { publicGet } from '../../data/api';
+import { usePolling } from '../../data/telemetry';
 import { Card, PageHeader, RiskChip, SimBadge } from '../../components/ui';
 
 export default function Pipelines({ villageIds, base }) {
-  const rows = pipelinesFor(villageIds);
+  // Backend scores (they can include live sensor trends) refresh every 10 s; offline uses the bundled scores.
+  const { data: server } = usePolling(() => publicGet('/pipelines'), 10000, dataSource === 'api');
+  const serverRisk = Object.fromEntries((server ?? []).map((r) => [r.asset.id, r.risk]));
+  const rows = pipelinesFor(villageIds)
+    .map((r) => ({ ...r, risk: serverRisk[r.asset.id] ?? r.risk }))
+    .sort((a, b) => b.risk.score - a.risk.score);
   const multi = villageIds.length > 1;
   return (
     <div>
@@ -21,6 +28,7 @@ export default function Pipelines({ villageIds, base }) {
                 <th className="pb-2 font-medium">Material</th>
                 <th className="pb-2 font-medium">Installed</th>
                 <th className="pb-2 font-medium">Risk</th>
+                <th className="pb-2 font-medium">Trend data</th>
                 <th className="pb-2 font-medium">Missing data</th>
               </tr>
             </thead>
@@ -43,6 +51,7 @@ export default function Pipelines({ villageIds, base }) {
                   <td className="py-3">
                     <RiskChip risk={r.risk} />
                   </td>
+                  <td className="py-3 text-muted">{r.risk.trend_basis === 'live' ? 'Live sensors' : r.risk.sources?.pressure_per_flow_trend === 'missing' ? '—' : 'Recorded'}</td>
                   <td className="py-3 text-muted">{r.risk.missing.join(', ') || '—'}</td>
                 </tr>
               ))}

@@ -17,7 +17,12 @@ from .db import Base, SessionLocal, engine
 def load_seed(session: Session, seed: dict) -> None:
     add = session.add
     add(m.Config(key="meta", value=seed["meta"]))
-    add(m.Config(key="risk_config", value=seed["risk_config"]))
+    add(
+        m.RiskConfig(
+            version=seed["risk_config"]["version"], ord=0, created_at=seed["meta"]["as_of"], created_by=None,
+            note="Initial expert-judgement rules from the seed", config=seed["risk_config"], is_active=True,
+        )
+    )
     add(m.Config(key="story_meta", value={"is_simulated": seed["story"]["is_simulated"], "summary": seed["story"]["summary"]}))
 
     for i, v in enumerate(seed["villages"]):

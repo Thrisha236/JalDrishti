@@ -25,6 +25,7 @@ const NAV = {
   officer: [
     { to: '/officer', icon: 'chart', label: 'Overview', end: true },
     { to: '/officer/pipelines', icon: 'pipe', label: 'High-risk pipelines' },
+    { to: '/officer/risk-rules', icon: 'list', label: 'Risk rules' },
   ],
 };
 

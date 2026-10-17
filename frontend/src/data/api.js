@@ -23,8 +23,9 @@ let memory = null;
 
 export class ApiError extends Error {
   constructor(status, detail) {
-    super(typeof detail === 'string' ? detail : `Request failed (${status})`);
+    super(typeof detail === 'string' ? detail : (detail?.message ?? `Request failed (${status})`));
     this.status = status;
+    this.problems = Array.isArray(detail?.problems) ? detail.problems : null; // validation details, if any
   }
 }
 
@@ -47,11 +48,13 @@ async function tokenFor(role) {
   return memory.token;
 }
 
-/** Fetch an API path as the given role. Returns parsed JSON, or the raw Response when raw=true. */
-export async function apiFetch(path, { role, method = 'GET', body, raw = false } = {}) {
+/** Fetch an API path as the given role. Returns parsed JSON, or the raw Response when raw=true.
+ *  Pass json: true when body is a JSON string (FormData bodies set their own content type). */
+export async function apiFetch(path, { role, method = 'GET', body, raw = false, json = false } = {}) {
   for (let attempt = 0; attempt < 2; attempt += 1) {
     const token = await tokenFor(role);
-    const res = await fetch(`/api/v1${path}`, { method, body, headers: { Authorization: `Bearer ${token}` } });
+    const headers = { Authorization: `Bearer ${token}`, ...(json ? { 'Content-Type': 'application/json' } : {}) };
+    const res = await fetch(`/api/v1${path}`, { method, body, headers });
     if (res.status === 401 && attempt === 0) {
       await signIn(role); // backend restarted or token expired
       continue;
@@ -60,6 +63,13 @@ export async function apiFetch(path, { role, method = 'GET', body, raw = false }
     return raw ? res : res.json();
   }
   throw new ApiError(401, 'Could not sign in');
+}
+
+/** GET a public (no sign-in) API path and return JSON. */
+export async function publicGet(path) {
+  const res = await fetch(`/api/v1${path}`);
+  if (!res.ok) throw new ApiError(res.status, (await res.json().catch(() => ({}))).detail);
+  return res.json();
 }
 
 /** Load a role-protected photo as an object URL for an <img>. Caller revokes it when done. */
