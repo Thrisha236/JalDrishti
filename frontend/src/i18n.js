@@ -29,7 +29,16 @@ const en = {
     disclaimer: 'Prototype simulation — not an AI diagnosis. A photo cannot show underground pipe condition.',
     received: 'Complaint #{{code}} received', track: 'Track my complaint',
   },
-  timeline: { received: 'Received', checking: 'Being checked', repairStarted: 'Repair started', restored: 'Water restored — verified' },
+  timeline: { received: 'Received', checking: 'Being checked', repairStarted: 'Repair started', restored: 'Water restored — verified', resolvedUnverified: 'Resolved — not verified by sensors' },
+  notify: {
+    title: 'Updates', none: 'No updates yet.', channel: 'Shown in the app only. SMS and voice calls are not connected in this prototype.',
+    complaint: {
+      being_checked: 'Your complaint #{{code}} is being checked by the Gram Panchayat.',
+      repair_started: 'Repair work has started for complaint #{{code}}.',
+      restored_verified: 'Water supply is back to normal. Sensor readings confirmed it (complaint #{{code}}).',
+      resolved_unverified: 'Complaint #{{code}} was closed by the Gram Panchayat. Sensors could not confirm it; tell us if the problem continues.',
+    },
+  },
   detail: { restoredMsg: 'Water supply in your area is back to normal. Thank you for reporting.', stillProblem: 'Still a problem? Tell us' },
 };
 
@@ -59,7 +68,16 @@ const te = {
     disclaimer: 'నమూనా అనుకరణ — ఇది AI నిర్ధారణ కాదు. ఫోటో భూగర్భ పైపు స్థితిని చూపదు.',
     received: 'ఫిర్యాదు #{{code}} అందింది', track: 'నా ఫిర్యాదును చూడండి',
   },
-  timeline: { received: 'అందింది', checking: 'పరిశీలనలో ఉంది', repairStarted: 'మరమ్మతు ప్రారంభమైంది', restored: 'నీరు పునరుద్ధరించబడింది — ధృవీకరించబడింది' },
+  timeline: { received: 'అందింది', checking: 'పరిశీలనలో ఉంది', repairStarted: 'మరమ్మతు ప్రారంభమైంది', restored: 'నీరు పునరుద్ధరించబడింది — ధృవీకరించబడింది', resolvedUnverified: 'పరిష్కరించబడింది — సెన్సార్ ధృవీకరణ లేదు' },
+  notify: {
+    title: 'తాజా సమాచారం', none: 'ఇంకా సమాచారం లేదు.', channel: 'యాప్‌లో మాత్రమే. ఈ నమూనాలో SMS, వాయిస్ కాల్స్ లేవు.',
+    complaint: {
+      being_checked: 'మీ ఫిర్యాదు #{{code}} ను గ్రామ పంచాయతీ పరిశీలిస్తోంది.',
+      repair_started: 'ఫిర్యాదు #{{code}} కోసం మరమ్మతు పని ప్రారంభమైంది.',
+      restored_verified: 'నీటి సరఫరా సాధారణ స్థితికి వచ్చింది. సెన్సార్ రీడింగ్‌లు నిర్ధారించాయి (ఫిర్యాదు #{{code}}).',
+      resolved_unverified: 'ఫిర్యాదు #{{code}} ను గ్రామ పంచాయతీ ముగించింది. సెన్సార్లు నిర్ధారించలేదు; సమస్య కొనసాగితే తెలపండి.',
+    },
+  },
   detail: { restoredMsg: 'మీ ప్రాంతంలో నీటి సరఫరా సాధారణ స్థితికి వచ్చింది. తెలియజేసినందుకు ధన్యవాదాలు.', stillProblem: 'ఇంకా సమస్య ఉందా? మాకు చెప్పండి' },
 };
 
@@ -89,7 +107,16 @@ const hi = {
     disclaimer: 'प्रोटोटाइप सिमुलेशन — यह AI निदान नहीं है। फ़ोटो ज़मीन के नीचे पाइप की स्थिति नहीं दिखा सकती।',
     received: 'शिकायत #{{code}} प्राप्त हुई', track: 'मेरी शिकायत देखें',
   },
-  timeline: { received: 'प्राप्त', checking: 'जाँच हो रही है', repairStarted: 'मरम्मत शुरू', restored: 'पानी बहाल — सत्यापित' },
+  timeline: { received: 'प्राप्त', checking: 'जाँच हो रही है', repairStarted: 'मरम्मत शुरू', restored: 'पानी बहाल — सत्यापित', resolvedUnverified: 'हल किया गया — सेंसर से सत्यापित नहीं' },
+  notify: {
+    title: 'अपडेट', none: 'अभी कोई अपडेट नहीं।', channel: 'केवल ऐप में। इस प्रोटोटाइप में SMS और वॉइस कॉल जुड़े नहीं हैं।',
+    complaint: {
+      being_checked: 'आपकी शिकायत #{{code}} की ग्राम पंचायत जाँच कर रही है।',
+      repair_started: 'शिकायत #{{code}} के लिए मरम्मत शुरू हो गई है।',
+      restored_verified: 'पानी की आपूर्ति सामान्य हो गई है। सेंसर रीडिंग से पुष्टि हुई (शिकायत #{{code}})।',
+      resolved_unverified: 'शिकायत #{{code}} ग्राम पंचायत ने बंद की। सेंसर से पुष्टि नहीं हुई; समस्या बनी रहे तो बताएँ।',
+    },
+  },
   detail: { restoredMsg: 'आपके क्षेत्र में पानी की आपूर्ति सामान्य हो गई है। बताने के लिए धन्यवाद।', stillProblem: 'अब भी समस्या है? हमें बताएं' },
 };
 

@@ -1,6 +1,6 @@
 // The demo story as an ordered set of steps. Every screen derives what it shows from the current step,
 // so the Citizen, Gram Panchayat and Officer views always tell the same story.
-import { story, CITIZEN_AREA } from '../data/seed';
+import { scripted, story, CITIZEN_AREA } from '../data/seed';
 
 export const STEPS = [
   { key: 'WARNING', label: 'Early warning on P-21' },
@@ -35,10 +35,10 @@ export function complaintStatus(step) {
 /** The citizen's story complaint: the code the server returned, or the seed's #2048 offline. */
 export const storyCode = (report) => report?.public_code ?? '2048';
 
-/** Citizen timeline for the story complaint. Later steps use the scripted story times until Stage 9 makes them live. */
+/** Offline citizen timeline for the story complaint, using the scripted story times (API mode uses live events). */
 export function citizenTimeline(step, code = '2048') {
   const c = story.complaints.find((x) => x.public_code === code);
-  const n = story.notifications;
+  const n = scripted.notifications;
   return [
     { key: 'timeline.received', at: c?.created_at ?? null, done: step >= S.REPORTED },
     { key: 'timeline.checking', at: n[0].at, done: step >= S.INCIDENT },

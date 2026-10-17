@@ -2,9 +2,38 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useDemo } from '../../demo/DemoContext';
 import { areaStatus, complaintStatus, S, storyCode } from '../../demo/steps';
-import { CITIZEN_AREA, scheduleFor } from '../../data/seed';
+import { CITIZEN_AREA, dataSource, fmtTime, scheduleFor } from '../../data/seed';
+import { apiFetch } from '../../data/api';
+import { usePolling } from '../../data/telemetry';
 import { LevelChip, SimBadge } from '../../components/ui';
 import Icon from '../../components/Icon';
+
+/** API mode: the villager's in-app notifications, newest first. */
+function Updates() {
+  const { t } = useTranslation();
+  const { data } = usePolling(() => apiFetch('/notifications/mine', { role: 'citizen' }), 10000);
+  return (
+    <section className="card p-5">
+      <h2 className="section-title mb-3">{t('notify.title')}</h2>
+      {!data?.length ? (
+        <p className="text-muted">{t('notify.none')}</p>
+      ) : (
+        <ul className="flex flex-col gap-3">
+          {data.map((n) => (
+            <li key={`${n.message_key}-${n.complaint_code}`} className="flex gap-3">
+              <Icon name="checkCircle" className="h-5 w-5 shrink-0 text-brand-600" />
+              <span>
+                <span className="block">{t(`notify.${n.message_key}`, { code: n.complaint_code })}</span>
+                <span className="block text-sm text-muted">{fmtTime(n.at)}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="mt-3 text-xs text-muted">{t('notify.channel')}</p>
+    </section>
+  );
+}
 
 const TONE = {
   normal: 'from-green-50 to-white border-green-200',
@@ -77,6 +106,8 @@ export default function CitizenHome() {
           <p className="text-muted">{t('home.none')}</p>
         )}
       </section>
+
+      {dataSource === 'api' && <Updates />}
     </div>
   );
 }

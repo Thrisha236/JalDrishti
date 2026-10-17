@@ -1,4 +1,5 @@
-"""Stage 9: incidents from evidence fusion, and maintenance tasks through their lifecycle."""
+"""Stage 9: incidents from evidence fusion, and maintenance tasks through their lifecycle.
+Stage 10: restoration verification after the repair, and villager notifications."""
 
 from datetime import datetime, timedelta, timezone
 from enum import Enum
@@ -10,6 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from . import fusion
+from . import verification
 from . import models as m
 from . import read_model as rm
 from .auth import CurrentUser, require_roles, village_ids_of
@@ -40,6 +42,10 @@ class TaskBody(BaseModel):
     incident_code: str
     assignee_id: str
     due_at: datetime | None = None
+
+
+class ResolveBody(BaseModel):
+    note: str = Field(min_length=5, max_length=300, description="Why the incident is closed without sensor verification")
 
 
 class TaskUpdateBody(BaseModel):
@@ -142,6 +148,8 @@ def open_incident(body: AssessBody, user: CurrentUser, session: DB):
     for c in (session.get(m.Complaint, cc) for cc in result["complaint_codes"]):
         c.incident_code = code
         c.linked_asset_id = body.asset_id
+    session.flush()
+    verification.notify(session, code, "being_checked", now)
     _audit(session, user, "open", "incident", code, {"evidence_score": result["evidence_score"], "priority": result["priority"], "complaints": result["complaint_codes"]})
     session.commit()
     return rm.incident_live(session, session.get(m.Incident, code))
@@ -161,6 +169,41 @@ def get_incident(code: str, session: DB):
     if i is None:
         raise HTTPException(404, f"Unknown incident {code}")
     return rm.history_incident(i) if i.is_history else rm.incident_live(session, i)
+
+
+@router.get("/incidents/{code}/verification")
+def get_verification(code: str, session: DB):
+    """Restoration check for an incident. Judges any supply windows that ended since the last look."""
+    v = session.get(m.Verification, code)
+    if v is None:
+        raise HTTPException(404, f"No verification for incident {code}")
+    verification.check(session, v)
+    return {**rm.verification(session, v), **verification.progress(session, v)}
+
+
+@router.post("/incidents/{code}/resolve")
+def resolve_unverified(code: str, body: ResolveBody, user: CurrentUser, session: DB):
+    """The Gram Panchayat closes a repaired incident without sensor proof (e.g. no sensor on the pipe).
+    It is recorded as "Resolved - not sensor-verified", never as verified."""
+    require_roles(user, "gp")
+    inc = _incident_for_user(session, user, code)
+    v = session.get(m.Verification, code)
+    if inc.status != "REPAIR_DONE" or v is None or v.result not in verification.OPEN_RESULTS:
+        raise HTTPException(409, f"Incident {code} is {inc.status}; only a repaired incident awaiting verification can be resolved")
+    now = _iso(_now())
+    v.result, v.verified_at, v.resolved_by, v.note = "RESOLVED_UNVERIFIED", now, user.id, body.note
+    inc.status, inc.closed_at = "RESOLVED_UNVERIFIED", now
+    verification.notify(session, code, "resolved_unverified", now)
+    _audit(session, user, "resolve_unverified", "incident", code, {"method": v.method})
+    session.commit()
+    return {**rm.verification(session, v), **verification.progress(session, v)}
+
+
+@router.get("/notifications/mine")
+def my_notifications(user: CurrentUser, session: DB):
+    """The signed-in user's notifications, newest first (in-app only in the prototype)."""
+    rows = session.scalars(select(m.Notification).where(m.Notification.user_id == user.id).order_by(m.Notification.at.desc(), m.Notification.id.desc())).all()
+    return [rm.notification(n) for n in rows]
 
 
 # ---------- maintenance tasks ----------
@@ -233,6 +276,10 @@ def update_task(code: str, body: TaskUpdateBody, user: CurrentUser, session: DB)
                      failure_type=body.failure_type.value, notes=body.note or f"Repaired under task {code}", incident_id=inc.code, is_mock=False)
         )
         inc.status = "REPAIR_DONE"
+        verification.start(session, inc, now)
+    if body.status == "REPAIRING":
+        session.flush()
+        verification.notify(session, inc.code, "repair_started", now)
     _audit(session, user, "update", "task", code, {"status": body.status, **({"failure_type": body.failure_type.value} if body.failure_type else {})})
     session.commit()
     return rm.task_live(session, t)

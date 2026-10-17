@@ -133,8 +133,11 @@ def load_seed(session: Session, seed: dict) -> None:
         for i, w in enumerate(ver["windows"]):
             add(m.VerificationWindow(ord=i, incident_code=ver["incident_code"], **w))
 
+    # Notifications about a live-submitted complaint are sent live (Stage 10), not pre-loaded.
+    live_codes = {c["public_code"] for c in story["complaints"] if c.get("submitted_live")}
     for i, n in enumerate(story["notifications"]):
-        add(m.Notification(ord=i, **n))
+        if n["complaint_code"] not in live_codes:
+            add(m.Notification(ord=i, **n))
     session.commit()
 
 
