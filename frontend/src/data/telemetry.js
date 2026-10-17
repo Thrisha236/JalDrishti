@@ -41,12 +41,12 @@ export function usePolling(load, ms = POLL_MS, enabled = true) {
 export function useLiveTelemetry({ role = 'gp', minutes = 10, withSeries = true } = {}) {
   return usePolling(
     async () => {
-      const live = await apiFetch('/telemetry/live', { role });
-      if (!withSeries) return { live, series: {} };
+      const [live, alerts] = await Promise.all([apiFetch('/telemetry/live', { role }), apiFetch('/alerts/active', { role })]);
+      if (!withSeries) return { live, alerts, series: {} };
       const lists = await Promise.all(
         CHART_SENSORS.map((id) => apiFetch(`/readings?sensor_id=${id}&minutes=${minutes}`, { role })),
       );
-      return { live, series: Object.fromEntries(CHART_SENSORS.map((id, i) => [id, lists[i]])) };
+      return { live, alerts, series: Object.fromEntries(CHART_SENSORS.map((id, i) => [id, lists[i]])) };
     },
     POLL_MS,
     dataSource === 'api',

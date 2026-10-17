@@ -185,6 +185,8 @@ class Alert(Base):
     details: Mapped[Any | None] = mapped_column(JSON)
     text: Mapped[str] = mapped_column(Text)
     is_simulated: Mapped[bool] = mapped_column(Boolean)
+    # Set by the rules engine when the condition has been false for the clear window (Stage 7).
+    cleared_at: Mapped[str | None] = mapped_column(default=None)
 
 
 class Complaint(Base):

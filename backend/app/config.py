@@ -28,6 +28,10 @@ DEVICE_KEYS = dict(
 # A node that has not reported for this long is shown as offline (an equipment problem, not a water problem).
 NODE_OFFLINE_AFTER_SECONDS = 30
 
+# Water rules only fire during scheduled supply windows (no flow at 2 a.m. is not a fault). For a live demo
+# outside those hours, demo mode treats supply as always on; every alert records which mode was used.
+DEMO_SUPPLY_ALWAYS_ON = os.environ.get("JALRAKSHAK_DEMO_SUPPLY_ALWAYS_ON", os.environ.get("JALRAKSHAK_DEMO", "1")) == "1"
+
 # Demo mode enables /api/v1/demo/reset. Turn it off for anything other than a local demo.
 DEMO_MODE = os.environ.get("JALRAKSHAK_DEMO", "1") == "1"
 
