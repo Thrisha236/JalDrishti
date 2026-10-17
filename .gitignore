@@ -1,0 +1,20 @@
+# Dependencies and build output
+node_modules/
+dist/
+.venv/
+__pycache__/
+*.pyc
+
+# Local data, secrets and uploads (never commit citizen photos)
+.env
+*.db
+*.sqlite3
+backend/uploads/
+
+# Office lock files and OS noise
+docs/~$*
+Thumbs.db
+.DS_Store
+
+# Duplicate draft decks
+docs/*DRAFT*

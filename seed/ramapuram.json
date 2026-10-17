@@ -1,0 +1,254 @@
+{
+  "meta": {
+    "name": "JalRakshak demo dataset — Ramapuram",
+    "version": "1.0.0",
+    "is_mock": true,
+    "notice": "Fictional village, people, assets, IDs and readings for a prototype demo. Not real infrastructure or official data. All government identifiers are mock.",
+    "timezone": "+05:30",
+    "as_of": "2026-11-02T06:00:00+05:30",
+    "story_dates": {
+      "complaint_day": "2026-11-02",
+      "repair_day": "2026-11-03",
+      "verified_day": "2026-11-04"
+    },
+    "coordinate_system": {
+      "type": "schematic",
+      "units": "metres",
+      "note": "x/y on a 1000 x 1000 schematic village plan, not latitude/longitude. Keeps the demo from implying real assets on a real map."
+    }
+  },
+
+  "risk_config": {
+    "version": "risk-v0.1",
+    "statement": "Risk score ranks inspection priority. It is not a failure probability.",
+    "bands": [
+      { "band": "LOW", "min": 0, "max": 39, "label": "Monitor" },
+      { "band": "MEDIUM", "min": 40, "max": 64, "label": "Plan inspection" },
+      { "band": "HIGH", "min": 65, "max": 100, "label": "Inspect soon" }
+    ],
+    "factors": {
+      "age": {
+        "max": 25,
+        "rule": "0 points below 5 years, rising linearly to 25 points at 20 years or more; halved if the installation date is an estimate",
+        "start_years": 5,
+        "full_years": 20,
+        "estimate_multiplier": 0.5
+      },
+      "prior_failures": {
+        "max": 25,
+        "window_months": 36,
+        "points_by_count": { "0": 0, "1": 8, "2": 14, "3": 20, "4+": 25 }
+      },
+      "corrosion_observation": {
+        "max": 20,
+        "rule": "Latest inspection grade (0–100) of an exposed section; halved if older than 24 months; not applicable to plastic pipes",
+        "bands": [
+          { "min": 0, "max": 39, "points": 0 },
+          { "min": 40, "max": 59, "points": 6 },
+          { "min": 60, "max": 79, "points": 12 },
+          { "min": 80, "max": 100, "points": 20 }
+        ],
+        "stale_after_months": 24,
+        "stale_multiplier": 0.5
+      },
+      "pressure_per_flow_trend": {
+        "max": 20,
+        "rule": "Drop in pressure-per-unit-flow versus the 14-day baseline; only when the segment has sensors",
+        "bands": [
+          { "min_drop_pct": 0, "max_drop_pct": 5, "points": 0 },
+          { "min_drop_pct": 5, "max_drop_pct": 15, "points": 6 },
+          { "min_drop_pct": 15, "max_drop_pct": 25, "points": 12 },
+          { "min_drop_pct": 25, "max_drop_pct": 100, "points": 20 }
+        ]
+      },
+      "material_susceptibility": {
+        "max": 10,
+        "assumption": "Expert-judgement table; to be validated against real failure records",
+        "points_by_material": {
+          "iron": 8,
+          "cast_iron": 8,
+          "steel": 6,
+          "ductile_iron": 5,
+          "pvc": 2,
+          "hdpe": 2,
+          "unknown": 4
+        }
+      }
+    },
+    "rounding": "Each factor is rounded to the nearest whole point before summing."
+  },
+
+  "villages": [
+    { "id": "vil-ramapuram", "name": "Ramapuram", "lgd_code": "LGD-DEMO-001", "district": "Demo District", "state": "Demo State", "is_mock": true },
+    { "id": "vil-kondapur", "name": "Kondapur", "lgd_code": "LGD-DEMO-002", "district": "Demo District", "state": "Demo State", "is_mock": true },
+    { "id": "vil-sitarampalli", "name": "Sitarampalli", "lgd_code": "LGD-DEMO-003", "district": "Demo District", "state": "Demo State", "is_mock": true }
+  ],
+
+  "service_areas": [
+    { "id": "sa-north", "village_id": "vil-ramapuram", "name": "North Area", "sujal_gaon_id": "SG-DEMO-0421", "household_count": 64, "household_count_source": "mock zone register", "polygon": [[560, 560], [960, 560], [960, 960], [560, 960]], "is_mock": true },
+    { "id": "sa-central", "village_id": "vil-ramapuram", "name": "Central", "sujal_gaon_id": "SG-DEMO-0422", "household_count": 58, "household_count_source": "mock zone register", "polygon": [[300, 300], [560, 300], [560, 700], [300, 700]], "is_mock": true },
+    { "id": "sa-south", "village_id": "vil-ramapuram", "name": "South", "sujal_gaon_id": null, "sujal_gaon_note": "Not yet issued (mock) — IDs go only to service areas meeting prescribed standards", "household_count": 71, "household_count_source": "mock zone register", "polygon": [[40, 40], [300, 40], [300, 400], [40, 400]], "is_mock": true },
+    { "id": "sa-kondapur-main", "village_id": "vil-kondapur", "name": "Main Area", "sujal_gaon_id": "SG-DEMO-0510", "household_count": 112, "household_count_source": "mock zone register", "polygon": [[0, 0], [1000, 0], [1000, 1000], [0, 1000]], "is_mock": true },
+    { "id": "sa-sitarampalli-main", "village_id": "vil-sitarampalli", "name": "Main Area", "sujal_gaon_id": "SG-DEMO-0620", "household_count": 87, "household_count_source": "mock zone register", "polygon": [[0, 0], [1000, 0], [1000, 1000], [0, 1000]], "is_mock": true }
+  ],
+
+  "schemes": [
+    { "id": "sch-ramapuram", "village_id": "vil-ramapuram", "name": "Ramapuram PWS", "sujalam_bharat_id": "SB-DEMO-001", "service_area_ids": ["sa-north", "sa-central", "sa-south"], "is_mock": true },
+    { "id": "sch-kondapur", "village_id": "vil-kondapur", "name": "Kondapur PWS", "sujalam_bharat_id": "SB-DEMO-002", "service_area_ids": ["sa-kondapur-main"], "is_mock": true },
+    { "id": "sch-sitarampalli", "village_id": "vil-sitarampalli", "name": "Sitarampalli PWS", "sujalam_bharat_id": "SB-DEMO-003", "service_area_ids": ["sa-sitarampalli-main"], "is_mock": true }
+  ],
+
+  "assets": [
+    { "id": "ast-bw1", "code": "BW-1", "type": "source", "name": "Borewell 1", "scheme_id": "sch-ramapuram", "service_area_id": "sa-central", "geometry": { "point": [380, 420] }, "is_mock": true },
+    { "id": "ast-pump1", "code": "PH-1", "type": "pump", "name": "Pump house 1", "scheme_id": "sch-ramapuram", "service_area_id": "sa-central", "geometry": { "point": [420, 440] }, "is_mock": true },
+    { "id": "ast-oht1", "code": "OHT-1", "type": "tank", "name": "Overhead tank (50 kL)", "scheme_id": "sch-ramapuram", "service_area_id": "sa-central", "geometry": { "point": [500, 500] }, "is_mock": true },
+    { "id": "ast-p03", "code": "P-03", "type": "pipeline", "name": "Rising main, pump to tank", "scheme_id": "sch-ramapuram", "service_area_id": "sa-central", "geometry": { "line": [[420, 440], [500, 500]] }, "is_mock": true },
+    { "id": "ast-p21", "code": "P-21", "type": "pipeline", "name": "North Area distribution line", "scheme_id": "sch-ramapuram", "service_area_id": "sa-north", "geometry": { "line": [[500, 500], [620, 600], [760, 720], [900, 880]] }, "is_mock": true },
+    { "id": "ast-p14", "code": "P-14", "type": "pipeline", "name": "Central distribution line", "scheme_id": "sch-ramapuram", "service_area_id": "sa-central", "geometry": { "line": [[500, 500], [430, 600], [380, 680]] }, "is_mock": true },
+    { "id": "ast-p09", "code": "P-09", "type": "pipeline", "name": "South distribution line", "scheme_id": "sch-ramapuram", "service_area_id": "sa-south", "geometry": { "line": [[500, 500], [300, 330], [120, 140]] }, "is_mock": true },
+    { "id": "ast-v04", "code": "V-04", "type": "valve", "name": "North branch valve", "scheme_id": "sch-ramapuram", "service_area_id": "sa-north", "geometry": { "point": [620, 600] }, "is_mock": true },
+    { "id": "ast-k04", "code": "K-04", "type": "pipeline", "name": "Kondapur main line", "scheme_id": "sch-kondapur", "service_area_id": "sa-kondapur-main", "geometry": { "line": [[100, 100], [900, 900]] }, "is_mock": true },
+    { "id": "ast-s02", "code": "S-02", "type": "pipeline", "name": "Sitarampalli main line", "scheme_id": "sch-sitarampalli", "service_area_id": "sa-sitarampalli-main", "geometry": { "line": [[100, 900], [900, 100]] }, "is_mock": true }
+  ],
+
+  "pipeline_profiles": [
+    { "asset_id": "ast-p21", "material": "iron", "material_source": "installation record", "diameter_mm": null, "install_date": "2009-07-15", "install_date_source": "record", "length_m": 620, "pressure_per_flow_drop_pct": 18, "trend_source": "sensor (simulated)" },
+    { "asset_id": "ast-p14", "material": "ductile_iron", "material_source": "installation record", "diameter_mm": 100, "install_date": "2016-03-10", "install_date_source": "record", "length_m": 410, "pressure_per_flow_drop_pct": 3, "trend_source": "sensor (simulated)" },
+    { "asset_id": "ast-p09", "material": "hdpe", "material_source": "installation record", "diameter_mm": 90, "install_date": "2021-01-20", "install_date_source": "record", "length_m": 560, "pressure_per_flow_drop_pct": 2, "trend_source": "sensor (simulated)" },
+    { "asset_id": "ast-p03", "material": "ductile_iron", "material_source": "installation record", "diameter_mm": 150, "install_date": "2016-03-10", "install_date_source": "record", "length_m": 110, "pressure_per_flow_drop_pct": null, "trend_source": "no sensor on this segment" },
+    { "asset_id": "ast-k04", "material": "cast_iron", "material_source": "inspection", "diameter_mm": null, "install_date": "2004-01-01", "install_date_source": "estimate", "length_m": 900, "pressure_per_flow_drop_pct": null, "trend_source": "no sensor on this segment" },
+    { "asset_id": "ast-s02", "material": "pvc", "material_source": "installation record", "diameter_mm": 110, "install_date": "2012-05-01", "install_date_source": "record", "length_m": 780, "pressure_per_flow_drop_pct": 9, "trend_source": "sensor (simulated)" }
+  ],
+
+  "inspections": [
+    { "id": "ins-001", "asset_id": "ast-p21", "date": "2026-06-18", "method": "visual-exposed", "corrosion_grade": 67, "notes": "Rust on exposed collar near the North Area standpost; no visible leak at the time.", "is_mock": true },
+    { "id": "ins-002", "asset_id": "ast-p03", "date": "2025-12-05", "method": "visual-exposed", "corrosion_grade": 35, "notes": "Light surface oxidation on exposed flange.", "is_mock": true },
+    { "id": "ins-003", "asset_id": "ast-k04", "date": "2025-08-21", "method": "excavation", "corrosion_grade": 72, "notes": "Tuberculation visible at excavated joint.", "is_mock": true }
+  ],
+
+  "repairs": [
+    { "id": "rep-001", "asset_id": "ast-p21", "date": "2023-11-14", "failure_type": "leak", "notes": "Joint leak repaired.", "is_mock": true },
+    { "id": "rep-002", "asset_id": "ast-p21", "date": "2024-08-22", "failure_type": "joint_failure", "notes": "Coupling replaced.", "is_mock": true },
+    { "id": "rep-003", "asset_id": "ast-p21", "date": "2025-09-03", "failure_type": "leak", "notes": "Leak at collar; clamp fitted.", "incident_id": "INC-0289", "is_mock": true },
+    { "id": "rep-004", "asset_id": "ast-p14", "date": "2025-03-11", "failure_type": "leak", "notes": "Service-connection leak.", "is_mock": true },
+    { "id": "rep-005", "asset_id": "ast-k04", "date": "2024-06-30", "failure_type": "burst", "notes": "Section replaced.", "is_mock": true },
+    { "id": "rep-006", "asset_id": "ast-k04", "date": "2025-08-21", "failure_type": "leak", "notes": "Joint re-sealed after excavation.", "is_mock": true },
+    { "id": "rep-007", "asset_id": "ast-s02", "date": "2024-02-02", "failure_type": "leak", "notes": "Cracked socket.", "is_mock": true },
+    { "id": "rep-008", "asset_id": "ast-s02", "date": "2025-01-19", "failure_type": "leak", "notes": "Cracked socket.", "is_mock": true },
+    { "id": "rep-009", "asset_id": "ast-s02", "date": "2026-04-07", "failure_type": "joint_failure", "notes": "Solvent joint failed.", "is_mock": true }
+  ],
+
+  "expected_risk": {
+    "note": "Hand-checked results of risk_config applied to the facts above, as of meta.as_of. The validation script recomputes these.",
+    "ast-p21": { "score": 72, "band": "HIGH", "factors": { "age": 20, "prior_failures": 20, "corrosion_observation": 12, "pressure_per_flow_trend": 12, "material_susceptibility": 8 } },
+    "ast-p14": { "score": 21, "band": "LOW", "factors": { "age": 8, "prior_failures": 8, "corrosion_observation": 0, "pressure_per_flow_trend": 0, "material_susceptibility": 5 } },
+    "ast-p09": { "score": 2, "band": "LOW", "factors": { "age": 0, "prior_failures": 0, "corrosion_observation": 0, "pressure_per_flow_trend": 0, "material_susceptibility": 2 } },
+    "ast-p03": { "score": 13, "band": "LOW", "factors": { "age": 8, "prior_failures": 0, "corrosion_observation": 0, "pressure_per_flow_trend": 0, "material_susceptibility": 5 } },
+    "ast-k04": { "score": 47, "band": "MEDIUM", "factors": { "age": 13, "prior_failures": 14, "corrosion_observation": 12, "pressure_per_flow_trend": 0, "material_susceptibility": 8 } },
+    "ast-s02": { "score": 43, "band": "MEDIUM", "factors": { "age": 15, "prior_failures": 20, "corrosion_observation": 0, "pressure_per_flow_trend": 6, "material_susceptibility": 2 } }
+  },
+
+  "sensor_nodes": [
+    { "id": "node-a", "code": "Node A", "asset_id": "ast-pump1", "location": "Pump house and tank", "power": "grid", "is_simulated": true },
+    { "id": "node-b", "code": "Node B", "asset_id": "ast-p21", "location": "Tail of P-21, North Area", "power": "solar + battery", "is_simulated": true }
+  ],
+
+  "sensors": [
+    { "id": "sen-pump-current", "node_id": "node-a", "kind": "pump_current", "unit": "A", "baseline": 4.2, "normal_band": [3.6, 4.8], "is_simulated": true },
+    { "id": "sen-tank-level", "node_id": "node-a", "kind": "tank_level", "unit": "m", "baseline": 3.7, "normal_band": [1.0, 4.5], "is_simulated": true },
+    { "id": "sen-head-flow", "node_id": "node-a", "kind": "flow", "position": "head", "unit": "L/min", "baseline": 48.0, "normal_band": [40.0, 56.0], "is_simulated": true },
+    { "id": "sen-head-pressure", "node_id": "node-a", "kind": "pressure", "position": "head", "unit": "bar", "baseline": 1.8, "normal_band": [1.6, 2.0], "is_simulated": true },
+    { "id": "sen-tail-flow", "node_id": "node-b", "kind": "flow", "position": "tail", "unit": "L/min", "baseline": 45.0, "normal_band": [38.0, 52.0], "is_simulated": true },
+    { "id": "sen-tail-pressure", "node_id": "node-b", "kind": "pressure", "position": "tail", "unit": "bar", "baseline": 1.22, "normal_band": [1.05, 1.40], "is_simulated": true }
+  ],
+
+  "supply_schedules": [
+    { "service_area_id": "sa-north", "days": "daily", "windows": [["06:00", "08:00"], ["18:00", "19:00"]] },
+    { "service_area_id": "sa-central", "days": "daily", "windows": [["06:00", "08:00"], ["18:00", "19:00"]] },
+    { "service_area_id": "sa-south", "days": "daily", "windows": [["06:00", "08:00"], ["18:00", "19:00"]] },
+    { "service_area_id": "sa-kondapur-main", "days": "daily", "windows": [["06:30", "08:30"]] },
+    { "service_area_id": "sa-sitarampalli-main", "days": "daily", "windows": [["06:00", "07:30"], ["17:30", "18:30"]] }
+  ],
+
+  "users": [
+    { "id": "usr-citizen-north", "role": "citizen", "display_name": "Demo Villager (North Area)", "village_id": "vil-ramapuram", "service_area_id": "sa-north", "language": "te", "is_mock": true },
+    { "id": "usr-citizen-north-2", "role": "citizen", "display_name": "Demo Villager 2 (North Area)", "village_id": "vil-ramapuram", "service_area_id": "sa-north", "language": "hi", "is_mock": true },
+    { "id": "usr-citizen-north-3", "role": "citizen", "display_name": "Demo Villager 3 (North Area)", "village_id": "vil-ramapuram", "service_area_id": "sa-north", "language": "en", "is_mock": true },
+    { "id": "usr-gp-ramapuram", "role": "gp", "display_name": "Demo GP Operator (Ramapuram)", "village_id": "vil-ramapuram", "language": "en", "is_mock": true },
+    { "id": "usr-officer-block", "role": "officer", "display_name": "Demo Block Officer", "village_ids": ["vil-ramapuram", "vil-kondapur", "vil-sitarampalli"], "language": "en", "is_mock": true },
+    { "id": "usr-tech-ravi", "role": "technician", "display_name": "Ravi (Technician, demo)", "village_id": "vil-ramapuram", "language": "te", "is_mock": true }
+  ],
+
+  "history_incidents": [
+    { "code": "INC-0289", "asset_id": "ast-p21", "service_area_id": "sa-north", "opened_at": "2025-09-02T07:40:00+05:30", "closed_at": "2025-09-04T08:10:00+05:30", "status": "RESOLVED_UNVERIFIED", "summary": "Leak at collar; repaired before sensors were installed, so restoration could not be sensor-verified.", "is_mock": true }
+  ],
+
+  "story": {
+    "is_simulated": true,
+    "summary": "Predict → Report → Review → Prioritise → Maintain → Verify → Inform, all on Pipeline P-21 in North Area.",
+    "alerts": [
+      { "id": "AL-76", "kind": "WATER_SERVICE", "rule_code": "PRESSURE_PER_FLOW_DRIFT", "severity": "MEDIUM", "asset_id": "ast-p21", "service_area_id": "sa-north", "raised_at": "2026-11-01T19:00:00+05:30", "text": "Pressure-per-flow on P-21 is 18% below its 14-day baseline (early warning).", "is_simulated": true },
+      { "id": "AL-77", "kind": "WATER_SERVICE", "rule_code": "TAIL_PRESSURE_LOW_IN_WINDOW", "severity": "HIGH", "asset_id": "ast-p21", "sensor_id": "sen-tail-pressure", "service_area_id": "sa-north", "raised_at": "2026-11-02T07:05:00+05:30", "details": { "observed_bar": 0.72, "baseline_bar": 1.22, "drop_pct": 41, "duration_min": 25 }, "text": "Tail pressure 41% below normal for 25 min during scheduled supply.", "is_simulated": true }
+    ],
+    "complaints": [
+      { "public_code": "2048", "citizen_id": "usr-citizen-north", "service_area_id": "sa-north", "category": "LOW_WATER", "description": "Very low water since morning", "created_at": "2026-11-02T07:12:00+05:30", "location": { "x": 760, "y": 720, "precision": "approx_1km" }, "media": [{ "id": "m-88", "file": null, "note": "Attach a non-identifying test photo of a wet pipe joint for the demo", "exif_stripped": true }], "linked_asset_id": "ast-p21", "is_simulated": true },
+      { "public_code": "2049", "citizen_id": "usr-citizen-north-2", "service_area_id": "sa-north", "category": "LOW_WATER", "description": null, "created_at": "2026-11-02T07:31:00+05:30", "location": { "x": 820, "y": 780, "precision": "approx_1km" }, "media": [], "linked_asset_id": "ast-p21", "is_simulated": true },
+      { "public_code": "2051", "citizen_id": "usr-citizen-north-3", "service_area_id": "sa-north", "category": "LOW_WATER", "description": null, "created_at": "2026-11-02T07:52:00+05:30", "location": { "x": 700, "y": 690, "precision": "approx_1km" }, "media": [], "linked_asset_id": "ast-p21", "is_simulated": true }
+    ],
+    "image_analysis": [
+      { "media_id": "m-88", "engine": "simulated-v0", "is_simulated": true, "observation_code": "POSSIBLE_VISIBLE_LEAK", "message": "Possible leakage visible near a pipe — inspection recommended.", "disclaimer": "Prototype simulation. Not an AI diagnosis. A photo cannot show buried pipe condition." }
+    ],
+    "incident": {
+      "code": "INC-0311",
+      "asset_id": "ast-p21",
+      "service_area_id": "sa-north",
+      "opened_at": "2026-11-02T07:55:00+05:30",
+      "priority": "HIGH",
+      "evidence_score": 0.81,
+      "evidence_score_note": "Weighted evidence score, not a probability",
+      "probable_cause": "Possible leak or partial blockage on P-21 (unconfirmed)",
+      "affected_households": { "estimate": 64, "basis": "mock zone register: North Area" },
+      "evidence": [
+        { "type": "ALERT", "ref": "AL-77", "contribution": 0.35, "text": "Tail pressure 41% below normal for 25 min during scheduled supply" },
+        { "type": "COMPLAINTS", "ref": ["2048", "2049", "2051"], "contribution": 0.25, "text": "3 low-water reports within 600 m in 40 min" },
+        { "type": "RISK", "ref": "ast-p21", "contribution": 0.15, "text": "P-21 risk score 72 (age, 3 prior failures)" },
+        { "type": "IMAGE", "ref": "m-88", "contribution": 0.06, "text": "Simulated observation: possible visible leak" }
+      ],
+      "uncertainties": ["No middle-pipeline sensor; leak position not localised"],
+      "sensor_health": "OK",
+      "is_simulated": true
+    },
+    "task": {
+      "code": "T-118",
+      "incident_code": "INC-0311",
+      "asset_id": "ast-p21",
+      "assignee_id": "usr-tech-ravi",
+      "created_by": "usr-gp-ramapuram",
+      "due_at": "2026-11-03T17:00:00+05:30",
+      "updates": [
+        { "status": "ASSIGNED", "at": "2026-11-02T08:20:00+05:30" },
+        { "status": "INSPECTING", "at": "2026-11-03T09:40:00+05:30" },
+        { "status": "REPAIRING", "at": "2026-11-03T10:05:00+05:30", "note": "Joint leak found at collar near the standpost" },
+        { "status": "REPAIRED", "at": "2026-11-03T12:30:00+05:30", "note": "Coupling replaced; repair photo attached (demo)" }
+      ],
+      "is_simulated": true
+    },
+    "verification": {
+      "incident_code": "INC-0311",
+      "method": "sensor_window",
+      "rule": "Tail pressure and tail flow stay within their normal bands for 2 consecutive scheduled supply windows",
+      "windows": [
+        { "start": "2026-11-03T18:00:00+05:30", "end": "2026-11-03T19:00:00+05:30", "result": "PASSED", "tail_pressure_mean_bar": 1.21 },
+        { "start": "2026-11-04T06:00:00+05:30", "end": "2026-11-04T08:00:00+05:30", "result": "PASSED", "tail_pressure_mean_bar": 1.24 }
+      ],
+      "result": "VERIFIED_RESTORED",
+      "verified_at": "2026-11-04T08:15:00+05:30",
+      "is_simulated": true
+    },
+    "notifications": [
+      { "user_id": "usr-citizen-north", "complaint_code": "2048", "at": "2026-11-02T07:40:00+05:30", "message_key": "complaint.being_checked" },
+      { "user_id": "usr-citizen-north", "complaint_code": "2048", "at": "2026-11-03T10:05:00+05:30", "message_key": "complaint.repair_started" },
+      { "user_id": "usr-citizen-north", "complaint_code": "2048", "at": "2026-11-04T08:15:00+05:30", "message_key": "complaint.restored_verified" }
+    ]
+  }
+}
