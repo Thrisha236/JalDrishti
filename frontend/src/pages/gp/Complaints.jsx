@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDemo } from '../../demo/DemoContext';
 import { complaintStatus, S, visibleComplaints } from '../../demo/steps';
-import { areas, assets, dataSource, fmtTime, HOME_VILLAGE, labelOf, story, STORY_ASSET } from '../../data/seed';
+import { areas, assets, currentIncidentCode, dataSource, fmtTime, HOME_VILLAGE, labelOf, story, STORY_ASSET } from '../../data/seed';
 import { apiFetch, photoUrlFor } from '../../data/api';
 import { Card, Chip, EmptyState, PageHeader, SimBadge } from '../../components/ui';
 import Icon from '../../components/Icon';
@@ -57,6 +57,10 @@ export default function Complaints() {
   const photoOf = (x) => (x.media[0] ? photos[x.media[0].id] : null);
 
   const openIncident = () => {
+    if (dataSource === 'api') {
+      navigate(`/gp/incidents/new?asset=${STORY_ASSET}`); // review the fused evidence first; the GP decides there
+      return;
+    }
     advanceTo(S.INCIDENT);
     navigate('/gp/incidents/INC-0311');
   };
@@ -147,11 +151,11 @@ export default function Complaints() {
             )}
             {step === S.REPORTED ? (
               <button type="button" onClick={openIncident} className="btn-primary w-full">
-                Link to P-21 and open incident
+                {dataSource === 'api' ? 'Review evidence for P-21' : 'Link to P-21 and open incident'}
               </button>
             ) : (
-              <Link to="/gp/incidents/INC-0311" className="btn-outline w-full">
-                Open incident INC-0311
+              <Link to={`/gp/incidents/${currentIncidentCode()}`} className="btn-outline w-full">
+                Open incident {currentIncidentCode()}
               </Link>
             )}
             <p className="mt-3 text-xs text-muted">Photos are shown only to the villager who sent them and to officials for this village. Location data is removed from every photo.</p>

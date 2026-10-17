@@ -31,6 +31,15 @@ def session(engine):
         yield s
 
 
+@pytest.fixture(autouse=True)
+def fresh_login_limits():
+    from app.auth import reset_login_failures
+
+    reset_login_failures()
+    yield
+    reset_login_failures()
+
+
 @pytest.fixture()
 def client(engine):
     Session = sessionmaker(bind=engine, expire_on_commit=False)
@@ -45,10 +54,13 @@ def client(engine):
     app.dependency_overrides.clear()
 
 
+USERNAMES = {"citizen": "villager1", "citizen2": "villager2", "gp": "gp.ramapuram", "officer": "officer.block"}
+
+
 def login(client, role):
-    r = client.post("/api/v1/auth/demo-login", json={"role": role})
+    r = client.post("/api/v1/auth/login", json={"username": USERNAMES[role], "password": config.DEMO_PASSWORD})
     assert r.status_code == 200, r.text
-    return {"Authorization": f"Bearer {r.json()['token']}"}
+    return {"Authorization": f"Bearer {r.json()['access_token']}"}
 
 
 @pytest.fixture()

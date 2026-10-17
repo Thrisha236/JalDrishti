@@ -164,6 +164,3 @@ def test_demo_reset_restores_the_seed(client, as_citizen):
     assert codes == ["2049", "2051"]
     assert not list(config.UPLOAD_DIR.glob("*.jpg"))
 
-
-def test_demo_login_rejects_unknown_roles(client):
-    assert client.post("/api/v1/auth/demo-login", json={"role": "technician"}).status_code == 400

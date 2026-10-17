@@ -12,6 +12,17 @@ from . import config
 from . import models as m
 from .config import SEED_PATH
 from .db import Base, SessionLocal, engine
+from .passwords import hash_password
+
+
+_hash_cache: dict[str, str] = {}
+
+
+def _demo_password_hash() -> str:
+    """Every fictional demo user shares the demo password; hashed once per process (scrypt is slow on purpose)."""
+    if config.DEMO_PASSWORD not in _hash_cache:
+        _hash_cache[config.DEMO_PASSWORD] = hash_password(config.DEMO_PASSWORD)
+    return _hash_cache[config.DEMO_PASSWORD]
 
 
 def load_seed(session: Session, seed: dict) -> None:
@@ -55,8 +66,9 @@ def load_seed(session: Session, seed: dict) -> None:
         add(m.Sensor(ord=i, band_low=s["normal_band"][0], band_high=s["normal_band"][1], **data))
     for i, s in enumerate(seed["supply_schedules"]):
         add(m.SupplySchedule(ord=i, **s))
+    demo_hash = _demo_password_hash()
     for i, u in enumerate(seed["users"]):
-        add(m.User(ord=i, **u))
+        add(m.User(ord=i, password_hash=demo_hash if u.get("username") else None, **u))
     session.flush()
 
     for i, h in enumerate(seed["history_incidents"]):
@@ -82,41 +94,44 @@ def load_seed(session: Session, seed: dict) -> None:
         if ia["media_id"] not in live_media:
             add(m.ImageAnalysis(ord=i, **ia))
 
+    # The story's incident, task and verification are created live during the demo (Stages 9 and 10),
+    # so they are only pre-loaded if a seed does not mark them submitted_live.
     inc = story["incident"]
-    add(
-        m.Incident(
-            ord=len(seed["history_incidents"]),
-            is_history=False,
-            code=inc["code"],
-            asset_id=inc["asset_id"],
-            service_area_id=inc["service_area_id"],
-            opened_at=inc["opened_at"],
-            priority=inc["priority"],
-            evidence_score=inc["evidence_score"],
-            evidence_score_note=inc["evidence_score_note"],
-            probable_cause=inc["probable_cause"],
-            affected_estimate=inc["affected_households"]["estimate"],
-            affected_basis=inc["affected_households"]["basis"],
-            uncertainties=inc["uncertainties"],
-            sensor_health=inc["sensor_health"],
-            is_simulated=inc["is_simulated"],
+    if not inc.get("submitted_live"):
+        add(
+            m.Incident(
+                ord=len(seed["history_incidents"]),
+                is_history=False,
+                code=inc["code"],
+                asset_id=inc["asset_id"],
+                service_area_id=inc["service_area_id"],
+                opened_at=inc["opened_at"],
+                priority=inc["priority"],
+                evidence_score=inc["evidence_score"],
+                evidence_score_note=inc["evidence_score_note"],
+                probable_cause=inc["probable_cause"],
+                affected_estimate=inc["affected_households"]["estimate"],
+                affected_basis=inc["affected_households"]["basis"],
+                uncertainties=inc["uncertainties"],
+                sensor_health=inc["sensor_health"],
+                is_simulated=inc["is_simulated"],
+            )
         )
-    )
-    session.flush()
-    for i, e in enumerate(inc["evidence"]):
-        add(m.IncidentEvidence(ord=i, incident_code=inc["code"], **e))
+        session.flush()
+        for i, e in enumerate(inc["evidence"]):
+            add(m.IncidentEvidence(ord=i, incident_code=inc["code"], **e))
 
-    task = story["task"]
-    add(m.MaintenanceTask(**{k: v for k, v in task.items() if k != "updates"}))
-    session.flush()
-    for i, u in enumerate(task["updates"]):
-        add(m.TaskUpdate(ord=i, task_code=task["code"], **u))
+        task = story["task"]
+        add(m.MaintenanceTask(**{k: v for k, v in task.items() if k not in ("updates", "submitted_live")}))
+        session.flush()
+        for i, u in enumerate(task["updates"]):
+            add(m.TaskUpdate(ord=i, task_code=task["code"], **u))
 
-    ver = story["verification"]
-    add(m.Verification(**{k: v for k, v in ver.items() if k != "windows"}))
-    session.flush()
-    for i, w in enumerate(ver["windows"]):
-        add(m.VerificationWindow(ord=i, incident_code=ver["incident_code"], **w))
+        ver = story["verification"]
+        add(m.Verification(**{k: v for k, v in ver.items() if k not in ("windows", "submitted_live")}))
+        session.flush()
+        for i, w in enumerate(ver["windows"]):
+            add(m.VerificationWindow(ord=i, incident_code=ver["incident_code"], **w))
 
     for i, n in enumerate(story["notifications"]):
         add(m.Notification(ord=i, **n))

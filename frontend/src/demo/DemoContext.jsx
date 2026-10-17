@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { STEPS } from './steps';
+import { onAuthRequired } from '../data/api';
 
 const KEY = 'jalrakshak-demo';
 const DemoContext = createContext(null);
@@ -27,6 +28,9 @@ export function DemoProvider({ children }) {
       /* storage unavailable: the demo still works for this session */
     }
   }, [role, step, report]);
+
+  // A missing or expired session sends the user back to the sign-in screen.
+  useEffect(() => onAuthRequired(() => setRole(null)), []);
 
   const advanceTo = useCallback((target) => setStep((s) => Math.max(s, target)), []);
   const next = useCallback(() => setStep((s) => Math.min(s + 1, STEPS.length - 1)), []);

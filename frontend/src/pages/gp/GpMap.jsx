@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useDemo } from '../../demo/DemoContext';
 import { openIncidentCount } from '../../demo/steps';
-import { areas, assets, riskFor, story } from '../../data/seed';
+import { areas, assets, currentIncidentCode, riskFor, STORY_ASSET } from '../../data/seed';
 import { Card, PageHeader, RiskChip } from '../../components/ui';
 import VillageMap from '../../components/VillageMap';
 
@@ -11,7 +11,7 @@ export default function GpMap() {
   const [selected, setSelected] = useState('ast-p21');
   const asset = assets[selected];
   const risk = riskFor(selected);
-  const isStory = selected === story.incident.asset_id;
+  const isStory = selected === STORY_ASSET;
 
   return (
     <div>
@@ -27,7 +27,7 @@ export default function GpMap() {
           {risk && <RiskChip risk={risk} />}
           {isStory && openIncidentCount(step) > 0 && (
             <p className="mt-3 text-sm">
-              Open incident <Link to="/gp/incidents/INC-0311" className="font-semibold text-brand-600">INC-0311</Link> · ≈ {story.incident.affected_households.estimate} households (estimate from zone register)
+              Open incident <Link to={`/gp/incidents/${currentIncidentCode()}`} className="font-semibold text-brand-600">{currentIncidentCode()}</Link> · ≈ {areas[asset.service_area_id].household_count} households (estimate from zone register)
             </p>
           )}
           <Link to={`/gp/pipelines/${selected}`} className="btn-outline mt-4 w-full">

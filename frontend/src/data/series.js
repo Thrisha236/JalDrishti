@@ -1,5 +1,5 @@
 // Deterministic simulated tail-pressure series for the story. Replaced by the sensor simulator in Stage 6.
-import { sensors, story } from './seed';
+import { scripted, sensors, story } from './seed';
 
 const tail = () => sensors['sen-tail-pressure'];
 const wobble = (i, amp) => Math.sin(i * 1.7) * amp + Math.sin(i * 0.6) * amp * 0.5;
@@ -16,7 +16,7 @@ export function complaintDaySeries() {
 
 /** Readings in each post-repair verification window, centred on the recorded window mean. */
 export function verificationSeries() {
-  return story.verification.windows.map((w, k) => {
+  return scripted.verification.windows.map((w, k) => {
     const n = k === 0 ? 13 : 25;
     return Array.from({ length: n }, (_, i) => Number((w.tail_pressure_mean_bar + wobble(i + k * 7, 0.025)).toFixed(3)));
   });

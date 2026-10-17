@@ -15,6 +15,9 @@ def _expected_snapshot(seed):
     for c in story["complaints"]:
         c["description"] = None
     story["image_analysis"] = [ia for ia in story["image_analysis"] if ia["media_id"] not in live_media]
+    for key in ("incident", "task", "verification"):  # created live during the demo (Stages 9-10)
+        if story[key].get("submitted_live"):
+            story[key] = None
     return expected
 
 

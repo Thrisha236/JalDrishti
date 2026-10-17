@@ -103,10 +103,10 @@ def schedule(s: m.SupplySchedule) -> dict:
 def user(u: m.User) -> dict:
     return _drop_none(
         {
-            "id": u.id, "role": u.role, "display_name": u.display_name, "village_id": u.village_id,
+            "id": u.id, "username": u.username, "role": u.role, "display_name": u.display_name, "village_id": u.village_id,
             "service_area_id": u.service_area_id, "village_ids": u.village_ids, "language": u.language, "is_mock": u.is_mock,
         },
-        "village_id", "service_area_id", "village_ids",
+        "username", "village_id", "service_area_id", "village_ids",
     )
 
 
@@ -132,7 +132,25 @@ def complaint(session: Session, c: m.Complaint, public: bool = False) -> dict:
         "location": c.location,
         "media": [{"id": x.id, "file": None, "note": x.note, "exif_stripped": x.exif_stripped} for x in media],
         "linked_asset_id": c.linked_asset_id, "is_simulated": c.is_simulated,
+        **({"incident_code": c.incident_code} if c.incident_code else {}),
     }
+
+
+def complaint_progress(session: Session, c: m.Complaint) -> list[dict]:
+    """What has happened to a complaint, from real records only: received, grouped into an incident,
+    repair started, repair done. Restoration is added by the verification step (Stage 10)."""
+    events = [{"key": "received", "at": c.created_at}]
+    if c.incident_code:
+        inc = session.get(m.Incident, c.incident_code)
+        events.append({"key": "checking", "at": inc.opened_at})
+        t = session.scalars(select(m.MaintenanceTask).where(m.MaintenanceTask.incident_code == inc.code)).first()
+        if t:
+            for u in _rows(session, m.TaskUpdate, m.TaskUpdate.task_code == t.code):
+                if u.status == "REPAIRING":
+                    events.append({"key": "repair_started", "at": u.at})
+                if u.status == "REPAIRED":
+                    events.append({"key": "repaired", "at": u.at})
+    return events
 
 
 def complaint_with_analysis(session: Session, c: m.Complaint) -> dict:
@@ -141,6 +159,7 @@ def complaint_with_analysis(session: Session, c: m.Complaint) -> dict:
     media_ids = [x["id"] for x in out["media"]]
     rows = session.scalars(select(m.ImageAnalysis).where(m.ImageAnalysis.media_id.in_(media_ids))).all() if media_ids else []
     out["image_analysis"] = [image_analysis(r) for r in rows]
+    out["progress"] = complaint_progress(session, c)
     return out
 
 
@@ -170,6 +189,13 @@ def incident(session: Session, i: m.Incident) -> dict:
     }
 
 
+def incident_live(session: Session, i: m.Incident) -> dict:
+    """Incident with its lifecycle: status, grouped complaints and the maintenance task, if any."""
+    t = session.scalars(select(m.MaintenanceTask).where(m.MaintenanceTask.incident_code == i.code)).first()
+    complaints = session.scalars(select(m.Complaint.public_code).where(m.Complaint.incident_code == i.code).order_by(m.Complaint.created_at)).all()
+    return {**incident(session, i), "status": i.status, "complaint_codes": list(complaints), "task_code": t.code if t else None}
+
+
 def task(session: Session, t: m.MaintenanceTask) -> dict:
     updates = _rows(session, m.TaskUpdate, m.TaskUpdate.task_code == t.code)
     return {
@@ -178,6 +204,12 @@ def task(session: Session, t: m.MaintenanceTask) -> dict:
         "updates": [_drop_none({"status": u.status, "at": u.at, "note": u.note}, "note") for u in updates],
         "is_simulated": t.is_simulated,
     }
+
+
+def task_live(session: Session, t: m.MaintenanceTask) -> dict:
+    out = task(session, t)
+    assignee = session.get(m.User, t.assignee_id)
+    return {**out, "status": out["updates"][-1]["status"] if out["updates"] else None, "assignee_name": assignee.display_name}
 
 
 def verification(session: Session, v: m.Verification) -> dict:
@@ -253,8 +285,8 @@ def all_risk(session: Session) -> dict:
 def snapshot(session: Session) -> dict:
     """Everything the Stage 3 frontend reads, in the seed's shape, plus server-computed risk."""
     story_meta = config(session, "story_meta")
-    current = session.scalars(select(m.Incident).where(m.Incident.is_history.is_(False)).order_by(m.Incident.ord)).first()
-    current_task = session.scalars(select(m.MaintenanceTask)).first()
+    current = session.scalars(select(m.Incident).where(m.Incident.is_history.is_(False)).order_by(m.Incident.ord.desc())).first()
+    current_task = session.scalars(select(m.MaintenanceTask).order_by(m.MaintenanceTask.code.desc())).first()
     current_ver = session.scalars(select(m.Verification)).first()
     return {
         "meta": config(session, "meta"),

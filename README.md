@@ -350,3 +350,99 @@ cd backend
 - The live trend window (60 min) and baseline are starting values; a field deployment would learn baselines per pipe from weeks of data.
 - Risk weights are still expert judgement (`assumption table`). Learning them needs real failure records.
 - Score history over time is not stored yet. Only the current score, the rules version and the comparison are shown.
+
+## Stage 9: evidence fusion, incidents and tasks through the API, and sign-in
+
+After pulling, install the new dependency and reload the database (new user, complaint and incident columns):
+
+```powershell
+cd backend
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m app.seed_loader
+```
+
+### Sign in
+
+The demo login is replaced by username and password sign-in. The backend issues an access token (JWT, HS256, 12 h), and the browser keeps it for that tab only.
+
+| Role | Username |
+|---|---|
+| Villager | `villager1` (also `villager2`, `villager3`) |
+| Gram Panchayat | `gp.ramapuram` |
+| Block officer | `officer.block` |
+
+- **Password:** the value of `JALRAKSHAK_DEMO_PASSWORD`. If it is not set, the default is `jalrakshak-demo`.
+- These are fictional demo accounts, for local demos only.
+- Passwords are stored as scrypt hashes.
+- After 5 failed attempts the username is locked for 60 s.
+- A wrong password and an unknown user get the same reply.
+- Set `JALRAKSHAK_SECRET` to keep sessions valid across backend restarts. Without it, every restart asks users to sign in again.
+
+### Evidence fusion (`backend/app/fusion.py`)
+
+For a pipeline, fusion combines four kinds of evidence into a **weighted evidence score. It is not a probability.**
+
+| Evidence | Weight |
+|---|---|
+| Live sensor alert | 0.35 |
+| Villager reports within 150 m in the last 6 h | 0.25 (full weight at 3 reports) |
+| Pipeline risk band | 0.15 (HIGH = full, MEDIUM = half) |
+| Photo observation | 0.10, counted at 60% because it is a simulation |
+
+- **HIGH** priority needs a score of at least 0.6 **and** two independent kinds of evidence.
+- **MEDIUM** needs a score of at least 0.35.
+
+Every assessment shows:
+- each piece of evidence and how much it added
+- the probable cause, marked unconfirmed
+- sensor health (a faulty node is never read as a water problem)
+- the estimated affected households
+- what is missing, for example "no middle-pipeline sensor; leak position not localised"
+
+The system proposes; the Gram Panchayat decides. The GP dashboard lists **Suggested incidents**, and **Review evidence** opens the assessment. Only the GP can open the incident.
+
+### Incident → task → repair
+
+1. **Opening an incident** groups the reports under it (complaint → "Being checked"). A pipeline can have only one open incident, and LOW-priority evidence cannot open one.
+2. **Creating a task** assigns a technician from the same village, with a due time that must be in the future. The default is 17:00 the next day.
+3. **Updating the task** moves it one step at a time: Assigned → Inspecting → Repairing → Repaired.
+4. **Recording "Repaired"** requires a failure type. It adds a repair to the pipeline's history, which feeds the risk score. In the demo, P-21's prior-failures factor rises from 20 to 25 points.
+5. **The villager's timeline** shows the real times for each step.
+
+Every action is written to the audit log.
+
+### Story walk-through (API mode)
+
+1. Sign in as `villager1` and report low water with a photo. The complaint is **#2048**.
+2. From the repo root, run the leak scenario:
+   ```powershell
+   python simulator\sim.py --scenario leak --interval 2 --count 20
+   ```
+3. Sign in as `gp.ramapuram`. The dashboard suggests **P-21 · 0.81 · HIGH**.
+4. Click **Review evidence**, then **Open incident**. The incident is **INC-0311**.
+5. Click **Create maintenance task**. The task is **T-118**.
+6. Step the task through to **Record repair done**.
+
+Codes follow the story because the server allocates the lowest unused number. With the demo flag on, scripted reports #2049 and #2051 also count, and the incident lists this as a caveat.
+
+### Endpoints
+
+- **Sign-in:** `POST /auth/login` · `GET /auth/me`
+- **Incidents:** `GET /incidents/suggestions` · `POST /incidents/assess` · `POST /incidents` (GP) · `GET /incidents` · `GET /incidents/{code}`
+- **Tasks:** `POST /tasks` (GP) · `GET /tasks` · `GET /tasks/{code}` · `POST /tasks/{code}/updates`
+
+### Tests
+
+`python -m pytest` now runs 103 tests. The new ones cover:
+- sign-in, lockout, and tampered or expired tokens
+- the fusion score with and without sensors, and reports chosen by the GP
+- suggestions and role checks
+- the full incident → task → repair lifecycle, including the risk score change
+- the task step rules, the audit log, and the demo reset
+
+### Known limits of Stage 9
+
+- Restoration verification is still scripted ("Scripted until Stage 10"). The villager's "Water restored" step has no live time yet.
+- The fusion weights are expert judgement, not learned from field data.
+- Technicians have no app login. The GP records progress on their behalf.
+- There is no token refresh or revocation. Tokens expire after 12 h.

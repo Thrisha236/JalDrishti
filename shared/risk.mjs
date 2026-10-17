@@ -46,7 +46,7 @@ export function scorePipeline(seed, assetId, asOf = seed.meta.as_of) {
   const windowMonths = cfg.prior_failures.window_months;
   const recent = seed.repairs.filter((r) => {
     const m = monthsBetween(r.date, asOf);
-    return r.asset_id === assetId && m >= 0 && m <= windowMonths;
+    return r.asset_id === assetId && m <= windowMonths; // repairs after the assessment date also count
   });
   factors.prior_failures = cfg.prior_failures.points_by_count[recent.length >= 4 ? '4+' : String(recent.length)];
   details.prior_failures = `${recent.length} in ${windowMonths} months`;

@@ -6,7 +6,6 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse
-from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -14,7 +13,7 @@ from . import config
 from . import models as m
 from . import photos
 from . import read_model as rm
-from .auth import DEMO_USER_FOR_ROLE, CurrentUser, create_token, require_roles, village_ids_of
+from .auth import CurrentUser, require_roles, village_ids_of
 from .db import get_session
 
 router = APIRouter(prefix="/api/v1")
@@ -32,10 +31,6 @@ class Category(str, Enum):
     LEAKAGE = "LEAKAGE"
     DAMAGED_TAP = "DAMAGED_TAP"
     OTHER = "OTHER"
-
-
-class DemoLogin(BaseModel):
-    role: str
 
 
 def _now() -> str:
@@ -69,23 +64,6 @@ def _can_view(user: m.User, c: m.Complaint, session: Session) -> bool:
         area = session.get(m.ServiceArea, c.service_area_id)
         return area.village_id in village_ids_of(user)
     return False
-
-
-# ---------- sign-in ----------
-
-@router.post("/auth/demo-login")
-def demo_login(body: DemoLogin, session: DB):
-    """Demo sign-in: choose a role, get a signed session token for that role's fictional demo user."""
-    user_id = DEMO_USER_FOR_ROLE.get(body.role)
-    if user_id is None:
-        raise HTTPException(400, f"Unknown role {body.role!r}; use citizen, gp or officer")
-    user = session.get(m.User, user_id)
-    return {"token": create_token(user.id), "user": rm.user(user)}
-
-
-@router.get("/auth/me")
-def me(user: CurrentUser):
-    return rm.user(user)
 
 
 # ---------- complaints ----------

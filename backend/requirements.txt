@@ -4,5 +4,6 @@ sqlalchemy==2.0.36
 pydantic==2.10.3
 python-multipart==0.0.19
 pillow==11.0.0
+pyjwt==2.10.1
 pytest==8.3.4
 httpx==0.28.1

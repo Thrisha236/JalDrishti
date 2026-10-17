@@ -4,25 +4,49 @@ import { useTranslation } from 'react-i18next';
 import { useDemo } from '../demo/DemoContext';
 import { LANGUAGES } from '../i18n';
 import { dataSource } from '../data/seed';
-import { signIn } from '../data/api';
+import { login } from '../data/api';
 import Icon from '../components/Icon';
 
 const ROLES = [
-  { id: 'citizen', icon: 'user', home: '/citizen' },
-  { id: 'gp', icon: 'building', home: '/gp' },
-  { id: 'officer', icon: 'users', home: '/officer' },
+  { id: 'citizen', icon: 'user', home: '/citizen', username: 'villager1' },
+  { id: 'gp', icon: 'building', home: '/gp', username: 'gp.ramapuram' },
+  { id: 'officer', icon: 'users', home: '/officer', username: 'officer.block' },
 ];
+// Fictional demo accounts created by the seed loader. Not real people; change JALRAKSHAK_DEMO_PASSWORD to rotate.
+const DEMO_PASSWORD = 'jalrakshak-demo';
 
 export default function Login() {
   const { t, i18n } = useTranslation();
   const { setRole } = useDemo();
   const navigate = useNavigate();
   const [choice, setChoice] = useState('citizen');
+  const [username, setUsername] = useState(ROLES[0].username);
+  const [password, setPassword] = useState(DEMO_PASSWORD);
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
 
-  const go = async () => {
-    if (dataSource === 'api') await signIn(choice).catch(() => null); // retried on first API call if this fails
-    setRole(choice);
-    navigate(ROLES.find((r) => r.id === choice).home);
+  const pick = (id) => {
+    setChoice(id);
+    setUsername(ROLES.find((r) => r.id === id).username);
+    setError('');
+  };
+
+  const go = async (e) => {
+    e.preventDefault();
+    let role = choice;
+    if (dataSource === 'api') {
+      setBusy(true);
+      try {
+        role = (await login(username.trim(), password)).role;
+      } catch (err) {
+        setError(err.status === 429 ? err.message : 'Wrong username or password');
+        setBusy(false);
+        return;
+      }
+      setBusy(false);
+    }
+    setRole(role);
+    navigate(ROLES.find((r) => r.id === role)?.home ?? '/');
   };
 
   return (
@@ -59,7 +83,7 @@ export default function Login() {
               type="button"
               role="radio"
               aria-checked={choice === r.id}
-              onClick={() => setChoice(r.id)}
+              onClick={() => pick(r.id)}
               className={`flex min-h-16 items-center gap-4 rounded-2xl border-2 p-3 text-left transition ${choice === r.id ? 'border-brand-600 bg-brand-50' : 'border-slate-200 bg-white hover:border-slate-300'}`}
             >
               <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-brand-600 shadow-card">
@@ -74,10 +98,26 @@ export default function Login() {
           ))}
         </div>
 
-        <button type="button" onClick={go} className="btn-primary mt-6 w-full text-lg">
-          {t('login.continue')}
-          <Icon name="arrow" />
-        </button>
+        <form onSubmit={go} className="mt-5 flex flex-col gap-3">
+          {dataSource === 'api' && (
+            <>
+              <label className="block text-sm">
+                <span className="font-medium">Username</span>
+                <input value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" className="mt-1 min-h-12 w-full rounded-xl border border-slate-300 px-3" />
+              </label>
+              <label className="block text-sm">
+                <span className="font-medium">Password</span>
+                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" className="mt-1 min-h-12 w-full rounded-xl border border-slate-300 px-3" />
+              </label>
+              <p className="rounded-lg bg-amber-50 p-2 text-xs text-amber-900">Demo accounts are filled in for you. They belong to fictional users.</p>
+            </>
+          )}
+          {error && <p className="rounded-lg bg-red-50 p-2 text-sm text-red-800" role="alert">{error}</p>}
+          <button type="submit" disabled={busy} className="btn-primary w-full text-lg">
+            {t('login.continue')}
+            <Icon name="arrow" />
+          </button>
+        </form>
         <p className="mt-4 text-center text-xs text-muted">Fictional village and demo users. No personal data is collected.</p>
       </div>
     </div>

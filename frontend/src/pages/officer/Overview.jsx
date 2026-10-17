@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useDemo } from '../../demo/DemoContext';
 import { openIncidentCount, visibleComplaints } from '../../demo/steps';
-import { HOME_VILLAGE, pipelinesFor, seed } from '../../data/seed';
+import { currentIncidentCode, HOME_VILLAGE, pipelinesFor, seed } from '../../data/seed';
 import { monthsBetween } from '@shared/risk.mjs';
 import { Card, Chip, Kpi, PageHeader, RiskChip, SimBadge } from '../../components/ui';
 
@@ -46,7 +46,7 @@ export default function Overview() {
                 return (
                   <tr key={v.id} className="border-t border-slate-100">
                     <td className="py-3 font-semibold">{v.name}</td>
-                    <td className="py-3">{incident ? <Chip level="problem">Incident INC-0311</Chip> : <Chip level="normal">Normal</Chip>}</td>
+                    <td className="py-3">{incident ? <Chip level="problem">Incident {currentIncidentCode()}</Chip> : <Chip level="normal">Normal</Chip>}</td>
                     <td className="py-3">{isHome ? visibleComplaints(step).length : 0}</td>
                   </tr>
                 );

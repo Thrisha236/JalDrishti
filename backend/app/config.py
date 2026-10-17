@@ -13,7 +13,14 @@ UPLOAD_DIR = Path(os.environ.get("JALRAKSHAK_UPLOADS", BACKEND_DIR / "uploads"))
 MAX_PHOTO_BYTES = 8 * 1024 * 1024
 MAX_PHOTO_SIDE = 1600
 
-# Signing key for demo session tokens. A random key per process is fine for the prototype
+# Password given to every fictional demo user when the seed is loaded. Local demos only: set
+# JALRAKSHAK_DEMO_PASSWORD (or create real users) for anything shared.
+DEMO_PASSWORD = os.environ.get("JALRAKSHAK_DEMO_PASSWORD", "jalrakshak-demo")
+# Sign-in protection: this many wrong passwords for one username locks it for LOGIN_LOCK_SECONDS.
+LOGIN_MAX_FAILURES = 5
+LOGIN_LOCK_SECONDS = 60
+
+# Signing key for session tokens (JWT, HS256). A random key per process is fine for the prototype
 # (tokens simply stop working after a restart and the app logs in again).
 SECRET_KEY = os.environ.get("JALRAKSHAK_SECRET") or os.urandom(32).hex()
 TOKEN_TTL_SECONDS = 12 * 60 * 60
