@@ -116,9 +116,3 @@ def alerts(session: DB, village_id: Annotated[str | None, Query()] = None):
     return [rm.alert(a) for a in rows]
 
 
-@app.get(f"{API}/incidents/{{code}}/verification")
-def incident_verification(code: str, session: DB):
-    v = session.get(m.Verification, code)
-    if v is None:
-        raise HTTPException(404, f"No verification for incident {code}")
-    return rm.verification(session, v)

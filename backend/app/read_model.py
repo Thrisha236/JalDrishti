@@ -138,7 +138,7 @@ def complaint(session: Session, c: m.Complaint, public: bool = False) -> dict:
 
 def complaint_progress(session: Session, c: m.Complaint) -> list[dict]:
     """What has happened to a complaint, from real records only: received, grouped into an incident,
-    repair started, repair done. Restoration is added by the verification step (Stage 10)."""
+    repair started, repair done, and how it was closed (verified by sensors, or resolved without sensor proof)."""
     events = [{"key": "received", "at": c.created_at}]
     if c.incident_code:
         inc = session.get(m.Incident, c.incident_code)
@@ -150,6 +150,11 @@ def complaint_progress(session: Session, c: m.Complaint) -> list[dict]:
                     events.append({"key": "repair_started", "at": u.at})
                 if u.status == "REPAIRED":
                     events.append({"key": "repaired", "at": u.at})
+        v = session.get(m.Verification, inc.code)
+        if v is not None and v.result == "VERIFIED_RESTORED":
+            events.append({"key": "restored", "at": v.verified_at})
+        elif v is not None and v.result == "RESOLVED_UNVERIFIED":
+            events.append({"key": "resolved_unverified", "at": v.verified_at})
     return events
 
 
@@ -216,8 +221,14 @@ def verification(session: Session, v: m.Verification) -> dict:
     windows = _rows(session, m.VerificationWindow, m.VerificationWindow.incident_code == v.incident_code)
     return {
         "incident_code": v.incident_code, "method": v.method, "rule": v.rule,
-        "windows": [{"start": w.start, "end": w.end, "result": w.result, "tail_pressure_mean_bar": w.tail_pressure_mean_bar} for w in windows],
+        "windows": [
+            _drop_none({"start": w.start, "end": w.end, "result": w.result, "tail_pressure_mean_bar": w.tail_pressure_mean_bar,
+                        "tail_flow_mean_lpm": w.tail_flow_mean_lpm, "readings": w.readings, "reason": w.reason},
+                       "tail_flow_mean_lpm", "readings", "reason")
+            for w in windows
+        ],
         "result": v.result, "verified_at": v.verified_at, "is_simulated": v.is_simulated,
+        **_drop_none({"started_at": v.started_at, "window_seconds": v.window_seconds, "note": v.note}, "started_at", "window_seconds", "note"),
     }
 
 
@@ -311,7 +322,8 @@ def snapshot(session: Session) -> dict:
             "incident": incident(session, current) if current else None,
             "task": task(session, current_task) if current_task else None,
             "verification": verification(session, current_ver) if current_ver else None,
-            "notifications": [notification(n) for n in _rows(session, m.Notification)],
+            # Scripted notifications only: live ones belong to a signed-in villager (GET /notifications/mine).
+            "notifications": [notification(n) for n in _rows(session, m.Notification, m.Notification.is_live.is_(False))],
         },
         "risk": all_risk(session),
     }

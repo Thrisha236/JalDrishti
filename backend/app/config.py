@@ -44,3 +44,9 @@ DEMO_MODE = os.environ.get("JALRAKSHAK_DEMO", "1") == "1"
 
 # The Vite dev server; the production build will be served from the same origin.
 CORS_ORIGINS = os.environ.get("JALRAKSHAK_CORS", "http://localhost:5173,http://127.0.0.1:5173").split(",")
+
+# Stage 10 restoration verification. With supply treated as always on (demo), each verification window is a
+# fixed slot of VERIFY_WINDOW_SECONDS after the repair; otherwise the area's scheduled supply windows are used.
+VERIFY_WINDOW_SECONDS = int(os.environ.get("JALRAKSHAK_VERIFY_WINDOW_SECONDS", "60"))
+VERIFY_MIN_READINGS = 5  # per sensor per window; fewer means the window cannot be judged
+VERIFY_IN_BAND_SHARE = 0.8  # share of readings that must sit inside the normal band

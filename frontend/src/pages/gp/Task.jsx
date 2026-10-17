@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useDemo } from '../../demo/DemoContext';
 import { S, storyCode } from '../../demo/steps';
@@ -31,7 +31,7 @@ function Progress({ updates }) {
   );
 }
 
-/** Restoration check. Still the scripted story in every mode; it becomes live in Stage 10. */
+/** Offline demo: the scripted restoration check from the bundled seed. */
 function RestorationCheck({ repaired }) {
   const { step, advanceTo, report } = useDemo();
   const ver = scripted.verification;
@@ -39,7 +39,7 @@ function RestorationCheck({ repaired }) {
   const [w1, w2] = verificationSeries();
   const before = complaintDaySeries().slice(13);
   return (
-    <Card title="Restoration check" className="lg:col-span-3" action={<SimBadge>{dataSource === 'api' ? 'Scripted until Stage 10' : 'Simulated data'}</SimBadge>}>
+    <Card title="Restoration check" className="lg:col-span-3" action={<SimBadge />}>
       {!repaired ? (
         <p className="text-muted">Available after the repair is recorded. The incident closes only when readings recover.</p>
       ) : (
@@ -81,6 +81,142 @@ function RestorationCheck({ repaired }) {
                 Run restoration check on both windows
               </button>
               <Chip level="info" className="mt-3">Verifying</Chip>
+            </>
+          )}
+        </>
+      )}
+    </Card>
+  );
+}
+
+const WINDOW_LOOK = {
+  PASSED: { cls: 'border-green-200 bg-green-50', label: 'passed' },
+  FAILED: { cls: 'border-red-200 bg-red-50', label: 'failed' },
+  INCONCLUSIVE: { cls: 'border-slate-200 bg-slate-50', label: 'inconclusive' },
+};
+const CLOSED = ['VERIFIED_RESTORED', 'RESOLVED_UNVERIFIED'];
+
+/** API mode: the restoration check judged by the backend from live tail readings (Stage 10). */
+function LiveRestoration({ incidentCode, repaired }) {
+  const { advanceTo, report } = useDemo();
+  const { data, error } = usePolling(() => publicGet(`/incidents/${incidentCode}/verification`), 5000, repaired);
+  const sensorBased = data?.method === 'sensor_window';
+  const { data: tail } = usePolling(() => apiFetch('/readings?sensor_id=sen-tail-pressure&minutes=30', { role: 'gp' }), 5000, repaired && sensorBased);
+  const [override, setOverride] = useState(null);
+  const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState(null);
+  const ver = override && !(data && CLOSED.includes(data.result)) ? override : data;
+  const result = ver?.result;
+
+  useEffect(() => {
+    if (CLOSED.includes(result)) advanceTo(S.VERIFIED);
+  }, [result, advanceTo]);
+
+  const resolve = async () => {
+    setBusy(true);
+    setMessage(null);
+    try {
+      const saved = await apiFetch(`/incidents/${incidentCode}/resolve`, { role: 'gp', method: 'POST', json: true, body: JSON.stringify({ note: note.trim() }) });
+      setOverride(saved);
+    } catch (e) {
+      setMessage(e.problems?.[0]?.msg ?? e.message);
+    }
+    setBusy(false);
+  };
+
+  const ok = (tail ?? []).filter((r) => r.quality_flag === 'ok');
+  const before = ok.filter((r) => ver?.started_at && r.ts < ver.started_at).map((r) => r.value);
+  const after = ok.filter((r) => ver?.started_at && r.ts >= ver.started_at).map((r) => r.value);
+  const segments = [
+    ...(before.length ? [{ label: 'Before repair', values: before, color: '#B91C1C' }] : []),
+    ...(after.length ? [{ label: `After repair · ${after.length} readings`, values: after }] : []),
+  ];
+  const secondsLeft = ver?.current_window ? Math.max(0, Math.round((new Date(ver.current_window.end) - Date.now()) / 1000)) : null;
+
+  return (
+    <Card title="Restoration check" className="lg:col-span-3" action={<SimBadge>Live · simulated sensors</SimBadge>}>
+      {!repaired ? (
+        <p className="text-muted">Available after the repair is recorded. The incident closes only when readings recover.</p>
+      ) : !ver ? (
+        <p className="text-muted">{error ?? 'Loading…'}</p>
+      ) : (
+        <>
+          <p className="mb-3 text-sm">
+            <span className="font-semibold">Rule:</span> {ver.rule}.
+          </p>
+          {segments.length > 0 && <LineChart segments={segments} band={tailBand()} unit="bar" />}
+
+          {ver.windows.length > 0 && (
+            <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+              {ver.windows.map((w, i) => (
+                <li key={w.start} className={`rounded-xl border p-3 text-sm ${WINDOW_LOOK[w.result]?.cls ?? ''}`}>
+                  <span className="font-semibold">
+                    Window {i + 1}: {WINDOW_LOOK[w.result]?.label ?? w.result}
+                  </span>
+                  <span className="block text-muted">
+                    {fmtTime(w.start)} · {w.readings ?? 0} readings
+                    {w.tail_pressure_mean_bar != null && ` · ${w.tail_pressure_mean_bar} bar`}
+                    {w.tail_flow_mean_lpm != null && ` · ${w.tail_flow_mean_lpm} L/min`}
+                  </span>
+                  {w.reason && <span className="block text-xs text-muted">{w.reason}</span>}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {result === 'VERIFIED_RESTORED' && (
+            <div className="mt-4 flex items-center gap-3 rounded-2xl border border-green-300 bg-gradient-to-b from-green-50 to-white p-4">
+              <Icon name="shield" className="h-10 w-10 text-green-700" />
+              <div>
+                <p className="text-xl font-bold text-green-800">Verified Restored</p>
+                <p className="text-sm text-muted">
+                  {fmtTime(ver.verified_at)} · incident {incidentCode} closed · villager #{storyCode(report)} notified in the app
+                </p>
+                <p className="text-xs text-muted">Supply readings only. This is not a water-quality or safety certification.</p>
+              </div>
+            </div>
+          )}
+          {result === 'RESOLVED_UNVERIFIED' && (
+            <div className="mt-4 rounded-2xl border border-amber-300 bg-amber-50 p-4">
+              <p className="text-lg font-bold text-amber-900">Resolved — not sensor-verified</p>
+              <p className="text-sm text-amber-900">
+                Closed by the Gram Panchayat on {fmtTime(ver.verified_at)}: “{ver.note}”
+              </p>
+            </div>
+          )}
+          {result === 'RESTORATION_UNCONFIRMED' && (
+            <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-900">
+              Readings have not recovered after the repair. The fault may still be there: re-inspect P-21. Checking continues; two windows in a row must pass.
+            </p>
+          )}
+
+          {!CLOSED.includes(result) && (
+            <>
+              {sensorBased ? (
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  <Chip level="info">
+                    Verifying · {ver.passed_in_row} of {ver.required_windows} windows passed in a row
+                  </Chip>
+                  {secondsLeft != null && <span className="text-sm text-muted">Current window ends in {secondsLeft} s</span>}
+                </div>
+              ) : (
+                <p className="mt-3 text-sm text-muted">No sensor covers this pipeline, so restoration cannot be sensor-verified.</p>
+              )}
+              {sensorBased && ver.window_seconds && (
+                <p className="mt-2 text-xs text-muted">
+                  Demo: supply is treated as always on, so each window is a {ver.window_seconds} s slot. Send normal readings with <code>python simulator\sim.py --scenario normal --interval 2</code>.
+                </p>
+              )}
+              <details className="mt-4 rounded-xl border border-slate-200 p-3" open={!sensorBased}>
+                <summary className="cursor-pointer text-sm font-semibold">Close without sensor proof</summary>
+                <p className="mt-2 text-xs text-muted">Recorded as “Resolved — not sensor-verified”, never as verified. Give the reason (for example, villagers confirmed supply).</p>
+                <textarea value={note} onChange={(e) => setNote(e.target.value.slice(0, 300))} rows={2} className="mt-2 w-full rounded-lg border border-slate-300 p-2 text-sm" />
+                <button type="button" onClick={resolve} disabled={busy || note.trim().length < 5} className="btn-outline mt-2 w-full">
+                  Close as not sensor-verified
+                </button>
+                {message && <p className="mt-2 text-sm text-red-800">{message}</p>}
+              </details>
             </>
           )}
         </>
@@ -165,7 +301,7 @@ function LiveTask({ code }) {
             {message && <p className="mt-3 rounded-lg bg-slate-50 p-3 text-sm">{message}</p>}
           </Card>
         </div>
-        <RestorationCheck repaired={task.status === 'REPAIRED'} />
+        <LiveRestoration incidentCode={task.incident_code} repaired={task.status === 'REPAIRED'} />
       </div>
     </div>
   );

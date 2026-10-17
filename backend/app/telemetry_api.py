@@ -14,6 +14,7 @@ from . import config
 from . import models as m
 from . import read_model as rm
 from . import rules
+from . import verification
 from .auth import CurrentUser
 from .db import get_session
 
@@ -90,7 +91,8 @@ def ingest(batch: ReadingBatch, session: DB, x_device_key: Annotated[str | None,
         node.battery_v = batch.battery_v
     session.commit()
     changes = rules.evaluate(session, now)
-    return {"accepted": len(batch.readings), "flagged": flagged, "node_id": node.id, "ts": _iso(taken), "alerts": changes}
+    verified = verification.check_open(session, now)
+    return {"accepted": len(batch.readings), "flagged": flagged, "node_id": node.id, "ts": _iso(taken), "alerts": changes, "verified": verified}
 
 
 @router.get("/readings")

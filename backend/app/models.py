@@ -301,9 +301,15 @@ class Verification(Base):
     incident_code: Mapped[str] = mapped_column(ForeignKey("incidents.code"), primary_key=True)
     method: Mapped[str]  # sensor_window | manual | citizen
     rule: Mapped[str] = mapped_column(Text)
-    result: Mapped[str]  # VERIFIED_RESTORED | RESTORATION_UNCONFIRMED | RESOLVED_UNVERIFIED
+    result: Mapped[str]  # PENDING | VERIFIED_RESTORED | RESTORATION_UNCONFIRMED | RESOLVED_UNVERIFIED
     verified_at: Mapped[str | None]
     is_simulated: Mapped[bool] = mapped_column(Boolean)
+    # Live verification (Stage 10): windows start at the repair; checked_until is the end of the last window examined.
+    started_at: Mapped[str | None] = mapped_column(default=None)
+    window_seconds: Mapped[int | None] = mapped_column(Integer, default=None)  # demo only; None = scheduled supply windows
+    checked_until: Mapped[str | None] = mapped_column(default=None)
+    resolved_by: Mapped[str | None] = mapped_column(ForeignKey("users.id"), default=None)
+    note: Mapped[str | None] = mapped_column(Text, default=None)
 
 
 class VerificationWindow(Base):
@@ -313,13 +319,16 @@ class VerificationWindow(Base):
     incident_code: Mapped[str] = mapped_column(ForeignKey("verifications.incident_code"))
     start: Mapped[str]
     end: Mapped[str]
-    result: Mapped[str]
-    tail_pressure_mean_bar: Mapped[float] = mapped_column(Float)
+    result: Mapped[str]  # PASSED | FAILED | INCONCLUSIVE
+    tail_pressure_mean_bar: Mapped[float | None] = mapped_column(Float)
+    tail_flow_mean_lpm: Mapped[float | None] = mapped_column(Float, default=None)
+    readings: Mapped[int | None] = mapped_column(Integer, default=None)
+    reason: Mapped[str | None] = mapped_column(Text, default=None)
 
 
 class Notification(Base):
-    """Scripted citizen notifications for the story. complaint_code is a plain reference (no foreign key)
-    because the story's complaint #2048 is created live during the demo."""
+    """Citizen notifications (in-app only; no SMS or IVR in the prototype). complaint_code is a plain reference
+    (no foreign key) because scripted notifications may refer to a complaint that is created live during the demo."""
 
     __tablename__ = "notifications"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -328,6 +337,7 @@ class Notification(Base):
     complaint_code: Mapped[str]
     at: Mapped[str]
     message_key: Mapped[str]
+    is_live: Mapped[bool] = mapped_column(Boolean, default=False)  # created by the backend, not loaded from the seed
 
 
 class AuditLog(Base):

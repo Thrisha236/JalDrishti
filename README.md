@@ -446,3 +446,71 @@ Codes follow the story because the server allocates the lowest unused number. Wi
 - The fusion weights are expert judgement, not learned from field data.
 - Technicians have no app login. The GP records progress on their behalf.
 - There is no token refresh or revocation. Tokens expire after 12 h.
+
+## Stage 10: live restoration verification and villager notifications
+
+After pulling, reload the database (new verification and notification columns):
+
+```powershell
+cd backend
+.\.venv\Scripts\python.exe -m app.seed_loader
+```
+
+### How restoration is verified (`backend/app/verification.py`)
+
+A recorded repair does not close an incident by itself. The incident closes only when the readings recover.
+
+- **Rule:** tail pressure and tail flow on the repaired pipeline stay within their normal bands for **2 consecutive supply windows** after the repair.
+- **What counts as a window.** Normally these are the area's scheduled supply windows (North Area: 06:00–08:00 and 18:00–19:00). In the demo, supply is treated as always on, so each window is a 60 s slot after the repair. Set `JALRAKSHAK_VERIFY_WINDOW_SECONDS` to change the slot length.
+- **Which readings count.** Readings count from the second after the repair, so values from the old fault are never included.
+- **Each window is judged as one of:**
+  - **Passed:** at least 5 trusted readings from each tail sensor, and at least 80% of them inside the normal band.
+  - **Failed:** enough readings, but pressure or flow stayed out of band. The verification becomes *Restoration unconfirmed*, and the GP is told to re-inspect.
+  - **Inconclusive:** too few readings, or a sensor fault on the node overlapped the window. A sensor fault is never counted as a pass.
+- **Counting.** A failed or inconclusive window resets the count. In demo slots, a window with no readings at all is skipped, because the simulator was not running. In a scheduled supply window, silence is inconclusive.
+- **What happens on verification.** The incident becomes `VERIFIED_RESTORED`, the villager's timeline shows "Water restored — verified" with the real time, and every villager whose report was grouped under the incident is notified.
+- **When checks run.** Checks run on every reading batch and whenever the verification is viewed. They are idempotent, so no window is judged twice and no message is sent twice.
+- **Pipelines without tail sensors,** or any other case where the GP closes without sensor proof, are recorded as **"Resolved — not sensor-verified"**. This needs a written reason, is audited, and is never shown as verified.
+- **Scope of the check.** These readings show supply only. They are not a water-quality or safety certification.
+
+### Notifications
+
+- Villagers get **in-app** updates when their report is being checked, when the repair starts, and when supply is verified restored (or resolved without sensor proof). Updates are available in English, Telugu and Hindi.
+- They appear under **Updates** on the villager's home screen (`GET /notifications/mine`).
+- SMS and voice calls are not connected in the prototype, and no phone numbers are stored.
+- Live notifications never appear in the public snapshot.
+
+### Story walk-through (continues Stage 9)
+
+1. After **Record repair done** on T-118, the task page shows the live restoration check: the rule, a chart of before and after the repair, and a countdown for the current window.
+2. Send normal readings:
+   ```powershell
+   python simulator\sim.py --scenario normal --interval 2 --count 80
+   ```
+3. Within about 3 minutes, two windows pass and the card shows **Verified Restored**.
+4. Sign in as `villager1`. Complaint #2048 shows "Water restored — verified", and **Updates** lists the three messages.
+
+To see a failed window, send `--scenario leak` after the repair instead.
+
+### Endpoints
+
+`GET /incidents/{code}/verification` (now live: windows, consecutive passes, current window) · `POST /incidents/{code}/resolve` (GP, reason required) · `GET /notifications/mine`
+
+### Tests
+
+`python -m pytest` now runs 113 tests. The new ones cover:
+- a pending verification after the repair
+- two normal windows verifying, closing the incident and notifying the villager once
+- a leak still present failing a window, then recovery
+- too few readings, and skipped empty slots
+- a sensor fault making a window inconclusive
+- scheduled supply windows outside demo mode
+- manual resolution and its rules
+- pipelines without sensors
+- notification privacy
+
+### Known limits of Stage 10
+
+- Bands and thresholds (80% in band, 5 readings) are starting values for the bench rig, not field-validated.
+- A failed window asks the GP to re-inspect. It does not yet reopen the task automatically.
+- Notifications are in-app only. SMS or IVR delivery needs a provider and consent handling (Stage 11 or later).
