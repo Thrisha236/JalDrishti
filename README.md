@@ -239,3 +239,69 @@ python simulator\sim.py --scenario node-offline # Node B goes silent (equipment 
 - There are no alert rules yet. Spotting the leak or a stuck sensor automatically is Stage 7.
 - Readings are kept indefinitely in SQLite; retention and down-sampling come with PostgreSQL in Stage 7.
 - The story charts on the dashboard and task pages are still the scripted series; the live charts are on Water Status.
+
+## Stage 7: rule-based alerts with a sensor-health gate
+
+After pulling, reload the database (alerts gained a `cleared_at` column):
+
+```powershell
+cd backend
+.\.venv\Scripts\python.exe -m app.seed_loader
+```
+
+### How the rules engine works (`backend/app/rules.py`)
+
+The engine runs after every batch of readings arrives, and again whenever the alert list is polled, so a node that goes silent is noticed even when nothing new arrives.
+
+**1. Sensor-health gate (equipment alerts, shown in grey):**
+
+| Rule | Fires when | Effect |
+|---|---|---|
+| `NODE_OFFLINE` | a node has not reported for 30 s | its sensors are not used; open water alerts keep their last state |
+| `SENSOR_OUT_OF_RANGE` | the latest value is physically impossible | sensor excluded |
+| `SENSOR_STUCK` | 6 identical non-zero values in a row | sensor excluded |
+| `SENSOR_INCONSISTENT` | head flow above 5 L/min while pump current is below 0.3 A | both sensors excluded |
+
+**2. Water rules (water alerts, shown in red), on trusted sensors during supply hours only:**
+
+| Rule | Fires when |
+|---|---|
+| `PUMP_OFF_IN_SUPPLY` | pump current below 0.3 A |
+| `NO_FLOW_IN_SUPPLY` | head and tail flow both below 2 L/min |
+| `HEAD_TAIL_FLOW_GAP` | head flow above 10 L/min, and head minus tail is more than max(8 L/min, 15% of head): a possible leak |
+| `TAIL_PRESSURE_LOW_IN_SUPPLY` | tail pressure below its normal band (1.05 bar) |
+
+**3. Rules for raising and clearing alerts:**
+- **Persistence:** an alert needs 3 consecutive readings to raise and 3 to clear, so one noisy value does nothing.
+- **Withdrawal:** an alert built on a sensor later found faulty is withdrawn, and the reason is recorded.
+- **Supply hours:** outside scheduled supply, low flow is expected and does not alert. For live demos at any hour, demo mode treats supply as always on (`JALRAKSHAK_DEMO_SUPPLY_ALWAYS_ON=0` turns this off), and every alert records which mode was used.
+- **Thresholds:** all are in `THRESHOLDS` in `rules.py`. They are starting values for the bench rig, not field-validated.
+
+### See it
+
+1. Start the API and the frontend.
+2. Run `python simulator\sim.py --scenario leak`, then `normal`, then `node-offline`.
+3. Watch **Water Status** (the live alerts are at the top) or the dashboard.
+
+What you should see:
+- **leak:** two water alerts (flow gap, low tail pressure). They clear about 3 readings after switching back to normal.
+- **pump-off:** pump off, no flow, and low tail pressure.
+- **node-offline:** an equipment alert only, never a water alert.
+
+### Endpoints
+
+`GET /api/v1/alerts/active` (open live alerts, water first) and `GET /api/v1/alerts/recent?minutes=` (including cleared alerts, with the reason). The scripted story alerts AL-76 and AL-77 stay separate.
+
+### Tests
+
+`python -m pytest` now runs 69 tests. The new ones cover:
+- every scenario, persistence and clearing
+- idempotency
+- each sensor-health rule, including withdrawing a low-pressure alert once the sensor is found to be stuck
+- schedule gating, alert ordering, and the endpoints
+
+### Known limits of Stage 7
+
+- The rules are thresholds, not machine learning. Anomaly detection (z-score, then Isolation Forest) is a later step.
+- Alerts are not yet linked to complaints or incidents; that evidence fusion is Stage 9.
+- PostgreSQL, Alembic migrations and reading retention are deferred, because SQLite is enough for the demo. Upgrading means reloading the seed.

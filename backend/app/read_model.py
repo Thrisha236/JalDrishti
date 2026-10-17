@@ -116,9 +116,9 @@ def alert(a: m.Alert) -> dict:
         {
             "id": a.id, "kind": a.kind, "rule_code": a.rule_code, "severity": a.severity, "asset_id": a.asset_id,
             "sensor_id": a.sensor_id, "service_area_id": a.service_area_id, "raised_at": a.raised_at,
-            "details": a.details, "text": a.text, "is_simulated": a.is_simulated,
+            "details": a.details, "text": a.text, "is_simulated": a.is_simulated, "cleared_at": a.cleared_at,
         },
-        "sensor_id", "details",
+        "sensor_id", "details", "cleared_at",
     )
 
 

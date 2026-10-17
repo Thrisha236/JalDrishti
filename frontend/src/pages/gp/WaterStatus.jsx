@@ -2,6 +2,7 @@ import { dataSource, fmtTime } from '../../data/seed';
 import { CHART_SENSORS, POLL_MS, useLiveTelemetry } from '../../data/telemetry';
 import { Card, Chip, EmptyState, PageHeader, SimBadge } from '../../components/ui';
 import LineChart from '../../components/LineChart';
+import LiveAlerts from '../../components/LiveAlerts';
 
 const NAMES = {
   'sen-tail-pressure': 'Tail pressure · P-21 end',
@@ -70,6 +71,16 @@ export default function WaterStatus() {
       </PageHeader>
 
       {error && <p className="mb-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">Could not refresh: {error}. Showing the last data received.</p>}
+
+      {data && (
+        <Card title="Live alerts" className="mb-5" action={<SimBadge>Rules engine on simulated data</SimBadge>}>
+          <LiveAlerts alerts={data.alerts} />
+          <p className="mt-2 text-xs text-muted">
+            An alert needs 3 consecutive readings to raise and 3 to clear. Sensors that are offline, stuck, impossible or contradicting each other are excluded from
+            water rules.
+          </p>
+        </Card>
+      )}
 
       {live && (
         <div className="mb-5 grid gap-3 md:grid-cols-2">

@@ -3,6 +3,7 @@ import { useDemo } from '../../demo/DemoContext';
 import { activeAlerts, areaStatus, openIncidentCount, S, visibleComplaints } from '../../demo/steps';
 import { areasFor, dataSource, HOME_VILLAGE, fmtDate, fmtTime, seed, story } from '../../data/seed';
 import { useLiveTelemetry } from '../../data/telemetry';
+import LiveAlerts from '../../components/LiveAlerts';
 import { complaintDaySeries, tailBand } from '../../data/series';
 import { Card, Chip, Kpi, PageHeader, SimBadge } from '../../components/ui';
 import LineChart from '../../components/LineChart';
@@ -34,7 +35,12 @@ export default function Dashboard() {
 
       <div className="grid gap-5 lg:grid-cols-3">
         <div className="flex flex-col gap-5 lg:col-span-2">
-          <Card title="Alerts" action={<SimBadge />}>
+          {telemetry && (
+            <Card title="Live alerts (sensors)" action={<Link to="/gp/water" className="text-sm font-semibold text-brand-600">Water Status</Link>}>
+              <LiveAlerts alerts={telemetry.alerts} compact />
+            </Card>
+          )}
+          <Card title="Story alerts" action={<SimBadge>Scripted demo</SimBadge>}>
             {alerts.length === 0 && <p className="text-muted">No active alerts. North Area was verified restored on {fmtTime(story.verification.verified_at)}.</p>}
             <ul className="flex flex-col gap-3">
               {alerts.map((a) => (

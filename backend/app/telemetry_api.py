@@ -12,6 +12,8 @@ from sqlalchemy.orm import Session
 
 from . import config
 from . import models as m
+from . import read_model as rm
+from . import rules
 from .auth import CurrentUser
 from .db import get_session
 
@@ -87,7 +89,8 @@ def ingest(batch: ReadingBatch, session: DB, x_device_key: Annotated[str | None,
     if batch.battery_v is not None:
         node.battery_v = batch.battery_v
     session.commit()
-    return {"accepted": len(batch.readings), "flagged": flagged, "node_id": node.id, "ts": _iso(taken)}
+    changes = rules.evaluate(session, now)
+    return {"accepted": len(batch.readings), "flagged": flagged, "node_id": node.id, "ts": _iso(taken), "alerts": changes}
 
 
 @router.get("/readings")
@@ -139,3 +142,30 @@ def live(_user: CurrentUser, session: DB):
             }
         )
     return {"server_time": _iso(now), "offline_after_seconds": config.NODE_OFFLINE_AFTER_SECONDS, "nodes": out_nodes, "sensors": out_sensors}
+
+
+SEVERITY_ORDER = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3}
+
+
+def _live_alert(a: m.Alert) -> dict:
+    return {**rm.alert(a), "rule_code": a.rule_code, "cleared_at": a.cleared_at}
+
+
+@router.get("/alerts/active")
+def active_alerts(_user: CurrentUser, session: DB):
+    """Open alerts from the rules engine (scripted story alerts excluded). Re-evaluates first, so a node that
+    has gone silent is noticed even when no new readings arrive."""
+    rules.evaluate(session)
+    rows = session.scalars(select(m.Alert).where(m.Alert.is_simulated.is_(False), m.Alert.cleared_at.is_(None))).all()
+    rows = sorted(rows, key=lambda a: (a.kind != "WATER_SERVICE", SEVERITY_ORDER.get(a.severity, 9), a.raised_at))
+    return [_live_alert(a) for a in rows]
+
+
+@router.get("/alerts/recent")
+def recent_alerts(_user: CurrentUser, session: DB, minutes: Annotated[int, Query(ge=1, le=1440)] = 60):
+    """Live alerts raised in the last `minutes`, open or cleared, newest first."""
+    since = _iso(_now() - timedelta(minutes=minutes))
+    rows = session.scalars(
+        select(m.Alert).where(m.Alert.is_simulated.is_(False), m.Alert.raised_at >= since).order_by(m.Alert.raised_at.desc(), m.Alert.ord.desc())
+    ).all()
+    return [_live_alert(a) for a in rows]
