@@ -41,17 +41,26 @@ def _points_from_bands(value: float, bands: list[dict], min_key: str, max_key: s
     return 0
 
 
+def trend_points(drop_pct: float, risk_config: dict) -> int:
+    return _points_from_bands(drop_pct, risk_config["factors"]["pressure_per_flow_trend"]["bands"], "min_drop_pct", "max_drop_pct")
+
+
 def score_pipeline(
     profile: dict,
     repairs: list[dict],
     inspections: list[dict],
     risk_config: dict,
     as_of: str,
+    trend: dict | None = None,
 ) -> dict:
-    """profile/repairs/inspections use the seed's field names; repairs and inspections are for this asset."""
+    """profile/repairs/inspections use the seed's field names; repairs and inspections are for this asset.
+
+    trend, when given, replaces the recorded pressure-per-flow drop with a measured one:
+    {"drop_pct": float, "detail": str}. Each factor also reports where its data came from (sources)."""
     cfg = risk_config["factors"]
     factors: dict[str, int] = {}
     details: dict[str, str] = {}
+    sources: dict[str, str] = {}
     missing: list[str] = []
 
     # Age
@@ -62,6 +71,7 @@ def score_pipeline(
         pts *= a["estimate_multiplier"]
     factors["age"] = _round(pts)
     details["age"] = f"{age} years ({profile['install_date_source']})"
+    sources["age"] = "estimate" if profile["install_date_source"] == "estimate" else "record"
 
     # Prior failures within the window
     window = cfg["prior_failures"]["window_months"]
@@ -69,16 +79,19 @@ def score_pipeline(
     key = "4+" if len(recent) >= 4 else str(len(recent))
     factors["prior_failures"] = cfg["prior_failures"]["points_by_count"][key]
     details["prior_failures"] = f"{len(recent)} in {window} months"
+    sources["prior_failures"] = "record"
 
     # Corrosion observation
     if profile["material"] in PLASTICS:
         factors["corrosion_observation"] = 0
         details["corrosion_observation"] = "not applicable (plastic pipe)"
+        sources["corrosion_observation"] = "not applicable"
     else:
         graded = sorted((i for i in inspections if i.get("corrosion_grade") is not None), key=lambda i: i["date"], reverse=True)
         if not graded:
             factors["corrosion_observation"] = 0
             details["corrosion_observation"] = "no inspection on record"
+            sources["corrosion_observation"] = "missing"
             missing.append("corrosion inspection")
         else:
             latest = graded[0]
@@ -89,22 +102,31 @@ def score_pipeline(
                 pts *= c["stale_multiplier"]
             factors["corrosion_observation"] = _round(pts)
             details["corrosion_observation"] = f"{latest['corrosion_grade']}/100, {latest['method']}, {latest['date']}{' (stale)' if stale else ''}"
+            sources["corrosion_observation"] = "inspection (stale)" if stale else "inspection"
 
-    # Pressure-per-flow trend
-    drop = profile.get("pressure_per_flow_drop_pct")
-    if drop is None:
+    # Pressure-per-flow trend: measured if available, else the recorded value, else missing
+    if trend is not None:
+        drop = trend["drop_pct"]
+        factors["pressure_per_flow_trend"] = trend_points(drop, risk_config)
+        details["pressure_per_flow_trend"] = trend["detail"]
+        sources["pressure_per_flow_trend"] = "live sensor"
+    elif profile.get("pressure_per_flow_drop_pct") is None:
         factors["pressure_per_flow_trend"] = 0
         details["pressure_per_flow_trend"] = "no sensor on this segment"
+        sources["pressure_per_flow_trend"] = "missing"
         missing.append("pressure/flow sensor")
     else:
-        factors["pressure_per_flow_trend"] = _points_from_bands(drop, cfg["pressure_per_flow_trend"]["bands"], "min_drop_pct", "max_drop_pct")
+        drop = profile["pressure_per_flow_drop_pct"]
+        factors["pressure_per_flow_trend"] = trend_points(drop, risk_config)
         drop_txt = int(drop) if float(drop).is_integer() else drop
         details["pressure_per_flow_trend"] = f"{drop_txt}% below baseline ({profile['trend_source']})"
+        sources["pressure_per_flow_trend"] = "record"
 
     # Material
     table = cfg["material_susceptibility"]["points_by_material"]
     factors["material_susceptibility"] = table.get(profile["material"], table["unknown"])
     details["material_susceptibility"] = f"{profile['material'].replace('_', ' ', 1)} ({profile['material_source']})"
+    sources["material_susceptibility"] = "assumption table"
 
     score = sum(factors.values())
     band = next(b for b in risk_config["bands"] if b["min"] <= score <= b["max"])
@@ -116,5 +138,7 @@ def score_pipeline(
         "factors": factors,
         "max": {k: v["max"] for k, v in cfg.items()},
         "details": details,
+        "sources": sources,
         "missing": missing,
+        "config_version": risk_config["version"],
     }

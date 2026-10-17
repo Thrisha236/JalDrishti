@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from . import models as m
 from .risk import score_pipeline
+from .trends import live_trend
 
 
 def _drop_none(d: dict, *optional: str) -> dict:
@@ -194,17 +195,53 @@ def notification(n: m.Notification) -> dict:
 
 # ---------- risk ----------
 
-def risk_for(session: Session, asset_id: str) -> dict | None:
-    profile = session.get(m.PipelineProfile, asset_id)
-    if profile is None:
+def active_risk_config(session: Session) -> dict:
+    row = session.scalars(select(m.RiskConfig).where(m.RiskConfig.is_active.is_(True))).one()
+    return row.config
+
+
+def risk_for(session: Session, asset_id: str, use_live: bool = True) -> dict | None:
+    """The risk score the system uses, plus how each data source affected it:
+    - comparison: score with the recorded trend vs with the live (measured) trend
+    - what_if: how the score would move if uncertain inputs were confirmed (estimated date, stale inspection)."""
+    profile_row = session.get(m.PipelineProfile, asset_id)
+    if profile_row is None:
         return None
-    return score_pipeline(
-        pipeline_profile(profile),
-        [repair(r) for r in _rows(session, m.Repair, m.Repair.asset_id == asset_id)],
-        [inspection(i) for i in _rows(session, m.Inspection, m.Inspection.asset_id == asset_id)],
-        config(session, "risk_config"),
-        config(session, "meta")["as_of"],
-    )
+    profile = pipeline_profile(profile_row)
+    repairs = [repair(r) for r in _rows(session, m.Repair, m.Repair.asset_id == asset_id)]
+    inspections = [inspection(i) for i in _rows(session, m.Inspection, m.Inspection.asset_id == asset_id)]
+    cfg = active_risk_config(session)
+    as_of = config(session, "meta")["as_of"]
+
+    def score(p=profile, ins=inspections, trend=None):
+        return score_pipeline(p, repairs, ins, cfg, as_of, trend)
+
+    recorded = score()
+    trend, reason = live_trend(session, asset_id) if use_live else (None, "live data not requested")
+    live = score(trend=trend) if trend else None
+    used = live or recorded
+
+    def brief(r):
+        return {"score": r["score"], "band": r["band"], "trend_points": r["factors"]["pressure_per_flow_trend"], "trend_detail": r["details"]["pressure_per_flow_trend"]}
+
+    what_if = []
+    if profile["install_date_source"] == "estimate":
+        alt = score(p={**profile, "install_date_source": "record"}, trend=trend)
+        what_if.append({"factor": "age", "if": "installation date confirmed from records", "points": alt["factors"]["age"], "score": alt["score"], "band": alt["band"]})
+    if used["sources"]["corrosion_observation"] == "inspection (stale)":
+        latest = max((i for i in inspections if i["corrosion_grade"] is not None), key=lambda i: i["date"])
+        alt = score(ins=[*inspections, {**latest, "id": "what-if", "date": as_of[:10]}], trend=trend)
+        what_if.append({"factor": "corrosion_observation", "if": "re-inspected now with the same grade", "points": alt["factors"]["corrosion_observation"], "score": alt["score"], "band": alt["band"]})
+    if used["sources"]["corrosion_observation"] == "missing":
+        top = cfg["factors"]["corrosion_observation"]["max"]
+        what_if.append({"factor": "corrosion_observation", "if": "an inspection finds severe corrosion", "points": top, "score": used["score"] + top, "band": None})
+
+    return {
+        **used,
+        "trend_basis": "live" if live else "record",
+        "comparison": {"recorded": brief(recorded), "live": brief(live) if live else None, "live_unavailable_reason": reason},
+        "what_if": what_if,
+    }
 
 
 def all_risk(session: Session) -> dict:
@@ -221,7 +258,7 @@ def snapshot(session: Session) -> dict:
     current_ver = session.scalars(select(m.Verification)).first()
     return {
         "meta": config(session, "meta"),
-        "risk_config": config(session, "risk_config"),
+        "risk_config": active_risk_config(session),
         "villages": [village(v) for v in _rows(session, m.Village)],
         "service_areas": [service_area(a) for a in _rows(session, m.ServiceArea)],
         "schemes": [scheme(session, s) for s in _rows(session, m.Scheme)],

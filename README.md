@@ -305,3 +305,48 @@ What you should see:
 - The rules are thresholds, not machine learning. Anomaly detection (z-score, then Isolation Forest) is a later step.
 - Alerts are not yet linked to complaints or incidents; that evidence fusion is Stage 9.
 - PostgreSQL, Alembic migrations and reading retention are deferred, because SQLite is enough for the demo. Upgrading means reloading the seed.
+
+## Stage 8: risk scored by the backend, with live trends and versioned rules
+
+After pulling, reload the database (new `risk_configs` table):
+
+```powershell
+cd backend
+.\.venv\Scripts\python.exe -m app.seed_loader
+```
+
+### What changed
+
+- **Risk comes from the backend in API mode.**
+  - Pipeline pages poll `GET /api/v1/pipelines/{id}/risk` every 10 s, and the list polls `GET /api/v1/pipelines`.
+  - The JavaScript scorer (`shared/risk.mjs`) is now used only by the seed validator and for offline demos.
+- **The live pressure-per-flow trend** (`backend/app/trends.py`) is the median tail-pressure ÷ tail-flow ratio over the last 60 minutes, compared with the recorded 14-day baseline.
+  - It is used only with at least 6 trusted readings in that hour, and only while water is flowing (≥ 10 L/min).
+  - Otherwise the recorded trend is used, and the reason is shown.
+  - Example: with leak readings, P-21's trend factor drops from 12 to 6 points, and its score from 72 to 66 (still HIGH).
+- **Every factor shows its data source:** `record`, `inspection`, `inspection (stale)`, `estimate`, `live sensor`, `assumption table`, `missing` or `not applicable`.
+  - The pipeline page puts **recorded and live** side by side and marks which one is in use.
+  - **What-if** checks show how the score would move if uncertain inputs were confirmed. For example, confirming K-04's estimated installation date would raise age from 13 to 25 points.
+- **Versioned rules.**
+  - Officers publish changes under **Officer → Risk rules**: the band thresholds, the year age points reach full, when an inspection counts as stale, and the material points.
+  - Every version is kept with its author, time and reason. Activating an older version rolls back.
+  - Changes are validated: factor maxima must total 100, points must stay within their maximum, bands must be contiguous, and the rules must keep stating that the score is not a failure probability.
+  - Changes are written to the audit log, and only officers can make them.
+
+### Endpoints
+
+`GET /pipelines/{id}/risk` · `GET /risk/config` · `GET /risk/config/versions` · `POST /risk/config` (officer) · `POST /risk/config/{version}/activate` (officer)
+
+### Tests
+
+`python -m pytest` now runs 90 tests. The new ones cover:
+- the recorded fallback, too few readings, normal and leak live trends, and pump-off being excluded
+- old readings being ignored, pipelines without sensors, and the pipeline list
+- the what-if checks: estimated date, missing inspection, stale inspection
+- publishing, rollback, role checks, five invalid-rule cases, and the audit trail
+
+### Known limits of Stage 8
+
+- The live trend window (60 min) and baseline are starting values; a field deployment would learn baselines per pipe from weeks of data.
+- Risk weights are still expert judgement (`assumption table`). Learning them needs real failure records.
+- Score history over time is not stored yet. Only the current score, the rules version and the comparison are shown.

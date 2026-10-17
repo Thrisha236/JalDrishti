@@ -17,6 +17,7 @@ import PipelineDetail from './pages/gp/PipelineDetail';
 import GpMap from './pages/gp/GpMap';
 import Task from './pages/gp/Task';
 import Overview from './pages/officer/Overview';
+import RiskRules from './pages/officer/RiskRules';
 
 function RequireRole({ role, children }) {
   const demo = useDemo();
@@ -53,6 +54,7 @@ export default function App() {
         <Route index element={<Overview />} />
         <Route path="pipelines" element={<Pipelines villageIds={['vil-ramapuram', 'vil-kondapur', 'vil-sitarampalli']} base="/officer" />} />
         <Route path="pipelines/:assetId" element={<PipelineDetail />} />
+        <Route path="risk-rules" element={<RiskRules />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from . import models as m
 from . import read_model as rm
 from .complaints_api import router as complaints_router
+from .risk_api import router as risk_router
 from .telemetry_api import router as telemetry_router
 from .config import CORS_ORIGINS
 from .db import get_session
@@ -26,6 +27,7 @@ app = FastAPI(
 app.add_middleware(CORSMiddleware, allow_origins=CORS_ORIGINS, allow_methods=["GET", "POST"], allow_headers=["Authorization", "Content-Type", "X-Device-Key"])
 app.include_router(complaints_router)
 app.include_router(telemetry_router)
+app.include_router(risk_router)
 
 DB = Annotated[Session, Depends(get_session)]
 API = "/api/v1"
@@ -46,7 +48,7 @@ def health(session: DB):
 
 @app.get(f"{API}/meta")
 def meta(session: DB):
-    risk_config = rm.config(session, "risk_config")
+    risk_config = rm.active_risk_config(session)
     return {**rm.config(session, "meta"), "risk_statement": risk_config["statement"], "risk_version": risk_config["version"]}
 
 

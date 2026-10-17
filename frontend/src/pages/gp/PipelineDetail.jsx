@@ -1,6 +1,8 @@
 import { Link, useParams } from 'react-router-dom';
 import { useDemo } from '../../demo/DemoContext';
-import { areas, assets, fmtDate, inspectionsFor, labelOf, repairsFor, riskFor, seed, villages } from '../../data/seed';
+import { areas, assets, dataSource, fmtDate, inspectionsFor, labelOf, repairsFor, riskFor, seed, villages } from '../../data/seed';
+import { publicGet } from '../../data/api';
+import { usePolling } from '../../data/telemetry';
 import { Card, EmptyState, PageHeader, SimBadge } from '../../components/ui';
 import RiskBreakdown from '../../components/RiskBreakdown';
 
@@ -9,16 +11,18 @@ export default function PipelineDetail() {
   const { role } = useDemo();
   const asset = assets[assetId];
   const profile = seed.pipeline_profiles.find((p) => p.asset_id === assetId);
+  // In API mode the score comes from the backend every 10 s, so live sensor data can move it.
+  const { data: liveRisk } = usePolling(() => publicGet(`/pipelines/${assetId}/risk`), 10000, dataSource === 'api' && Boolean(profile));
   if (!asset || !profile) return <EmptyState title="Pipeline not found" />;
 
-  const risk = riskFor(assetId);
+  const risk = liveRisk ?? riskFor(assetId);
   const area = areas[asset.service_area_id];
   const rows = [
     ['Material', labelOf(profile.material), profile.material_source],
     ['Installed', fmtDate(profile.install_date), profile.install_date_source],
     ['Diameter', profile.diameter_mm ? `${profile.diameter_mm} mm` : 'Unknown', profile.diameter_mm ? 'record' : 'not recorded'],
     ['Length', `${profile.length_m} m`, 'record'],
-    ['Pressure-per-flow trend', profile.pressure_per_flow_drop_pct == null ? 'No sensor' : `${profile.pressure_per_flow_drop_pct}% below baseline`, profile.trend_source],
+    ['Recorded pressure-per-flow trend', profile.pressure_per_flow_drop_pct == null ? 'No sensor' : `${profile.pressure_per_flow_drop_pct}% below baseline`, profile.trend_source],
   ];
 
   return (

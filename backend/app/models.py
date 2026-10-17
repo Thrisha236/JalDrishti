@@ -15,6 +15,20 @@ class Config(Base):
     value: Mapped[Any] = mapped_column(JSON)
 
 
+class RiskConfig(Base):
+    """Versioned risk-scoring rules. Exactly one version is active; old versions are kept so every score
+    can be traced to the rules that produced it, and a change can be rolled back."""
+
+    __tablename__ = "risk_configs"
+    version: Mapped[str] = mapped_column(String, primary_key=True)
+    ord: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[str]
+    created_by: Mapped[str | None] = mapped_column(ForeignKey("users.id"))
+    note: Mapped[str] = mapped_column(Text)
+    config: Mapped[Any] = mapped_column(JSON)
+    is_active: Mapped[bool] = mapped_column(Boolean)
+
+
 class Village(Base):
     __tablename__ = "villages"
     id: Mapped[str] = mapped_column(String, primary_key=True)
