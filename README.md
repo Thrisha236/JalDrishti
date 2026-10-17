@@ -6,16 +6,20 @@ A prototype rural water-service monitoring and response platform for SIH 2026, p
 
 > **Prototype notice:** every village, person, asset, ID and reading in this repository is fictional demo data. Government identifiers (LGD, Sujal Gaon, Sujalam Bharat) are mock values. Nothing here is integrated with IMIS, Sujalam Bharat or any JJM API.
 
+**New to the project? Start with [`docs/JalRakshak_Handover_Spec.docx`](docs/JalRakshak_Handover_Spec.docx).** It explains the idea, what is built (Stages 1–10), how to set it up on Windows, a 10-minute demo, how to work together on the code, known limits, and the roadmap from prototype to a real project.
+
+Quick start (after the one-time setup in Stage 4 below): run `python -m app.seed_loader` and `python -m uvicorn app.main:app --reload` in `backend/` (use `.venv\Scripts\python.exe`), and `npm run dev` in `frontend/`. Then open http://localhost:5173 and sign in as `villager1`, `gp.ramapuram` or `officer.block` with the demo password `jalrakshak-demo`.
+
 ## Repository layout
 
 | Path | What it holds | Stage |
 |---|---|---|
-| `docs/` | Plans, submission pack, idea deck | done |
+| `docs/` | Handover spec (start here), plans, submission pack, idea deck | done |
 | `seed/ramapuram.json` | The single demo dataset every part of the app reads | 1 ✅ |
 | `scripts/validate-seed.mjs` | Checks the seed: references, labelling, story order, risk arithmetic, no real phone numbers | 1 ✅ |
 | `shared/risk.mjs` | Pipeline risk scoring, used by the validator and the frontend | 1 ✅ |
 | `frontend/` | React + Vite + Tailwind app (Citizen, Gram Panchayat, Officer) | 3 ✅ |
-| `backend/` | FastAPI + SQLAlchemy + SQLite (PostgreSQL later): seed API, complaint submission, secure photos | 4–5 ✅ |
+| `backend/` | FastAPI + SQLAlchemy + SQLite (PostgreSQL later): API, complaints and photos, alerts, risk, incidents, tasks, sign-in, verification | 4–10 ✅ |
 | `simulator/` | Python sensor simulator (stdlib only): normal, leak, pump-off, node-offline | 6 ✅ |
 
 ## Stage 1: seed dataset
