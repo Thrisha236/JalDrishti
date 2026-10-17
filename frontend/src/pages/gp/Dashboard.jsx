@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom';
 import { useDemo } from '../../demo/DemoContext';
 import { activeAlerts, areaStatus, openIncidentCount, S, visibleComplaints } from '../../demo/steps';
-import { areasFor, dataSource, HOME_VILLAGE, fmtDate, fmtTime, seed, story } from '../../data/seed';
-import { useLiveTelemetry } from '../../data/telemetry';
+import { areasFor, currentIncidentCode, dataSource, HOME_VILLAGE, fmtDate, fmtTime, scripted, seed, story } from '../../data/seed';
+import { useLiveTelemetry, usePolling } from '../../data/telemetry';
+import { apiFetch } from '../../data/api';
 import LiveAlerts from '../../components/LiveAlerts';
 import { complaintDaySeries, tailBand } from '../../data/series';
 import { Card, Chip, Kpi, PageHeader, SimBadge } from '../../components/ui';
@@ -19,6 +20,7 @@ export default function Dashboard() {
   const series = complaintDaySeries();
   const { data: telemetry } = useLiveTelemetry({ withSeries: false });
   const liveNodes = telemetry?.live.nodes;
+  const { data: suggestions } = usePolling(() => apiFetch('/incidents/suggestions', { role: 'gp' }), 10000, dataSource === 'api');
 
   return (
     <div>
@@ -35,13 +37,34 @@ export default function Dashboard() {
 
       <div className="grid gap-5 lg:grid-cols-3">
         <div className="flex flex-col gap-5 lg:col-span-2">
+          {suggestions?.length > 0 && (
+            <Card title="Suggested incidents" action={<SimBadge>Evidence fusion</SimBadge>}>
+              <ul className="flex flex-col gap-3">
+                {suggestions.map((s) => (
+                  <li key={s.asset_id} className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 p-3">
+                    <Chip level={s.priority === 'HIGH' ? 'problem' : 'warning'}>{s.priority}</Chip>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold">
+                        {s.asset_code} · evidence score {s.evidence_score}
+                      </p>
+                      <p className="text-sm text-muted">{s.evidence.map((e) => e.type.toLowerCase()).join(' + ')} · {s.probable_cause}</p>
+                    </div>
+                    <Link to={`/gp/incidents/new?asset=${s.asset_id}`} className="btn-primary min-h-10 px-3 text-sm">
+                      Review evidence
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 text-xs text-muted">The system proposes; the Gram Panchayat decides whether to open an incident.</p>
+            </Card>
+          )}
           {telemetry && (
             <Card title="Live alerts (sensors)" action={<Link to="/gp/water" className="text-sm font-semibold text-brand-600">Water Status</Link>}>
               <LiveAlerts alerts={telemetry.alerts} compact />
             </Card>
           )}
           <Card title="Story alerts" action={<SimBadge>Scripted demo</SimBadge>}>
-            {alerts.length === 0 && <p className="text-muted">No active alerts. North Area was verified restored on {fmtTime(story.verification.verified_at)}.</p>}
+            {alerts.length === 0 && <p className="text-muted">No active alerts. North Area was verified restored on {fmtTime(scripted.verification.verified_at)}.</p>}
             <ul className="flex flex-col gap-3">
               {alerts.map((a) => (
                 <li key={a.id} className="flex flex-wrap items-start gap-3 rounded-xl border border-slate-200 p-3">
@@ -53,8 +76,8 @@ export default function Dashboard() {
                     </p>
                   </div>
                   {a.id === 'AL-77' && step >= S.INCIDENT && (
-                    <Link to="/gp/incidents/INC-0311" className="btn-outline min-h-10 px-3 text-sm">
-                      Open INC-0311
+                    <Link to={`/gp/incidents/${currentIncidentCode()}`} className="btn-outline min-h-10 px-3 text-sm">
+                      Open {currentIncidentCode()}
                     </Link>
                   )}
                   {a.id === 'AL-77' && step === S.REPORTED && (

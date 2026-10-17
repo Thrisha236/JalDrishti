@@ -1,53 +1,47 @@
-"""Demo sessions: a role picks a fictional demo user and receives a signed, expiring token.
+"""Sign-in with username and password, issuing a signed JWT (HS256) that carries the user id and role.
 
-This is deliberately small. It is enough to enforce role-based access to complaints and photos;
-password login and JWT come in Stage 9."""
+Every request still loads the user from the database, so a deleted or changed user loses access at once."""
 
-import base64
-import hashlib
-import hmac
-import json
 import time
 from typing import Annotated
 
-from fastapi import Depends, Header, HTTPException
+import jwt
+from fastapi import APIRouter, Depends, Header, HTTPException
+from pydantic import BaseModel, Field
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from . import config
 from . import models as m
 from .db import get_session
+from .passwords import verify_password
 
-DEMO_USER_FOR_ROLE = {"citizen": "usr-citizen-north", "gp": "usr-gp-ramapuram", "officer": "usr-officer-block"}
-
-
-def _b64(data: bytes) -> str:
-    return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
-
-
-def _unb64(text: str) -> bytes:
-    return base64.urlsafe_b64decode(text + "=" * (-len(text) % 4))
+router = APIRouter(prefix="/api/v1")
+ALGORITHM = "HS256"
+ISSUER = "jalrakshak"
 
 
-def _sign(payload: str) -> str:
-    return hmac.new(config.SECRET_KEY.encode(), payload.encode(), hashlib.sha256).hexdigest()
+class Credentials(BaseModel):
+    username: str = Field(min_length=1, max_length=64)
+    password: str = Field(min_length=1, max_length=128)
 
 
-def create_token(user_id: str, now: float | None = None) -> str:
-    payload = _b64(json.dumps({"sub": user_id, "exp": int((now or time.time()) + config.TOKEN_TTL_SECONDS)}).encode())
-    return f"{payload}.{_sign(payload)}"
+# ---------- tokens ----------
+
+def create_token(user_id: str, role: str | None = None, now: float | None = None) -> str:
+    issued = int(now or time.time())
+    claims = {"sub": user_id, "iat": issued, "exp": issued + config.TOKEN_TTL_SECONDS, "iss": ISSUER}
+    if role:
+        claims["role"] = role
+    return jwt.encode(claims, config.SECRET_KEY, algorithm=ALGORITHM)
 
 
 def read_token(token: str) -> str | None:
     """Return the user id for a valid, unexpired token, else None."""
     try:
-        payload, sig = token.split(".", 1)
-        if not hmac.compare_digest(sig, _sign(payload)):
-            return None
-        data = json.loads(_unb64(payload))
-        if data["exp"] < time.time():
-            return None
-        return data["sub"]
-    except (ValueError, KeyError, json.JSONDecodeError):
+        claims = jwt.decode(token, config.SECRET_KEY, algorithms=[ALGORITHM], issuer=ISSUER, options={"require": ["sub", "exp", "iat"]})
+        return claims["sub"]
+    except jwt.PyJWTError:
         return None
 
 
@@ -76,3 +70,42 @@ def village_ids_of(user: m.User) -> set[str]:
 def require_roles(user: m.User, *roles: str) -> None:
     if user.role not in roles:
         raise HTTPException(403, f"This action needs one of: {', '.join(roles)}")
+
+
+# ---------- sign-in ----------
+
+_failures: dict[str, list[float]] = {}  # username -> recent failure times (in memory; per process)
+
+
+def _locked(username: str, now: float) -> bool:
+    recent = [t for t in _failures.get(username, []) if now - t < config.LOGIN_LOCK_SECONDS]
+    _failures[username] = recent
+    return len(recent) >= config.LOGIN_MAX_FAILURES
+
+
+def reset_login_failures() -> None:
+    _failures.clear()
+
+
+@router.post("/auth/login")
+def login(body: Credentials, session: Annotated[Session, Depends(get_session)]):
+    """Exchange username and password for a session token. Errors never say which of the two was wrong."""
+    now = time.time()
+    name = body.username.strip().lower()
+    if _locked(name, now):
+        raise HTTPException(429, f"Too many attempts. Try again in {config.LOGIN_LOCK_SECONDS} seconds.")
+    user = session.scalars(select(m.User).where(m.User.username == name)).first()
+    if user is None or not verify_password(body.password, user.password_hash):
+        _failures.setdefault(name, []).append(now)
+        raise HTTPException(401, "Wrong username or password")
+    _failures.pop(name, None)
+    from .read_model import user as user_view
+
+    return {"access_token": create_token(user.id, user.role), "token_type": "bearer", "expires_in": config.TOKEN_TTL_SECONDS, "user": user_view(user)}
+
+
+@router.get("/auth/me")
+def me(user: CurrentUser):
+    from .read_model import user as user_view
+
+    return user_view(user)

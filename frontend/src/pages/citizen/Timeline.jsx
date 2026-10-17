@@ -1,13 +1,33 @@
 import { useTranslation } from 'react-i18next';
 import { useDemo } from '../../demo/DemoContext';
-import { citizenTimeline, storyCode } from '../../demo/steps';
-import { fmtTime } from '../../data/seed';
+import { citizenTimeline, S, storyCode } from '../../demo/steps';
+import { apiFetch } from '../../data/api';
+import { dataSource, fmtTime } from '../../data/seed';
+import { usePolling } from '../../data/telemetry';
 import Icon from '../../components/Icon';
+
+const LIVE_KEYS = { received: 'timeline.received', checking: 'timeline.checking', repair_started: 'timeline.repairStarted' };
+
+/** API mode: real events for the villager's own complaint. "Restored" is still scripted until Stage 10. */
+function useLiveTimeline(code, step) {
+  const { data } = usePolling(() => apiFetch('/complaints/mine', { role: 'citizen' }), 10000, dataSource === 'api' && step >= S.REPORTED);
+  if (!data) return null;
+  const mine = data.find((c) => c.public_code === code);
+  if (!mine) return null;
+  const at = Object.fromEntries(mine.progress.map((e) => [e.key, e.at]));
+  return [
+    ...Object.entries(LIVE_KEYS).map(([k, key]) => ({ key, at: at[k] ?? null, done: Boolean(at[k]) })),
+    // No time shown: the scripted fixture's date would not match the live events above.
+    { key: 'timeline.restored', at: null, done: step >= S.VERIFIED },
+  ];
+}
 
 export default function Timeline({ step }) {
   const { t } = useTranslation();
   const { report } = useDemo();
-  const items = citizenTimeline(step, storyCode(report));
+  const code = storyCode(report);
+  const live = useLiveTimeline(code, step);
+  const items = live ?? citizenTimeline(step, code);
   return (
     <ol className="relative flex flex-col gap-4">
       {items.map((it, i) => (

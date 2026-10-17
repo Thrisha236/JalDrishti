@@ -6,6 +6,7 @@ import { LANGUAGES } from '../i18n';
 import { villages, HOME_VILLAGE, areas, CITIZEN_AREA, dataSource } from '../data/seed';
 import Icon from './Icon';
 import DemoBar from './DemoBar';
+import { signOut } from '../data/api';
 
 const NAV = {
   citizen: [
@@ -20,7 +21,7 @@ const NAV = {
     { to: '/gp/complaints', icon: 'list', label: 'Complaints' },
     { to: '/gp/pipelines', icon: 'pipe', label: 'Pipeline Health' },
     { to: '/gp/map', icon: 'map', label: 'Village Map' },
-    { to: '/gp/tasks/T-118', icon: 'wrench', label: 'Maintenance' },
+    { to: '/gp/tasks', icon: 'wrench', label: 'Maintenance' },
   ],
   officer: [
     { to: '/officer', icon: 'chart', label: 'Overview', end: true },
@@ -63,6 +64,7 @@ export default function AppShell() {
   const context = role === 'officer' ? 'Demo block · 3 villages' : role === 'citizen' ? `${villages[HOME_VILLAGE].name} · ${areas[CITIZEN_AREA].name}` : `${villages[HOME_VILLAGE].name} Gram Panchayat`;
 
   const switchRole = () => {
+    signOut();
     setRole(null);
     navigate('/');
   };

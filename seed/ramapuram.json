@@ -171,11 +171,11 @@
   ],
 
   "users": [
-    { "id": "usr-citizen-north", "role": "citizen", "display_name": "Demo Villager (North Area)", "village_id": "vil-ramapuram", "service_area_id": "sa-north", "language": "te", "is_mock": true },
-    { "id": "usr-citizen-north-2", "role": "citizen", "display_name": "Demo Villager 2 (North Area)", "village_id": "vil-ramapuram", "service_area_id": "sa-north", "language": "hi", "is_mock": true },
-    { "id": "usr-citizen-north-3", "role": "citizen", "display_name": "Demo Villager 3 (North Area)", "village_id": "vil-ramapuram", "service_area_id": "sa-north", "language": "en", "is_mock": true },
-    { "id": "usr-gp-ramapuram", "role": "gp", "display_name": "Demo GP Operator (Ramapuram)", "village_id": "vil-ramapuram", "language": "en", "is_mock": true },
-    { "id": "usr-officer-block", "role": "officer", "display_name": "Demo Block Officer", "village_ids": ["vil-ramapuram", "vil-kondapur", "vil-sitarampalli"], "language": "en", "is_mock": true },
+    { "id": "usr-citizen-north", "username": "villager1", "role": "citizen", "display_name": "Demo Villager (North Area)", "village_id": "vil-ramapuram", "service_area_id": "sa-north", "language": "te", "is_mock": true },
+    { "id": "usr-citizen-north-2", "username": "villager2", "role": "citizen", "display_name": "Demo Villager 2 (North Area)", "village_id": "vil-ramapuram", "service_area_id": "sa-north", "language": "hi", "is_mock": true },
+    { "id": "usr-citizen-north-3", "username": "villager3", "role": "citizen", "display_name": "Demo Villager 3 (North Area)", "village_id": "vil-ramapuram", "service_area_id": "sa-north", "language": "en", "is_mock": true },
+    { "id": "usr-gp-ramapuram", "username": "gp.ramapuram", "role": "gp", "display_name": "Demo GP Operator (Ramapuram)", "village_id": "vil-ramapuram", "language": "en", "is_mock": true },
+    { "id": "usr-officer-block", "username": "officer.block", "role": "officer", "display_name": "Demo Block Officer", "village_ids": ["vil-ramapuram", "vil-kondapur", "vil-sitarampalli"], "language": "en", "is_mock": true },
     { "id": "usr-tech-ravi", "role": "technician", "display_name": "Ravi (Technician, demo)", "village_id": "vil-ramapuram", "language": "te", "is_mock": true }
   ],
 
@@ -200,6 +200,7 @@
     ],
     "incident": {
       "code": "INC-0311",
+      "submitted_live": true,
       "asset_id": "ast-p21",
       "service_area_id": "sa-north",
       "opened_at": "2026-11-02T07:55:00+05:30",
@@ -220,6 +221,7 @@
     },
     "task": {
       "code": "T-118",
+      "submitted_live": true,
       "incident_code": "INC-0311",
       "asset_id": "ast-p21",
       "assignee_id": "usr-tech-ravi",
@@ -235,6 +237,7 @@
     },
     "verification": {
       "incident_code": "INC-0311",
+      "submitted_live": true,
       "method": "sensor_window",
       "rule": "Tail pressure and tail flow stay within their normal bands for 2 consecutive scheduled supply windows",
       "windows": [

@@ -176,6 +176,8 @@ class User(Base):
     __tablename__ = "users"
     id: Mapped[str] = mapped_column(String, primary_key=True)
     ord: Mapped[int] = mapped_column(Integer)
+    username: Mapped[str | None] = mapped_column(String, unique=True)  # None = cannot sign in (e.g. technician)
+    password_hash: Mapped[str | None] = mapped_column(String, default=None)  # never leaves the server
     role: Mapped[str]
     display_name: Mapped[str]
     village_id: Mapped[str | None] = mapped_column(ForeignKey("villages.id"))
@@ -214,6 +216,7 @@ class Complaint(Base):
     created_at: Mapped[str]
     location: Mapped[Any] = mapped_column(JSON)  # coarse only: {"x", "y", "precision": "approx_1km"}
     linked_asset_id: Mapped[str | None] = mapped_column(ForeignKey("assets.id"))
+    incident_code: Mapped[str | None] = mapped_column(ForeignKey("incidents.code"), default=None)  # set when grouped into an incident
     is_simulated: Mapped[bool] = mapped_column(Boolean)
 
 

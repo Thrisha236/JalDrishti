@@ -75,7 +75,8 @@ def score_pipeline(
 
     # Prior failures within the window
     window = cfg["prior_failures"]["window_months"]
-    recent = [r for r in repairs if 0 <= months_between(r["date"], as_of) <= window]
+    # Repairs recorded after the assessment date (live repairs in a demo) also count as recent.
+    recent = [r for r in repairs if months_between(r["date"], as_of) <= window]
     key = "4+" if len(recent) >= 4 else str(len(recent))
     factors["prior_failures"] = cfg["prior_failures"]["points_by_count"][key]
     details["prior_failures"] = f"{len(recent)} in {window} months"

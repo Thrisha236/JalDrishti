@@ -13,7 +13,9 @@ from sqlalchemy.orm import Session
 
 from . import models as m
 from . import read_model as rm
+from .auth import router as auth_router
 from .complaints_api import router as complaints_router
+from .incidents_api import router as incidents_router
 from .risk_api import router as risk_router
 from .telemetry_api import router as telemetry_router
 from .config import CORS_ORIGINS
@@ -25,9 +27,11 @@ app = FastAPI(
     description="Prototype. All villages, people, assets, IDs and readings are fictional demo data. No government system is integrated.",
 )
 app.add_middleware(CORSMiddleware, allow_origins=CORS_ORIGINS, allow_methods=["GET", "POST"], allow_headers=["Authorization", "Content-Type", "X-Device-Key"])
+app.include_router(auth_router)
 app.include_router(complaints_router)
 app.include_router(telemetry_router)
 app.include_router(risk_router)
+app.include_router(incidents_router)
 
 DB = Annotated[Session, Depends(get_session)]
 API = "/api/v1"
@@ -112,25 +116,9 @@ def alerts(session: DB, village_id: Annotated[str | None, Query()] = None):
     return [rm.alert(a) for a in rows]
 
 
-@app.get(f"{API}/incidents/{{code}}")
-def incident(code: str, session: DB):
-    i = session.get(m.Incident, code)
-    if i is None:
-        raise HTTPException(404, f"Unknown incident {code}")
-    return rm.history_incident(i) if i.is_history else rm.incident(session, i)
-
-
 @app.get(f"{API}/incidents/{{code}}/verification")
 def incident_verification(code: str, session: DB):
     v = session.get(m.Verification, code)
     if v is None:
         raise HTTPException(404, f"No verification for incident {code}")
     return rm.verification(session, v)
-
-
-@app.get(f"{API}/tasks/{{code}}")
-def task(code: str, session: DB):
-    t = session.get(m.MaintenanceTask, code)
-    if t is None:
-        raise HTTPException(404, f"Unknown task {code}")
-    return rm.task(session, t)

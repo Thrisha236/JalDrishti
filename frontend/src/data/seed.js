@@ -14,6 +14,12 @@ export let STORY_ASSET = null;
 /** 'api' when the backend answered, 'bundled' when we fell back to the seed shipped with the app. */
 export let dataSource = null;
 
+/** The incident the story is about: the live one once the GP opens it, else the script's code. */
+export const currentIncidentCode = () => story?.incident?.code ?? bundledSeed.story.incident.code;
+
+/** The scripted story bundled with the app. Used for parts that are not live yet (restoration check, Stage 10). */
+export const scripted = bundledSeed.story;
+
 export const HOME_VILLAGE = 'vil-ramapuram';
 export const CITIZEN_AREA = 'sa-north';
 
@@ -29,7 +35,8 @@ function install(data, source) {
   users = index(data.users);
   sensors = index(data.sensors);
   story = data.story;
-  STORY_ASSET = data.story.incident.asset_id;
+  // In API mode the story's incident does not exist until the GP opens it, so fall back to the script's pipeline.
+  STORY_ASSET = data.story.incident?.asset_id ?? bundledSeed.story.incident.asset_id;
   serverRisk = data.risk ?? null;
   riskCache.clear();
   dataSource = source;

@@ -53,32 +53,15 @@ def test_complaints_are_coarse_and_scoped(client, as_gp, as_officer):
     assert client.get("/api/v1/complaints", params={"village_id": "vil-kondapur"}, headers=as_officer).json() == []
 
 
-def test_incident_evidence_sums_to_score(client):
-    body = client.get("/api/v1/incidents/INC-0311").json()
-    assert round(sum(e["contribution"] for e in body["evidence"]), 2) == body["evidence_score"] == 0.81
-    assert "not a probability" in body["evidence_score_note"]
-
-
 def test_history_incident_is_unverified(client):
     body = client.get("/api/v1/incidents/INC-0289").json()
     assert body["status"] == "RESOLVED_UNVERIFIED"
 
 
-def test_verification_requires_both_windows(client):
-    body = client.get("/api/v1/incidents/INC-0311/verification").json()
-    assert body["result"] == "VERIFIED_RESTORED"
-    assert [w["result"] for w in body["windows"]] == ["PASSED", "PASSED"]
-
-
-def test_task_updates_in_order(client):
-    body = client.get("/api/v1/tasks/T-118").json()
-    assert [u["status"] for u in body["updates"]] == ["ASSIGNED", "INSPECTING", "REPAIRING", "REPAIRED"]
-
-
 def test_snapshot_includes_server_risk(client):
     body = client.get("/api/v1/snapshot").json()
     assert body["risk"]["ast-p21"]["score"] == 72
-    assert body["story"]["incident"]["code"] == "INC-0311"
+    assert body["story"]["incident"] is None  # the story's incident is opened live in the demo (Stage 9)
 
 
 def test_writes_need_sign_in(client):
