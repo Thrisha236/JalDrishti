@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from . import models as m
 from . import read_model as rm
 from .complaints_api import router as complaints_router
+from .telemetry_api import router as telemetry_router
 from .config import CORS_ORIGINS
 from .db import get_session
 
@@ -22,8 +23,9 @@ app = FastAPI(
     version="0.5.0",
     description="Prototype. All villages, people, assets, IDs and readings are fictional demo data. No government system is integrated.",
 )
-app.add_middleware(CORSMiddleware, allow_origins=CORS_ORIGINS, allow_methods=["GET", "POST"], allow_headers=["Authorization", "Content-Type"])
+app.add_middleware(CORSMiddleware, allow_origins=CORS_ORIGINS, allow_methods=["GET", "POST"], allow_headers=["Authorization", "Content-Type", "X-Device-Key"])
 app.include_router(complaints_router)
+app.include_router(telemetry_router)
 
 DB = Annotated[Session, Depends(get_session)]
 API = "/api/v1"

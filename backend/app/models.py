@@ -3,7 +3,7 @@ so SQLite and PostgreSQL behave the same; `ord` keeps the seed's list order stab
 
 from typing import Any
 
-from sqlalchemy import JSON, Boolean, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import JSON, Boolean, Float, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .db import Base
@@ -117,6 +117,9 @@ class SensorNode(Base):
     location: Mapped[str]
     power: Mapped[str]
     is_simulated: Mapped[bool] = mapped_column(Boolean)
+    # Updated by telemetry ingest (Stage 6); empty until a node first reports.
+    last_seen_at: Mapped[str | None] = mapped_column(default=None)
+    battery_v: Mapped[float | None] = mapped_column(Float, default=None)
 
 
 class Sensor(Base):
@@ -131,6 +134,19 @@ class Sensor(Base):
     band_low: Mapped[float] = mapped_column(Float)
     band_high: Mapped[float] = mapped_column(Float)
     is_simulated: Mapped[bool] = mapped_column(Boolean)
+
+
+class Reading(Base):
+    """One sensor value. quality_flag marks values outside the physical range of the sensor kind;
+    they are kept (a broken sensor is itself evidence) but never treated as normal data."""
+
+    __tablename__ = "readings"
+    __table_args__ = (Index("ix_readings_sensor_ts", "sensor_id", "ts"),)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    sensor_id: Mapped[str] = mapped_column(ForeignKey("sensors.id"))
+    ts: Mapped[str]
+    value: Mapped[float] = mapped_column(Float)
+    quality_flag: Mapped[str] = mapped_column(String, default="ok")  # ok | out_of_range
 
 
 class SupplySchedule(Base):
