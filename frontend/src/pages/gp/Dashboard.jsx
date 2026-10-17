@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom';
 import { useDemo } from '../../demo/DemoContext';
 import { activeAlerts, areaStatus, openIncidentCount, S, visibleComplaints } from '../../demo/steps';
-import { areasFor, HOME_VILLAGE, fmtDate, fmtTime, seed, story } from '../../data/seed';
+import { areasFor, dataSource, HOME_VILLAGE, fmtDate, fmtTime, seed, story } from '../../data/seed';
+import { useLiveTelemetry } from '../../data/telemetry';
 import { complaintDaySeries, tailBand } from '../../data/series';
 import { Card, Chip, Kpi, PageHeader, SimBadge } from '../../components/ui';
 import LineChart from '../../components/LineChart';
@@ -15,6 +16,8 @@ export default function Dashboard() {
   const affected = zones.filter((z) => areaStatus(step, z.id).level === 'problem').length;
   const alerts = activeAlerts(step);
   const series = complaintDaySeries();
+  const { data: telemetry } = useLiveTelemetry({ withSeries: false });
+  const liveNodes = telemetry?.live.nodes;
 
   return (
     <div>
@@ -77,16 +80,23 @@ export default function Dashboard() {
           <Card title="Network map" action={<Link to="/gp/map" className="text-sm font-semibold text-brand-600">Open</Link>}>
             <VillageMap step={step} />
           </Card>
-          <Card title="Sensor health">
+          <Card title="Sensor health" action={dataSource === 'api' && <Link to="/gp/water" className="text-sm font-semibold text-brand-600">Live</Link>}>
             <ul className="flex flex-col gap-2">
-              {seed.sensor_nodes.map((n) => (
-                <li key={n.id} className="flex items-center justify-between">
-                  <span>
-                    {n.code} · <span className="text-muted">{n.location}</span>
-                  </span>
-                  <Chip level="normal">Online</Chip>
-                </li>
-              ))}
+              {seed.sensor_nodes.map((n) => {
+                const status = liveNodes?.find((x) => x.id === n.id)?.status;
+                return (
+                  <li key={n.id} className="flex items-center justify-between">
+                    <span>
+                      {n.code} · <span className="text-muted">{n.location}</span>
+                    </span>
+                    {status ? (
+                      <Chip level={status === 'online' ? 'normal' : 'neutral'}>{{ online: 'Online', offline: 'Offline', never_reported: 'No data yet' }[status]}</Chip>
+                    ) : (
+                      <Chip level="normal">Online (scripted)</Chip>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
             <p className="mt-2 text-xs text-muted">A node going offline raises an equipment alert, not a water-supply alert.</p>
           </Card>

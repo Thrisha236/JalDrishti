@@ -16,7 +16,7 @@ A prototype rural water-service monitoring and response platform for SIH 2026, p
 | `shared/risk.mjs` | Pipeline risk scoring, used by the validator and the frontend | 1 ✅ |
 | `frontend/` | React + Vite + Tailwind app (Citizen, Gram Panchayat, Officer) | 3 ✅ |
 | `backend/` | FastAPI + SQLAlchemy + SQLite (PostgreSQL later): seed API, complaint submission, secure photos | 4–5 ✅ |
-| `simulator/` | Python sensor simulator | 6 |
+| `simulator/` | Python sensor simulator (stdlib only): normal, leak, pump-off, node-offline | 6 ✅ |
 
 ## Stage 1: seed dataset
 
@@ -190,3 +190,52 @@ cd backend
 - After submission, the incident, task and verification are still the scripted story. Their times are the story's November dates, while the live complaint shows the real submission time. They become live records in Stages 9 and 10.
 - The image observation is a fixed simulation per category. No vision model runs.
 - Uploaded photos are stored on the local disk (`backend/uploads/`, not committed to git).
+
+## Stage 6: sensor simulator, stored readings, live charts
+
+After pulling, reload the database (new `readings` table and node health columns):
+
+```powershell
+cd backend
+.\.venv\Scripts\python.exe -m app.seed_loader
+```
+
+### Run the simulator
+
+With the API running, open a third terminal in the repository folder:
+
+```powershell
+python simulator\sim.py                         # normal operation, a reading every 5 s
+python simulator\sim.py --scenario leak         # leak on P-21: tail pressure and flow drop, head flow rises
+python simulator\sim.py --scenario pump-off     # no pump current, no flow, pressure collapses
+python simulator\sim.py --scenario node-offline # Node B goes silent (equipment fault, not a water fault)
+```
+
+`python` here is any Python 3.10+; the simulator needs no packages. Stop with Ctrl+C. Switch scenarios by stopping and starting it again. Then open **Gram Panchayat → Water Status**, which refreshes every 5 s.
+
+### How it works
+
+- **Ingest:** `POST /api/v1/ingest/readings` with an `X-Device-Key` header per node.
+  - The dev keys are `dev-key-node-a` and `dev-key-node-b`. Set `JALRAKSHAK_DEVICE_KEYS` for anything other than local development.
+  - A node can only report its own sensors.
+  - Values outside a sensor's physical range are stored but flagged `out_of_range`.
+  - Timestamps more than 5 minutes in the future, or more than 7 days old, are rejected.
+- **Store-and-forward:** if the API is unreachable, the simulator keeps the batches and replays them with their original timestamps once it is back, as the Raspberry Pi gateway would. This was tested by stopping the API mid-run: no readings were lost.
+- **Node health:** a node that has not reported for 30 s shows as **Offline**. Its last values are greyed out, marked "Node offline", and must not be read as a water fault.
+- **Reading data:** `GET /api/v1/readings?sensor_id=&minutes=` and `GET /api/v1/telemetry/live` (sign-in required).
+
+### Tests
+
+`python -m pytest` now runs 54 tests. The new ones cover:
+- device-key auth, and nodes reporting only their own sensors
+- range flagging and timestamp limits
+- replayed readings keeping their time
+- readings order and limit
+- online/offline detection, and each scenario's effect on the readings
+- demo reset clearing readings
+
+### Known limits of Stage 6
+
+- There are no alert rules yet. Spotting the leak or a stuck sensor automatically is Stage 7.
+- Readings are kept indefinitely in SQLite; retention and down-sampling come with PostgreSQL in Stage 7.
+- The story charts on the dashboard and task pages are still the scripted series; the live charts are on Water Status.

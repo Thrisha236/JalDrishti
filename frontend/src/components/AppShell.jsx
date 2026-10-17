@@ -16,6 +16,7 @@ const NAV = {
   ],
   gp: [
     { to: '/gp', icon: 'home', label: 'Home', end: true },
+    { to: '/gp/water', icon: 'sensor', label: 'Water Status' },
     { to: '/gp/complaints', icon: 'list', label: 'Complaints' },
     { to: '/gp/pipelines', icon: 'pipe', label: 'Pipeline Health' },
     { to: '/gp/map', icon: 'map', label: 'Village Map' },

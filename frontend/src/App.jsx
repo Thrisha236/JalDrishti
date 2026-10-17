@@ -10,6 +10,7 @@ import ComplaintDetail from './pages/citizen/ComplaintDetail';
 import CitizenMap from './pages/citizen/CitizenMap';
 import Dashboard from './pages/gp/Dashboard';
 import Complaints from './pages/gp/Complaints';
+import WaterStatus from './pages/gp/WaterStatus';
 import Incident from './pages/gp/Incident';
 import Pipelines from './pages/gp/Pipelines';
 import PipelineDetail from './pages/gp/PipelineDetail';
@@ -39,6 +40,7 @@ export default function App() {
 
       <Route path="/gp" element={<RequireRole role="gp"><AppShell /></RequireRole>}>
         <Route index element={<Dashboard />} />
+        <Route path="water" element={<WaterStatus />} />
         <Route path="complaints" element={<Complaints />} />
         <Route path="incidents/:code" element={<Incident />} />
         <Route path="pipelines" element={<Pipelines villageIds={['vil-ramapuram']} base="/gp" />} />
