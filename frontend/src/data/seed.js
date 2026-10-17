@@ -1,24 +1,57 @@
-// Read-only access to the demo seed. Stage 4 replaces these lookups with API calls.
-import seed from '@seed/ramapuram.json';
+// Data access for the UI. Loads the snapshot from the backend (GET /api/v1/snapshot) and falls back to
+// the bundled seed if the backend is not running. Exports are live bindings filled in by loadData().
+import bundledSeed from '@seed/ramapuram.json';
 import { scorePipeline } from '@shared/risk.mjs';
 
-export { seed };
-
-const index = (list, key = 'id') => Object.fromEntries(list.map((x) => [x[key], x]));
-
-export const villages = index(seed.villages);
-export const areas = index(seed.service_areas);
-export const assets = index(seed.assets);
-export const users = index(seed.users);
-export const sensors = index(seed.sensors);
-export const story = seed.story;
+export let seed = null;
+export let villages = {};
+export let areas = {};
+export let assets = {};
+export let users = {};
+export let sensors = {};
+export let story = null;
+export let STORY_ASSET = null;
+/** 'api' when the backend answered, 'bundled' when we fell back to the seed shipped with the app. */
+export let dataSource = null;
 
 export const HOME_VILLAGE = 'vil-ramapuram';
 export const CITIZEN_AREA = 'sa-north';
-export const STORY_ASSET = story.incident.asset_id;
 
+const index = (list, key = 'id') => Object.fromEntries(list.map((x) => [x[key], x]));
+let serverRisk = null;
 const riskCache = new Map();
+
+function install(data, source) {
+  seed = data;
+  villages = index(data.villages);
+  areas = index(data.service_areas);
+  assets = index(data.assets);
+  users = index(data.users);
+  sensors = index(data.sensors);
+  story = data.story;
+  STORY_ASSET = data.story.incident.asset_id;
+  serverRisk = data.risk ?? null;
+  riskCache.clear();
+  dataSource = source;
+}
+
+export async function loadData({ timeoutMs = 4000 } = {}) {
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+    const res = await fetch('/api/v1/snapshot', { signal: ctrl.signal });
+    clearTimeout(timer);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    install(await res.json(), 'api');
+  } catch (err) {
+    console.warn('Backend unavailable, using bundled seed:', err.message);
+    install(bundledSeed, 'bundled');
+  }
+}
+
+/** Risk from the server when available (Python), else computed locally with the same rules (JavaScript). */
 export function riskFor(assetId) {
+  if (serverRisk?.[assetId]) return serverRisk[assetId];
   if (!riskCache.has(assetId)) riskCache.set(assetId, scorePipeline(seed, assetId));
   return riskCache.get(assetId);
 }

@@ -66,7 +66,7 @@ export default function Dashboard() {
           <Card title="Tail pressure, North Area (Node B)" action={<SimBadge />}>
             <LineChart
               segments={[{ label: `06:00–08:00 · ${fmtTime(story.complaints[0].created_at).split(',')[0]}`, values: step >= S.REPORTED ? series : series.slice(0, 13) }]}
-              band={tailBand}
+              band={tailBand()}
               unit="bar"
               highlight={step >= S.REPORTED && step < S.VERIFIED ? 'Drop at 07:05 — 41% below baseline' : undefined}
             />

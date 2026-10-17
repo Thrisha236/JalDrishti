@@ -14,6 +14,8 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    // The FastAPI backend (uvicorn on port 8000).
+    proxy: { '/api': 'http://127.0.0.1:8000' },
     // The seed and shared modules live one level up, outside the frontend folder.
     fs: { allow: [repoRoot] },
   },

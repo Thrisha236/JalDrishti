@@ -3,7 +3,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useDemo } from '../demo/DemoContext';
 import { LANGUAGES } from '../i18n';
-import { villages, HOME_VILLAGE, areas, CITIZEN_AREA } from '../data/seed';
+import { villages, HOME_VILLAGE, areas, CITIZEN_AREA, dataSource } from '../data/seed';
 import Icon from './Icon';
 import DemoBar from './DemoBar';
 
@@ -120,6 +120,14 @@ export default function AppShell() {
               <div className="md:hidden">
                 <LanguageSwitch compact />
               </div>
+            )}
+            {role !== 'citizen' && (
+              <span
+                className={`hidden rounded-md px-2 py-0.5 text-xs font-semibold sm:inline ${dataSource === 'api' ? 'bg-green-100 text-green-800' : 'bg-slate-200 text-slate-700'}`}
+                title={dataSource === 'api' ? 'Data served by the JalRakshak API' : 'Backend not running: showing the demo seed bundled with the app'}
+              >
+                {dataSource === 'api' ? 'API connected' : 'Offline demo data'}
+              </span>
             )}
             <span className="hidden rounded-md bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800 sm:inline">Prototype</span>
             <button type="button" onClick={switchRole} className="rounded-lg p-2 text-muted hover:bg-slate-100 md:hidden" aria-label={t('nav.switchRole')}>
