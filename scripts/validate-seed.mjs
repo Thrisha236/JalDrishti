@@ -3,6 +3,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { scorePipeline as scoreWith } from '../shared/risk.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const seedPath = process.argv[2] ?? join(root, 'seed', 'ramapuram.json');
@@ -20,21 +21,6 @@ const assets = byId(seed.assets);
 const users = byId(seed.users);
 const nodes = byId(seed.sensor_nodes);
 const sensors = byId(seed.sensors);
-
-function fullYearsBetween(fromIso, toIso) {
-  const a = new Date(fromIso);
-  const b = new Date(toIso);
-  let years = b.getUTCFullYear() - a.getUTCFullYear();
-  const beforeAnniversary =
-    b.getUTCMonth() < a.getUTCMonth() ||
-    (b.getUTCMonth() === a.getUTCMonth() && b.getUTCDate() < a.getUTCDate());
-  if (beforeAnniversary) years -= 1;
-  return years;
-}
-
-function monthsBetween(fromIso, toIso) {
-  return (new Date(toIso) - new Date(fromIso)) / (1000 * 60 * 60 * 24 * 30.4375);
-}
 
 // ---------- 1. unique ids ----------
 for (const [name, list, key] of [
@@ -105,67 +91,8 @@ const raw = readFileSync(seedPath, 'utf8');
 const phoneLike = raw.match(/(?<![\d.])(?:\+91[\s-]?)?[6-9]\d{4}[\s-]?\d{5}(?!\d)|\b1800[\s-]?\d{3}[\s-]?\d{4}\b/g);
 check(!phoneLike, `phone-number-like strings found: ${phoneLike?.join(', ')}`);
 
-// ---------- 4. risk scoring ----------
-const cfg = seed.risk_config.factors;
-const asOf = seed.meta.as_of;
-const PLASTICS = new Set(['pvc', 'hdpe']);
-
-function pointsFromBands(value, bands, minKey, maxKey) {
-  const last = bands[bands.length - 1];
-  for (const b of bands) {
-    const isLast = b === last;
-    if (value >= b[minKey] && (value < b[maxKey] || (isLast && value <= b[maxKey]))) return b.points;
-  }
-  return 0;
-}
-
-export function scorePipeline(assetId) {
-  const profile = seed.pipeline_profiles.find((p) => p.asset_id === assetId);
-  const factors = {};
-  const missing = [];
-
-  // Age
-  const age = fullYearsBetween(profile.install_date, asOf);
-  const ageCfg = cfg.age;
-  let agePts = Math.min(1, Math.max(0, (age - ageCfg.start_years) / (ageCfg.full_years - ageCfg.start_years))) * ageCfg.max;
-  if (profile.install_date_source === 'estimate') agePts *= ageCfg.estimate_multiplier;
-  factors.age = Math.round(agePts);
-
-  // Prior failures within the window
-  const windowMonths = cfg.prior_failures.window_months;
-  const count = seed.repairs.filter((r) => r.asset_id === assetId && monthsBetween(r.date, asOf) <= windowMonths && monthsBetween(r.date, asOf) >= 0).length;
-  factors.prior_failures = cfg.prior_failures.points_by_count[count >= 4 ? '4+' : String(count)];
-
-  // Corrosion observation
-  if (PLASTICS.has(profile.material)) {
-    factors.corrosion_observation = 0;
-  } else {
-    const latest = seed.inspections.filter((i) => i.asset_id === assetId && i.corrosion_grade != null).sort((a, b) => b.date.localeCompare(a.date))[0];
-    if (!latest) {
-      factors.corrosion_observation = 0;
-      missing.push('corrosion inspection');
-    } else {
-      let pts = pointsFromBands(latest.corrosion_grade, cfg.corrosion_observation.bands, 'min', 'max');
-      if (monthsBetween(latest.date, asOf) > cfg.corrosion_observation.stale_after_months) pts *= cfg.corrosion_observation.stale_multiplier;
-      factors.corrosion_observation = Math.round(pts);
-    }
-  }
-
-  // Pressure-per-flow trend
-  if (profile.pressure_per_flow_drop_pct == null) {
-    factors.pressure_per_flow_trend = 0;
-    missing.push('pressure/flow sensor');
-  } else {
-    factors.pressure_per_flow_trend = pointsFromBands(profile.pressure_per_flow_drop_pct, cfg.pressure_per_flow_trend.bands, 'min_drop_pct', 'max_drop_pct');
-  }
-
-  // Material
-  factors.material_susceptibility = cfg.material_susceptibility.points_by_material[profile.material] ?? cfg.material_susceptibility.points_by_material.unknown;
-
-  const score = Object.values(factors).reduce((a, b) => a + b, 0);
-  const band = seed.risk_config.bands.find((b) => score >= b.min && score <= b.max).band;
-  return { score, band, factors, missing };
-}
+// ---------- 4. risk scoring (rules in shared/risk.mjs) ----------
+const scorePipeline = (assetId) => scoreWith(seed, assetId);
 
 for (const p of seed.pipeline_profiles) {
   const got = scorePipeline(p.asset_id);
