@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useDemo } from '../../demo/DemoContext';
 import { activeAlerts, areaStatus, openIncidentCount, S, visibleComplaints } from '../../demo/steps';
-import { areasFor, HOME_VILLAGE, fmtTime, seed, story } from '../../data/seed';
+import { areasFor, HOME_VILLAGE, fmtDate, fmtTime, seed, story } from '../../data/seed';
 import { complaintDaySeries, tailBand } from '../../data/series';
 import { Card, Chip, Kpi, PageHeader, SimBadge } from '../../components/ui';
 import LineChart from '../../components/LineChart';
@@ -65,7 +65,7 @@ export default function Dashboard() {
 
           <Card title="Tail pressure, North Area (Node B)" action={<SimBadge />}>
             <LineChart
-              segments={[{ label: `06:00–08:00 · ${fmtTime(story.complaints[0].created_at).split(',')[0]}`, values: step >= S.REPORTED ? series : series.slice(0, 13) }]}
+              segments={[{ label: `06:00–08:00 · ${fmtDate(story.alerts[1].raised_at)}`, values: step >= S.REPORTED ? series : series.slice(0, 13) }]}
               band={tailBand()}
               unit="bar"
               highlight={step >= S.REPORTED && step < S.VERIFIED ? 'Drop at 07:05 — 41% below baseline' : undefined}

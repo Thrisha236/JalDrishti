@@ -2,11 +2,30 @@
 import { useState } from 'react';
 import { useDemo } from '../demo/DemoContext';
 import { STEPS } from '../demo/steps';
+import { dataSource, reloadData } from '../data/seed';
+import { apiFetch } from '../data/api';
 
 export default function DemoBar() {
-  const { step, next, reset } = useDemo();
+  const { step, next, reset, role } = useDemo();
   const [open, setOpen] = useState(true);
+  const [busy, setBusy] = useState(false);
   const last = step === STEPS.length - 1;
+
+  const resetStory = async () => {
+    setBusy(true);
+    try {
+      if (dataSource === 'api') {
+        // Server side: reload the seed and delete uploaded photos, so #2048 can be submitted again.
+        await apiFetch('/demo/reset', { role, method: 'POST' });
+        await reloadData();
+      }
+    } catch (err) {
+      console.warn('Demo reset on the server failed:', err.message);
+    } finally {
+      reset();
+      setBusy(false);
+    }
+  };
 
   if (!open) {
     return (
@@ -34,8 +53,8 @@ export default function DemoBar() {
         </button>
       </div>
       <div className="mt-2 flex gap-2">
-        <button type="button" onClick={reset} className="flex-1 rounded-lg bg-slate-700 px-3 py-1.5 text-sm hover:bg-slate-600">
-          Reset story
+        <button type="button" onClick={resetStory} disabled={busy} className="flex-1 rounded-lg bg-slate-700 px-3 py-1.5 text-sm hover:bg-slate-600 disabled:opacity-50">
+          {busy ? 'Resetting…' : 'Reset story'}
         </button>
         <button type="button" onClick={next} disabled={last} className="flex-1 rounded-lg bg-brand-500 px-3 py-1.5 text-sm font-semibold disabled:opacity-40">
           Skip to next step

@@ -8,6 +8,7 @@ from pathlib import Path
 
 from sqlalchemy.orm import Session
 
+from . import config
 from . import models as m
 from .config import SEED_PATH
 from .db import Base, SessionLocal, engine
@@ -59,15 +60,22 @@ def load_seed(session: Session, seed: dict) -> None:
     story = seed["story"]
     for i, a in enumerate(story["alerts"]):
         add(m.Alert(ord=i, **a))
+    # Complaints marked submitted_live are created by a real citizen submission during the demo,
+    # so they (and their photos and photo analysis) are not pre-loaded.
+    live_media = set()
     for i, c in enumerate(story["complaints"]):
-        data = {k: v for k, v in c.items() if k != "media"}
+        if c.get("submitted_live"):
+            live_media.update(x["id"] for x in c["media"])
+            continue
+        data = {k: v for k, v in c.items() if k not in ("media", "submitted_live")}
         add(m.Complaint(ord=i, **data))
         session.flush()
         for j, media in enumerate(c["media"]):
             add(m.ComplaintMedia(ord=j, complaint_code=c["public_code"], **media))
     session.flush()
     for i, ia in enumerate(story["image_analysis"]):
-        add(m.ImageAnalysis(ord=i, **ia))
+        if ia["media_id"] not in live_media:
+            add(m.ImageAnalysis(ord=i, **ia))
 
     inc = story["incident"]
     add(
@@ -116,6 +124,10 @@ def reset_database(seed_path: Path = SEED_PATH, bind=engine) -> None:
     Base.metadata.create_all(bind)
     with Session(bind) as session:
         load_seed(session, seed)
+    # Uploaded photos belong to complaints that no longer exist after a reset.
+    if config.UPLOAD_DIR.exists():
+        for f in config.UPLOAD_DIR.glob("*.jpg"):
+            f.unlink()
 
 
 if __name__ == "__main__":

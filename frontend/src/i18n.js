@@ -20,6 +20,8 @@ const en = {
     title: 'What is the problem?', addPhoto: 'Add a photo', replace: 'Replace', remove: 'Remove', more: 'Tell us more (optional)',
     voice: 'Voice note (coming later)', location: 'Share approximate location', locationHint: 'Village area only, about 1 km', area: 'Area', submit: 'Submit',
     already: 'You have already reported complaint #{{code}} in this demo.', pick: 'Choose a problem first',
+    errorType: 'Please choose a photo (JPEG, PNG or WebP).', errorTooLarge: 'The photo is too large. Please use one under 8 MB.',
+    errorDuplicate: '{{detail}}', errorGeneric: 'Could not send your report. Please try again.',
   },
   category: { NO_WATER: 'No water', LOW_WATER: 'Low water', DIRTY_WATER: 'Dirty water', BAD_SMELL: 'Bad smell', LEAKAGE: 'Leakage', DAMAGED_TAP: 'Damaged tap', OTHER: 'Other' },
   done: {
@@ -48,6 +50,8 @@ const te = {
     title: 'సమస్య ఏమిటి?', addPhoto: 'ఫోటో జోడించండి', replace: 'మార్చు', remove: 'తీసివేయి', more: 'మరింత చెప్పండి (ఐచ్ఛికం)',
     voice: 'వాయిస్ సందేశం (త్వరలో)', location: 'సుమారు స్థానాన్ని పంచుకోండి', locationHint: 'గ్రామ ప్రాంతం మాత్రమే, సుమారు 1 కి.మీ.', area: 'ప్రాంతం', submit: 'సమర్పించు',
     already: 'మీరు ఈ డెమోలో ఇప్పటికే #{{code}} ఫిర్యాదు చేశారు.', pick: 'ముందుగా సమస్యను ఎంచుకోండి',
+    errorType: 'దయచేసి ఫోటోను ఎంచుకోండి (JPEG, PNG లేదా WebP).', errorTooLarge: 'ఫోటో చాలా పెద్దది. 8 MB కంటే చిన్నది ఉపయోగించండి.',
+    errorDuplicate: 'మీరు ఈ సమస్యను ఇప్పటికే తెలిపారు.', errorGeneric: 'మీ ఫిర్యాదు పంపలేకపోయాము. దయచేసి మళ్ళీ ప్రయత్నించండి.',
   },
   category: { NO_WATER: 'నీరు రావడం లేదు', LOW_WATER: 'నీరు తక్కువగా వస్తోంది', DIRTY_WATER: 'మురికి నీరు', BAD_SMELL: 'దుర్వాసన', LEAKAGE: 'లీకేజీ', DAMAGED_TAP: 'పాడైన కుళాయి', OTHER: 'ఇతర' },
   done: {
@@ -76,6 +80,8 @@ const hi = {
     title: 'समस्या क्या है?', addPhoto: 'फ़ोटो जोड़ें', replace: 'बदलें', remove: 'हटाएँ', more: 'और बताएं (वैकल्पिक)',
     voice: 'आवाज़ संदेश (जल्द)', location: 'अनुमानित स्थान साझा करें', locationHint: 'केवल गाँव का क्षेत्र, लगभग 1 किमी', area: 'क्षेत्र', submit: 'जमा करें',
     already: 'आप इस डेमो में पहले ही #{{code}} दर्ज कर चुके हैं।', pick: 'पहले समस्या चुनें',
+    errorType: 'कृपया फ़ोटो चुनें (JPEG, PNG या WebP)।', errorTooLarge: 'फ़ोटो बहुत बड़ी है। 8 MB से छोटी फ़ोटो लगाएँ।',
+    errorDuplicate: 'आप यह समस्या पहले ही बता चुके हैं।', errorGeneric: 'शिकायत भेजी नहीं जा सकी। कृपया फिर से कोशिश करें।',
   },
   category: { NO_WATER: 'पानी नहीं आ रहा', LOW_WATER: 'पानी कम आ रहा', DIRTY_WATER: 'गंदा पानी', BAD_SMELL: 'बदबू', LEAKAGE: 'रिसाव', DAMAGED_TAP: 'टूटा नल', OTHER: 'अन्य' },
   done: {

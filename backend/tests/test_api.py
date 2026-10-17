@@ -44,11 +44,13 @@ def test_pipeline_detail_and_history(client):
     assert client.get("/api/v1/pipelines/ast-pump1").status_code == 404
 
 
-def test_complaints_are_coarse_and_filtered(client):
-    rows = client.get("/api/v1/complaints", params={"village_id": "vil-ramapuram"}).json()
-    assert [c["public_code"] for c in rows] == ["2048", "2049", "2051"]
+def test_complaints_are_coarse_and_scoped(client, as_gp, as_officer):
+    rows = client.get("/api/v1/complaints", params={"village_id": "vil-ramapuram"}, headers=as_gp).json()
+    assert [c["public_code"] for c in rows] == ["2049", "2051"]
     assert all(c["location"]["precision"] == "approx_1km" for c in rows)
-    assert client.get("/api/v1/complaints", params={"village_id": "vil-kondapur"}).json() == []
+    # The Ramapuram GP may not read another village's complaints; the block officer may.
+    assert client.get("/api/v1/complaints", params={"village_id": "vil-kondapur"}, headers=as_gp).status_code == 403
+    assert client.get("/api/v1/complaints", params={"village_id": "vil-kondapur"}, headers=as_officer).json() == []
 
 
 def test_incident_evidence_sums_to_score(client):
@@ -79,5 +81,6 @@ def test_snapshot_includes_server_risk(client):
     assert body["story"]["incident"]["code"] == "INC-0311"
 
 
-def test_api_is_read_only_for_now(client):
-    assert client.post("/api/v1/complaints", json={}).status_code == 405
+def test_writes_need_sign_in(client):
+    assert client.post("/api/v1/complaints", data={}).status_code == 401
+    assert client.get("/api/v1/complaints").status_code == 401

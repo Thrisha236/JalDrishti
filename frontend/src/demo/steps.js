@@ -32,12 +32,15 @@ export function complaintStatus(step) {
   return 'RESOLVED_VERIFIED';
 }
 
-/** Citizen timeline for complaint #2048. */
-export function citizenTimeline(step) {
-  const c = story.complaints.find((x) => x.public_code === '2048');
+/** The citizen's story complaint: the code the server returned, or the seed's #2048 offline. */
+export const storyCode = (report) => report?.public_code ?? '2048';
+
+/** Citizen timeline for the story complaint. Later steps use the scripted story times until Stage 9 makes them live. */
+export function citizenTimeline(step, code = '2048') {
+  const c = story.complaints.find((x) => x.public_code === code);
   const n = story.notifications;
   return [
-    { key: 'timeline.received', at: c.created_at, done: step >= S.REPORTED },
+    { key: 'timeline.received', at: c?.created_at ?? null, done: step >= S.REPORTED },
     { key: 'timeline.checking', at: n[0].at, done: step >= S.INCIDENT },
     { key: 'timeline.repairStarted', at: n[1].at, done: step >= S.ASSIGNED },
     { key: 'timeline.restored', at: n[2].at, done: step >= S.VERIFIED },

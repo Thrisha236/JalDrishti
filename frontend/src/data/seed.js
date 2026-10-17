@@ -49,6 +49,11 @@ export async function loadData({ timeoutMs = 4000 } = {}) {
   }
 }
 
+/** Re-read the snapshot after a write (e.g. a new complaint) so every screen sees it. */
+export async function reloadData() {
+  if (dataSource === 'api') await loadData();
+}
+
 /** Risk from the server when available (Python), else computed locally with the same rules (JavaScript). */
 export function riskFor(assetId) {
   if (serverRisk?.[assetId]) return serverRisk[assetId];

@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useDemo } from '../../demo/DemoContext';
-import { areaStatus, complaintStatus, S } from '../../demo/steps';
+import { areaStatus, complaintStatus, S, storyCode } from '../../demo/steps';
 import { CITIZEN_AREA, scheduleFor } from '../../data/seed';
 import { LevelChip, SimBadge } from '../../components/ui';
 import Icon from '../../components/Icon';
@@ -14,7 +14,8 @@ const TONE = {
 
 export default function CitizenHome() {
   const { t } = useTranslation();
-  const { step } = useDemo();
+  const { step, report } = useDemo();
+  const code = storyCode(report);
   const status = areaStatus(step, CITIZEN_AREA);
   const schedule = scheduleFor(CITIZEN_AREA);
   const cStatus = complaintStatus(step);
@@ -62,10 +63,10 @@ export default function CitizenHome() {
       <section className="card p-5">
         <h2 className="section-title mb-3">{t('home.myComplaints')}</h2>
         {cStatus ? (
-          <Link to="/citizen/complaints/2048" className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 hover:bg-slate-50">
+          <Link to={`/citizen/complaints/${code}`} className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 hover:bg-slate-50">
             <Icon name="list" className="h-6 w-6 text-brand-600" />
             <span className="flex-1">
-              <span className="block font-semibold">#2048 · {t('category.LOW_WATER')}</span>
+              <span className="block font-semibold">#{code} · {t(`category.${report?.category ?? 'LOW_WATER'}`)}</span>
               <span className="block text-sm text-muted">
                 {t(step >= S.VERIFIED ? 'timeline.restored' : step >= S.ASSIGNED ? 'timeline.repairStarted' : step >= S.INCIDENT ? 'timeline.checking' : 'timeline.received')}
               </span>

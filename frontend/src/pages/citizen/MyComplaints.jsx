@@ -1,14 +1,15 @@
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useDemo } from '../../demo/DemoContext';
-import { S } from '../../demo/steps';
+import { S, storyCode } from '../../demo/steps';
 import { story, fmtTime } from '../../data/seed';
 import Icon from '../../components/Icon';
 
 export default function MyComplaints() {
   const { t } = useTranslation();
-  const { step } = useDemo();
-  const mine = step >= S.REPORTED ? story.complaints.filter((c) => c.public_code === '2048') : [];
+  const { step, report } = useDemo();
+  const code = storyCode(report);
+  const mine = step >= S.REPORTED ? story.complaints.filter((c) => c.public_code === code) : [];
 
   return (
     <div className="mx-auto max-w-xl">

@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useDemo } from '../demo/DemoContext';
 import { LANGUAGES } from '../i18n';
+import { dataSource } from '../data/seed';
+import { signIn } from '../data/api';
 import Icon from '../components/Icon';
 
 const ROLES = [
@@ -17,7 +19,8 @@ export default function Login() {
   const navigate = useNavigate();
   const [choice, setChoice] = useState('citizen');
 
-  const go = () => {
+  const go = async () => {
+    if (dataSource === 'api') await signIn(choice).catch(() => null); // retried on first API call if this fails
     setRole(choice);
     navigate(ROLES.find((r) => r.id === choice).home);
   };

@@ -15,7 +15,7 @@ A prototype rural water-service monitoring and response platform for SIH 2026, p
 | `scripts/validate-seed.mjs` | Checks the seed: references, labelling, story order, risk arithmetic, no real phone numbers | 1 ✅ |
 | `shared/risk.mjs` | Pipeline risk scoring, used by the validator and the frontend | 1 ✅ |
 | `frontend/` | React + Vite + Tailwind app (Citizen, Gram Panchayat, Officer) | 3 ✅ |
-| `backend/` | FastAPI + SQLAlchemy + SQLite (PostgreSQL later), read-only API on the seed | 4 ✅ |
+| `backend/` | FastAPI + SQLAlchemy + SQLite (PostgreSQL later): seed API, complaint submission, secure photos | 4–5 ✅ |
 | `simulator/` | Python sensor simulator | 6 |
 
 ## Stage 1: seed dataset
@@ -139,3 +139,54 @@ The 19 tests cover the following:
 - Read-only: the demo story still advances in the browser. Writing complaints, tasks and verifications through the API starts in Stage 5.
 - Tables are created by `seed_loader` (drop and recreate). Schema migrations (Alembic) arrive with the PostgreSQL switch in Stage 7.
 - No authentication yet (demo login); JWT roles arrive in Stage 9.
+
+## Stage 5: real complaint submission with secure photos
+
+After pulling, reinstall backend packages (Pillow and python-multipart were added) and reload the database:
+
+```powershell
+cd backend
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m app.seed_loader
+```
+
+### What happens when a villager submits
+
+1. **Demo sign-in.** Choosing a role on the login screen calls `POST /api/v1/auth/demo-login`, which returns a signed token for that role's fictional demo user (valid 12 hours, kept per browser tab).
+2. **The form is sent.** `POST /api/v1/complaints` receives the category, area, an optional note (max 200 characters), whether to share location, and an optional photo.
+3. **The server checks it:**
+   - only villagers can submit, and only for an area in their own village
+   - the same problem in the same area within 6 hours is rejected as a duplicate (409)
+4. **The photo is sanitised:**
+   - capped at 8 MB (413)
+   - type checked from the file's first bytes, not its name: JPEG, PNG or WebP only (415)
+   - fully decoded, turned upright, shrunk to 1600 px at most
+   - re-encoded as a fresh JPEG, which drops all EXIF/GPS metadata and anything hidden in the file
+   - the original is never kept
+5. **The complaint is saved:**
+   - codes are allocated from 2048 upwards, skipping codes the fixtures already use (#2049 and #2051 belong to other demo villagers)
+   - location is the service area's centre (coarse) or "not shared"
+   - the simulated photo observation is stored, labelled `simulated-v0`
+   - an audit entry is written, without the note or the photo
+6. **Viewing photos.** `GET /api/v1/media/{id}` serves a photo only to the villager who sent it, the Gram Panchayat of that village, or the officer responsible. Everyone else gets 404, and a request without sign-in gets 401. Responses are `no-store`.
+7. **Public data stays redacted.** The unauthenticated snapshot never includes complaint notes or photo storage keys.
+
+**Reset story** in the demo bar now also calls `POST /api/v1/demo/reset`, which reloads the seed and deletes uploaded photos, so #2048 can be submitted again. Set `JALRAKSHAK_DEMO=0` to disable the reset endpoint.
+
+### Tests
+
+`python -m pytest` now runs 39 tests. The new ones cover:
+- EXIF and GPS removal, and correct rotation
+- downscaling
+- rejecting fake, corrupt and SVG files
+- the size cap and duplicate rule
+- code allocation
+- role-checked photo and complaint access, including forged tokens and other villagers
+- snapshot redaction, the audit log, and demo reset
+
+### Known limits of Stage 5
+
+- Demo sign-in is not real authentication. Password login and JWT arrive in Stage 9.
+- After submission, the incident, task and verification are still the scripted story. Their times are the story's November dates, while the live complaint shows the real submission time. They become live records in Stages 9 and 10.
+- The image observation is a fixed simulation per category. No vision model runs.
+- Uploaded photos are stored on the local disk (`backend/uploads/`, not committed to git).
