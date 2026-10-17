@@ -1,11 +1,13 @@
 import { useTranslation } from 'react-i18next';
-import { citizenTimeline } from '../../demo/steps';
+import { useDemo } from '../../demo/DemoContext';
+import { citizenTimeline, storyCode } from '../../demo/steps';
 import { fmtTime } from '../../data/seed';
 import Icon from '../../components/Icon';
 
 export default function Timeline({ step }) {
   const { t } = useTranslation();
-  const items = citizenTimeline(step);
+  const { report } = useDemo();
+  const items = citizenTimeline(step, storyCode(report));
   return (
     <ol className="relative flex flex-col gap-4">
       {items.map((it, i) => (
@@ -18,7 +20,7 @@ export default function Timeline({ step }) {
           </span>
           <span>
             <span className={`block font-semibold ${it.done ? '' : 'text-muted'}`}>{t(it.key)}</span>
-            {it.done && <span className="block text-sm text-muted">{fmtTime(it.at)}</span>}
+            {it.done && it.at && <span className="block text-sm text-muted">{fmtTime(it.at)}</span>}
           </span>
         </li>
       ))}

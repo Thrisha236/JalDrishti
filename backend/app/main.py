@@ -1,4 +1,4 @@
-"""JalRakshak API (Stage 4: read-only, serving the demo seed from SQLite).
+"""JalRakshak API (Stage 5: seed served from SQLite, plus complaint submission with secure photos).
 
 Run from the backend folder:  uvicorn app.main:app --reload
 Interactive docs:             http://127.0.0.1:8000/docs
@@ -13,15 +13,17 @@ from sqlalchemy.orm import Session
 
 from . import models as m
 from . import read_model as rm
+from .complaints_api import router as complaints_router
 from .config import CORS_ORIGINS
 from .db import get_session
 
 app = FastAPI(
     title="JalRakshak API",
-    version="0.4.0",
+    version="0.5.0",
     description="Prototype. All villages, people, assets, IDs and readings are fictional demo data. No government system is integrated.",
 )
-app.add_middleware(CORSMiddleware, allow_origins=CORS_ORIGINS, allow_methods=["GET"], allow_headers=["*"])
+app.add_middleware(CORSMiddleware, allow_origins=CORS_ORIGINS, allow_methods=["GET", "POST"], allow_headers=["Authorization", "Content-Type"])
+app.include_router(complaints_router)
 
 DB = Annotated[Session, Depends(get_session)]
 API = "/api/v1"
@@ -104,13 +106,6 @@ def alerts(session: DB, village_id: Annotated[str | None, Query()] = None):
     area_ids = _area_ids(session, village_id)
     rows = rm._rows(session, m.Alert, *([m.Alert.service_area_id.in_(area_ids)] if area_ids is not None else []))
     return [rm.alert(a) for a in rows]
-
-
-@app.get(f"{API}/complaints")
-def complaints(session: DB, village_id: Annotated[str | None, Query()] = None):
-    area_ids = _area_ids(session, village_id)
-    rows = rm._rows(session, m.Complaint, *([m.Complaint.service_area_id.in_(area_ids)] if area_ids is not None else []))
-    return [rm.complaint(session, c) for c in rows]
 
 
 @app.get(f"{API}/incidents/{{code}}")

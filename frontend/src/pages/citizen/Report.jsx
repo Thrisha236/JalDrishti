@@ -2,8 +2,9 @@ import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useDemo } from '../../demo/DemoContext';
-import { S } from '../../demo/steps';
-import { areasFor, HOME_VILLAGE, CITIZEN_AREA } from '../../data/seed';
+import { S, storyCode } from '../../demo/steps';
+import { areasFor, HOME_VILLAGE, CITIZEN_AREA, dataSource, reloadData } from '../../data/seed';
+import { apiFetch } from '../../data/api';
 import Icon from '../../components/Icon';
 
 const CATEGORIES = [
@@ -21,44 +22,79 @@ const MAX_PHOTO_MB = 8;
 export default function Report() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { step, advanceTo, setReport, photoUrl, setPhotoUrl } = useDemo();
+  const { step, advanceTo, report, setReport, photoUrl, setPhotoUrl } = useDemo();
   const fileRef = useRef(null);
   const [category, setCategory] = useState(null);
   const [description, setDescription] = useState('');
   const [shareLocation, setShareLocation] = useState(true);
   const [area, setArea] = useState(CITIZEN_AREA);
+  const [photoFile, setPhotoFile] = useState(null);
   const [error, setError] = useState('');
+  const [sending, setSending] = useState(false);
 
   const onPhoto = (e) => {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
-    if (!file.type.startsWith('image/')) return setError('Please choose an image file.');
-    if (file.size > MAX_PHOTO_MB * 1024 * 1024) return setError(`Photo must be under ${MAX_PHOTO_MB} MB.`);
+    if (!file.type.startsWith('image/')) return setError(t('report.errorType'));
+    if (file.size > MAX_PHOTO_MB * 1024 * 1024) return setError(t('report.errorTooLarge'));
     setError('');
     if (photoUrl) URL.revokeObjectURL(photoUrl);
     setPhotoUrl(URL.createObjectURL(file));
+    setPhotoFile(file);
   };
 
   const removePhoto = () => {
     if (photoUrl) URL.revokeObjectURL(photoUrl);
     setPhotoUrl(null);
+    setPhotoFile(null);
   };
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
     if (!category) return setError(t('report.pick'));
-    setReport({ category, description, shareLocation, area, hasPhoto: Boolean(photoUrl) });
+    setError('');
+    if (dataSource !== 'api') {
+      // Offline demo: nothing leaves the browser.
+      setReport({ category, area, hasPhoto: Boolean(photoFile) });
+    } else {
+      const form = new FormData();
+      form.append('category', category);
+      form.append('service_area_id', area);
+      form.append('share_location', String(shareLocation));
+      if (description.trim()) form.append('description', description.trim());
+      if (photoFile) form.append('photo', photoFile);
+      setSending(true);
+      try {
+        const saved = await apiFetch('/complaints', { role: 'citizen', method: 'POST', body: form });
+        const analysis = saved.image_analysis?.[0];
+        setReport({
+          public_code: saved.public_code,
+          category: saved.category,
+          area: saved.service_area_id,
+          hasPhoto: saved.media.length > 0,
+          observation_code: analysis?.observation_code ?? null,
+          observation: analysis?.message ?? null,
+        });
+        await reloadData();
+      } catch (err) {
+        setSending(false);
+        const key = { 409: 'report.errorDuplicate', 413: 'report.errorTooLarge', 415: 'report.errorType' }[err.status];
+        return setError(key ? t(key, { detail: err.message }) : t('report.errorGeneric'));
+      }
+      setSending(false);
+    }
     advanceTo(S.REPORTED);
     navigate('/citizen/report/done');
   };
 
   if (step >= S.REPORTED) {
+    const code = storyCode(report);
     return (
       <div className="mx-auto max-w-xl">
         <div className="card p-5">
-          <p className="mb-4">{t('report.already', { code: '2048' })}</p>
-          <button type="button" onClick={() => navigate('/citizen/complaints/2048')} className="btn-primary w-full">
+          <p className="mb-4">{t('report.already', { code })}</p>
+          <button type="button" onClick={() => navigate(`/citizen/complaints/${code}`)} className="btn-primary w-full">
             {t('done.track')}
           </button>
         </div>
@@ -146,8 +182,8 @@ export default function Report() {
 
       {error && <p className="rounded-xl bg-red-50 p-3 font-medium text-red-800" role="alert">{error}</p>}
 
-      <button type="submit" className="btn-primary text-lg">
-        {t('report.submit')}
+      <button type="submit" className="btn-primary text-lg" disabled={sending}>
+        {sending ? '…' : t('report.submit')}
       </button>
     </form>
   );

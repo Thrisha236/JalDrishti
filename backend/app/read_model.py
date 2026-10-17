@@ -122,14 +122,25 @@ def alert(a: m.Alert) -> dict:
     )
 
 
-def complaint(session: Session, c: m.Complaint) -> dict:
+def complaint(session: Session, c: m.Complaint, public: bool = False) -> dict:
+    """public=True is for the unauthenticated snapshot: the citizen's own words and the photo storage key are removed."""
     media = _rows(session, m.ComplaintMedia, m.ComplaintMedia.complaint_code == c.public_code)
     return {
         "public_code": c.public_code, "citizen_id": c.citizen_id, "service_area_id": c.service_area_id,
-        "category": c.category, "description": c.description, "created_at": c.created_at, "location": c.location,
-        "media": [{"id": x.id, "file": x.file, "note": x.note, "exif_stripped": x.exif_stripped} for x in media],
+        "category": c.category, "description": None if public else c.description, "created_at": c.created_at,
+        "location": c.location,
+        "media": [{"id": x.id, "file": None, "note": x.note, "exif_stripped": x.exif_stripped} for x in media],
         "linked_asset_id": c.linked_asset_id, "is_simulated": c.is_simulated,
     }
+
+
+def complaint_with_analysis(session: Session, c: m.Complaint) -> dict:
+    """Authorised view (owner, GP or officer): description, photo ids and the simulated photo observation."""
+    out = complaint(session, c)
+    media_ids = [x["id"] for x in out["media"]]
+    rows = session.scalars(select(m.ImageAnalysis).where(m.ImageAnalysis.media_id.in_(media_ids))).all() if media_ids else []
+    out["image_analysis"] = [image_analysis(r) for r in rows]
+    return out
 
 
 def image_analysis(ia: m.ImageAnalysis) -> dict:
@@ -226,7 +237,7 @@ def snapshot(session: Session) -> dict:
         "story": {
             **story_meta,
             "alerts": [alert(a) for a in _rows(session, m.Alert)],
-            "complaints": [complaint(session, c) for c in _rows(session, m.Complaint)],
+            "complaints": [complaint(session, c, public=True) for c in _rows(session, m.Complaint)],
             "image_analysis": [image_analysis(x) for x in _rows(session, m.ImageAnalysis)],
             "incident": incident(session, current) if current else None,
             "task": task(session, current_task) if current_task else None,

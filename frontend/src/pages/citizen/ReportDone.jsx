@@ -2,13 +2,13 @@ import { useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useDemo } from '../../demo/DemoContext';
-import { S } from '../../demo/steps';
+import { S, storyCode } from '../../demo/steps';
 import Icon from '../../components/Icon';
 import Timeline from './Timeline';
 
 export default function ReportDone() {
   const { t } = useTranslation();
-  const { step, photoUrl } = useDemo();
+  const { step, photoUrl, report } = useDemo();
   const [checking, setChecking] = useState(Boolean(photoUrl));
 
   useEffect(() => {
@@ -31,7 +31,10 @@ export default function ReportDone() {
                 {t('done.checking')}
               </p>
             ) : (
-              <p className="font-semibold">{t('done.observation')}</p>
+              <p className="font-semibold">
+                {/* Translated text for the standard observation; other categories show the server's message. */}
+                {!report?.observation || report.observation_code === 'POSSIBLE_VISIBLE_LEAK' ? t('done.observation') : report.observation}
+              </p>
             )}
           </div>
           {!checking && <p className="mt-3 rounded-lg bg-slate-100 p-3 text-sm text-slate-700">{t('done.disclaimer')}</p>}
@@ -42,11 +45,11 @@ export default function ReportDone() {
         <span className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-b from-green-50 to-green-100 text-green-700 shadow-card">
           <Icon name="shield" className="h-9 w-9" />
         </span>
-        <h1 className="text-2xl font-bold">{t('done.received', { code: '2048' })}</h1>
+        <h1 className="text-2xl font-bold">{t('done.received', { code: storyCode(report) })}</h1>
         <div className="mt-4 text-left">
           <Timeline step={step} />
         </div>
-        <Link to="/citizen/complaints/2048" className="btn-primary mt-4 w-full">
+        <Link to={`/citizen/complaints/${storyCode(report)}`} className="btn-primary mt-4 w-full">
           {t('done.track')}
         </Link>
       </section>

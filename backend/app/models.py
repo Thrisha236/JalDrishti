@@ -283,10 +283,26 @@ class VerificationWindow(Base):
 
 
 class Notification(Base):
+    """Scripted citizen notifications for the story. complaint_code is a plain reference (no foreign key)
+    because the story's complaint #2048 is created live during the demo."""
+
     __tablename__ = "notifications"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     ord: Mapped[int] = mapped_column(Integer)
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
-    complaint_code: Mapped[str] = mapped_column(ForeignKey("complaints.public_code"))
+    complaint_code: Mapped[str]
     at: Mapped[str]
     message_key: Mapped[str]
+
+
+class AuditLog(Base):
+    """Every write is recorded: who, what, when. Never stores photo bytes or free-text descriptions."""
+
+    __tablename__ = "audit_log"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    at: Mapped[str]
+    actor_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
+    action: Mapped[str]
+    entity: Mapped[str]
+    entity_id: Mapped[str]
+    details: Mapped[Any | None] = mapped_column(JSON)

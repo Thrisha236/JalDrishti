@@ -12,7 +12,8 @@ export default function VillageMap({ step, mode = 'gp', selected, onSelect }) {
   const { t } = useTranslation();
   const areas = seed.service_areas.filter((a) => a.village_id === HOME_VILLAGE);
   const assetList = seed.assets.filter((a) => areas.some((z) => z.id === a.service_area_id));
-  const complaints = visibleComplaints(step);
+  // Complaints whose sender chose not to share a location are counted but not drawn.
+  const complaints = visibleComplaints(step).filter((c) => Number.isFinite(c.location?.x));
   const showCluster = complaints.length > 0 && step < S.VERIFIED;
   const cx = complaints.reduce((s, c) => s + c.location.x, 0) / (complaints.length || 1);
   const cy = complaints.reduce((s, c) => s + c.location.y, 0) / (complaints.length || 1);
