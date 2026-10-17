@@ -1,6 +1,6 @@
 // The demo story as an ordered set of steps. Every screen derives what it shows from the current step,
 // so the Citizen, Gram Panchayat and Officer views always tell the same story.
-import { story, STORY_ASSET, CITIZEN_AREA } from '../data/seed';
+import { story, CITIZEN_AREA } from '../data/seed';
 
 export const STEPS = [
   { key: 'WARNING', label: 'Early warning on P-21' },
@@ -56,5 +56,3 @@ export function activeAlerts(step) {
   if (step >= S.VERIFIED) return [];
   return step >= S.REPORTED ? [tail, early] : [early];
 }
-
-export const storyAsset = STORY_ASSET;

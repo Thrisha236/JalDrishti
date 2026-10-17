@@ -80,7 +80,7 @@ export default function Task() {
                       ]
                     : []),
                 ]}
-                band={tailBand}
+                band={tailBand()}
                 unit="bar"
               />
               {verified ? (

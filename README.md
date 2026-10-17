@@ -15,7 +15,7 @@ A prototype rural water-service monitoring and response platform for SIH 2026, p
 | `scripts/validate-seed.mjs` | Checks the seed: references, labelling, story order, risk arithmetic, no real phone numbers | 1 ✅ |
 | `shared/risk.mjs` | Pipeline risk scoring, used by the validator and the frontend | 1 ✅ |
 | `frontend/` | React + Vite + Tailwind app (Citizen, Gram Panchayat, Officer) | 3 ✅ |
-| `backend/` | FastAPI + SQLite (PostgreSQL later) | 4 |
+| `backend/` | FastAPI + SQLAlchemy + SQLite (PostgreSQL later), read-only API on the seed | 4 ✅ |
 | `simulator/` | Python sensor simulator | 6 |
 
 ## Stage 1: seed dataset
@@ -83,3 +83,59 @@ The dark **demo bar** (bottom right) shows the current step and has *Reset story
 - Charts use a deterministic simulated series until the sensor simulator arrives (Stage 6).
 - Voice notes are shown as "coming later".
 - Telugu and Hindi strings are first drafts and need review by native speakers.
+
+## Stage 4: backend (FastAPI + SQLite, read-only)
+
+### First-time setup (Windows, VS Code terminal)
+
+Python 3.12 is required. If it is missing: `winget install -e --id Python.Python.3.12`, then open a new terminal.
+
+```powershell
+cd backend
+py -3.12 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+python -m app.seed_loader
+```
+
+If PowerShell blocks `Activate.ps1`, run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once, or call `.\.venv\Scripts\python.exe` directly.
+
+### Run
+
+Two terminals:
+
+```powershell
+# terminal 1: API on http://127.0.0.1:8000 (docs at /docs)
+cd backend
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload
+```
+
+```powershell
+# terminal 2: app on http://localhost:5173 (proxies /api to the backend)
+cd frontend
+npm run dev
+```
+
+The GP and Officer header shows **API connected** when data comes from the backend, or **Offline demo data** when the backend is not running (the app then uses the seed bundled with it, so a demo never breaks).
+
+### Test
+
+```powershell
+cd backend
+.\.venv\Scripts\python.exe -m pytest
+```
+
+The 19 tests cover the following:
+- **Round trip:** seed → database → snapshot returns exactly the seed, so nothing is lost.
+- **Risk scores:** the Python risk port reproduces every expected score.
+- **Endpoints:** ranking, filtering, 404s, evidence sums, the verification windows, task order, and confirmation that the API is read-only for now.
+
+### Endpoints (`/api/v1`)
+
+`health` · `meta` · `snapshot` · `villages` · `villages/{id}` · `pipelines?village_id=` · `pipelines/{asset_id}` · `alerts?village_id=` · `complaints?village_id=` · `incidents/{code}` · `incidents/{code}/verification` · `tasks/{code}`
+
+### Known limits of Stage 4
+
+- Read-only: the demo story still advances in the browser. Writing complaints, tasks and verifications through the API starts in Stage 5.
+- Tables are created by `seed_loader` (drop and recreate). Schema migrations (Alembic) arrive with the PostgreSQL switch in Stage 7.
+- No authentication yet (demo login); JWT roles arrive in Stage 9.
