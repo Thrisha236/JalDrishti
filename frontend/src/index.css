@@ -2,35 +2,206 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Colour tokens as RGB channels. The light set is the default; .dark (set on <html> while the
+   signed-in app is open and dark mode is on) swaps them. "white" is the surface, "black" the strongest ink. */
+:root {
+  --white: 255 255 255;
+  --black: 0 0 0;
+  --ink: 0 0 0;
+  --muted: 92 99 108;
+  --background: 255 255 255;
+  --app: 244 247 250;
+  --shadow: 14 42 56;
+  --water-50: 241 247 250;
+  --water-100: 226 238 244;
+  --water-200: 199 221 232;
+  --water-300: 163 198 215;
+  --water-400: 127 169 191;
+  --water-600: 61 110 135;
+  --water-900: 14 42 56;
+}
+
+.dark {
+  color-scheme: dark;
+  --white: 20 29 38;
+  --black: 232 239 245;
+  --ink: 232 239 245;
+  --muted: 150 165 180;
+  --background: 11 17 24;
+  --app: 11 17 24;
+  --shadow: 0 0 0;
+  --water-50: 24 38 51;
+  --water-100: 30 49 65;
+  --water-200: 44 70 90;
+  --water-300: 62 102 128;
+  --water-400: 96 140 166;
+  --water-600: 140 186 212;
+  --water-900: 210 230 242;
+}
+
 @layer base {
   html {
     font-size: 16px;
   }
+  /* Everything is sized in rem, so this scales the whole app up on laptop and desktop screens. */
+  @media (min-width: 1280px) {
+    html {
+      font-size: 17px;
+    }
+  }
+  @media (min-width: 1600px) {
+    html {
+      font-size: 18px;
+    }
+  }
   body {
-    @apply bg-canvas text-ink antialiased;
+    @apply bg-background font-sans text-ink antialiased;
   }
   :focus-visible {
-    @apply outline-none ring-2 ring-brand-600 ring-offset-2;
+    @apply outline-none ring-2 ring-black ring-offset-2;
   }
 }
 
 @layer components {
+  /* Frosted glass in light mode (over the caustics); solid tinted surface in dark mode. */
   .card {
-    @apply rounded-2xl border border-slate-200 bg-white shadow-card;
+    @apply rounded-3xl border border-white/70 bg-white/50 shadow-card backdrop-blur-xl backdrop-saturate-150;
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.7),
+      0 1px 2px rgb(var(--shadow) / 0.05),
+      0 16px 40px -20px rgb(var(--shadow) / 0.28);
+  }
+  .dark .card {
+    @apply border-black/[0.06] bg-white/80;
+    box-shadow:
+      0 1px 2px rgb(var(--shadow) / 0.05),
+      0 12px 32px -16px rgb(var(--shadow) / 0.22);
+  }
+  .glass-bar {
+    @apply border-white/60 bg-white/45 backdrop-blur-xl backdrop-saturate-150;
+  }
+  .dark .glass-bar {
+    @apply border-black/[0.06] bg-white/70;
   }
   .btn {
-    @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-5 font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-full px-6 text-sm font-medium transition duration-200 hover:scale-[1.03] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100;
   }
   .btn-primary {
-    @apply btn bg-gradient-to-b from-brand-500 to-brand-600 text-white shadow-card hover:to-brand-700;
+    @apply btn bg-black text-white;
   }
   .btn-outline {
-    @apply btn border border-slate-300 bg-white text-ink hover:bg-slate-50;
+    @apply btn border border-black/15 bg-white/70 text-ink hover:border-black/40;
   }
   .page-title {
-    @apply text-2xl font-bold text-ink;
+    @apply font-display text-4xl font-normal leading-[0.95] tracking-tight text-ink md:text-5xl;
   }
   .section-title {
-    @apply text-lg font-semibold text-ink;
+    @apply font-display text-2xl font-normal leading-tight tracking-tight text-ink;
   }
 }
+
+/* Dark mode for the status and category colours (chips, notices, badges, waves). */
+.dark .bg-emerald-50 { background-color: theme('colors.emerald.400 / 12%'); }
+.dark .bg-emerald-100 { background-color: theme('colors.emerald.400 / 18%'); }
+.dark .text-emerald-50, .dark .text-emerald-100 { color: theme('colors.emerald.400 / 16%'); }
+.dark .text-emerald-200 { color: theme('colors.emerald.400 / 45%'); }
+.dark .text-emerald-600 { color: theme('colors.emerald.400'); }
+.dark .text-emerald-700, .dark .text-emerald-800, .dark .text-emerald-900, .dark .text-emerald-950 { color: theme('colors.emerald.300'); }
+.dark .border-emerald-100, .dark .border-emerald-200, .dark .border-emerald-300 { border-color: theme('colors.emerald.400 / 30%'); }
+.dark .ring-emerald-100, .dark .ring-emerald-200 { --tw-ring-color: theme('colors.emerald.400 / 30%'); }
+.dark .bg-amber-50 { background-color: theme('colors.amber.400 / 12%'); }
+.dark .bg-amber-100 { background-color: theme('colors.amber.400 / 18%'); }
+.dark .text-amber-50, .dark .text-amber-100 { color: theme('colors.amber.400 / 16%'); }
+.dark .text-amber-200 { color: theme('colors.amber.400 / 45%'); }
+.dark .text-amber-600 { color: theme('colors.amber.400'); }
+.dark .text-amber-700, .dark .text-amber-800, .dark .text-amber-900, .dark .text-amber-950 { color: theme('colors.amber.300'); }
+.dark .border-amber-100, .dark .border-amber-200, .dark .border-amber-300 { border-color: theme('colors.amber.400 / 30%'); }
+.dark .ring-amber-100, .dark .ring-amber-200 { --tw-ring-color: theme('colors.amber.400 / 30%'); }
+.dark .bg-rose-50 { background-color: theme('colors.rose.400 / 12%'); }
+.dark .bg-rose-100 { background-color: theme('colors.rose.400 / 18%'); }
+.dark .text-rose-50, .dark .text-rose-100 { color: theme('colors.rose.400 / 16%'); }
+.dark .text-rose-200 { color: theme('colors.rose.400 / 45%'); }
+.dark .text-rose-600 { color: theme('colors.rose.400'); }
+.dark .text-rose-700, .dark .text-rose-800, .dark .text-rose-900, .dark .text-rose-950 { color: theme('colors.rose.300'); }
+.dark .border-rose-100, .dark .border-rose-200, .dark .border-rose-300 { border-color: theme('colors.rose.400 / 30%'); }
+.dark .ring-rose-100, .dark .ring-rose-200 { --tw-ring-color: theme('colors.rose.400 / 30%'); }
+.dark .bg-sky-50 { background-color: theme('colors.sky.400 / 12%'); }
+.dark .bg-sky-100 { background-color: theme('colors.sky.400 / 18%'); }
+.dark .text-sky-50, .dark .text-sky-100 { color: theme('colors.sky.400 / 16%'); }
+.dark .text-sky-200 { color: theme('colors.sky.400 / 45%'); }
+.dark .text-sky-600 { color: theme('colors.sky.400'); }
+.dark .text-sky-700, .dark .text-sky-800, .dark .text-sky-900, .dark .text-sky-950 { color: theme('colors.sky.300'); }
+.dark .border-sky-100, .dark .border-sky-200, .dark .border-sky-300 { border-color: theme('colors.sky.400 / 30%'); }
+.dark .ring-sky-100, .dark .ring-sky-200 { --tw-ring-color: theme('colors.sky.400 / 30%'); }
+.dark .bg-red-50 { background-color: theme('colors.red.400 / 12%'); }
+.dark .bg-red-100 { background-color: theme('colors.red.400 / 18%'); }
+.dark .text-red-50, .dark .text-red-100 { color: theme('colors.red.400 / 16%'); }
+.dark .text-red-200 { color: theme('colors.red.400 / 45%'); }
+.dark .text-red-600 { color: theme('colors.red.400'); }
+.dark .text-red-700, .dark .text-red-800, .dark .text-red-900, .dark .text-red-950 { color: theme('colors.red.300'); }
+.dark .border-red-100, .dark .border-red-200, .dark .border-red-300 { border-color: theme('colors.red.400 / 30%'); }
+.dark .ring-red-100, .dark .ring-red-200 { --tw-ring-color: theme('colors.red.400 / 30%'); }
+.dark .bg-green-50 { background-color: theme('colors.green.400 / 12%'); }
+.dark .bg-green-100 { background-color: theme('colors.green.400 / 18%'); }
+.dark .text-green-50, .dark .text-green-100 { color: theme('colors.green.400 / 16%'); }
+.dark .text-green-200 { color: theme('colors.green.400 / 45%'); }
+.dark .text-green-600 { color: theme('colors.green.400'); }
+.dark .text-green-700, .dark .text-green-800, .dark .text-green-900, .dark .text-green-950 { color: theme('colors.green.300'); }
+.dark .border-green-100, .dark .border-green-200, .dark .border-green-300 { border-color: theme('colors.green.400 / 30%'); }
+.dark .ring-green-100, .dark .ring-green-200 { --tw-ring-color: theme('colors.green.400 / 30%'); }
+.dark .bg-violet-50 { background-color: theme('colors.violet.400 / 12%'); }
+.dark .bg-violet-100 { background-color: theme('colors.violet.400 / 18%'); }
+.dark .text-violet-50, .dark .text-violet-100 { color: theme('colors.violet.400 / 16%'); }
+.dark .text-violet-200 { color: theme('colors.violet.400 / 45%'); }
+.dark .text-violet-600 { color: theme('colors.violet.400'); }
+.dark .text-violet-700, .dark .text-violet-800, .dark .text-violet-900, .dark .text-violet-950 { color: theme('colors.violet.300'); }
+.dark .border-violet-100, .dark .border-violet-200, .dark .border-violet-300 { border-color: theme('colors.violet.400 / 30%'); }
+.dark .ring-violet-100, .dark .ring-violet-200 { --tw-ring-color: theme('colors.violet.400 / 30%'); }
+.dark .bg-indigo-50 { background-color: theme('colors.indigo.400 / 12%'); }
+.dark .bg-indigo-100 { background-color: theme('colors.indigo.400 / 18%'); }
+.dark .text-indigo-50, .dark .text-indigo-100 { color: theme('colors.indigo.400 / 16%'); }
+.dark .text-indigo-200 { color: theme('colors.indigo.400 / 45%'); }
+.dark .text-indigo-600 { color: theme('colors.indigo.400'); }
+.dark .text-indigo-700, .dark .text-indigo-800, .dark .text-indigo-900, .dark .text-indigo-950 { color: theme('colors.indigo.300'); }
+.dark .border-indigo-100, .dark .border-indigo-200, .dark .border-indigo-300 { border-color: theme('colors.indigo.400 / 30%'); }
+.dark .ring-indigo-100, .dark .ring-indigo-200 { --tw-ring-color: theme('colors.indigo.400 / 30%'); }
+.dark .bg-cyan-50 { background-color: theme('colors.cyan.400 / 12%'); }
+.dark .bg-cyan-100 { background-color: theme('colors.cyan.400 / 18%'); }
+.dark .text-cyan-50, .dark .text-cyan-100 { color: theme('colors.cyan.400 / 16%'); }
+.dark .text-cyan-200 { color: theme('colors.cyan.400 / 45%'); }
+.dark .text-cyan-600 { color: theme('colors.cyan.400'); }
+.dark .text-cyan-700, .dark .text-cyan-800, .dark .text-cyan-900, .dark .text-cyan-950 { color: theme('colors.cyan.300'); }
+.dark .border-cyan-100, .dark .border-cyan-200, .dark .border-cyan-300 { border-color: theme('colors.cyan.400 / 30%'); }
+.dark .ring-cyan-100, .dark .ring-cyan-200 { --tw-ring-color: theme('colors.cyan.400 / 30%'); }
+.dark .bg-orange-50 { background-color: theme('colors.orange.400 / 12%'); }
+.dark .bg-orange-100 { background-color: theme('colors.orange.400 / 18%'); }
+.dark .text-orange-50, .dark .text-orange-100 { color: theme('colors.orange.400 / 16%'); }
+.dark .text-orange-200 { color: theme('colors.orange.400 / 45%'); }
+.dark .text-orange-600 { color: theme('colors.orange.400'); }
+.dark .text-orange-700, .dark .text-orange-800, .dark .text-orange-900, .dark .text-orange-950 { color: theme('colors.orange.300'); }
+.dark .border-orange-100, .dark .border-orange-200, .dark .border-orange-300 { border-color: theme('colors.orange.400 / 30%'); }
+.dark .ring-orange-100, .dark .ring-orange-200 { --tw-ring-color: theme('colors.orange.400 / 30%'); }
+.dark .bg-teal-50 { background-color: theme('colors.teal.400 / 12%'); }
+.dark .bg-teal-100 { background-color: theme('colors.teal.400 / 18%'); }
+.dark .text-teal-50, .dark .text-teal-100 { color: theme('colors.teal.400 / 16%'); }
+.dark .text-teal-200 { color: theme('colors.teal.400 / 45%'); }
+.dark .text-teal-600 { color: theme('colors.teal.400'); }
+.dark .text-teal-700, .dark .text-teal-800, .dark .text-teal-900, .dark .text-teal-950 { color: theme('colors.teal.300'); }
+.dark .border-teal-100, .dark .border-teal-200, .dark .border-teal-300 { border-color: theme('colors.teal.400 / 30%'); }
+.dark .ring-teal-100, .dark .ring-teal-200 { --tw-ring-color: theme('colors.teal.400 / 30%'); }
+.dark .bg-stone-50 { background-color: theme('colors.stone.400 / 12%'); }
+.dark .bg-stone-100 { background-color: theme('colors.stone.400 / 18%'); }
+.dark .text-stone-50, .dark .text-stone-100 { color: theme('colors.stone.400 / 16%'); }
+.dark .text-stone-200 { color: theme('colors.stone.400 / 45%'); }
+.dark .text-stone-600 { color: theme('colors.stone.400'); }
+.dark .text-stone-700, .dark .text-stone-800, .dark .text-stone-900, .dark .text-stone-950 { color: theme('colors.stone.300'); }
+.dark .border-stone-100, .dark .border-stone-200, .dark .border-stone-300 { border-color: theme('colors.stone.400 / 30%'); }
+.dark .ring-stone-100, .dark .ring-stone-200 { --tw-ring-color: theme('colors.stone.400 / 30%'); }
+.dark .bg-yellow-50 { background-color: theme('colors.yellow.400 / 12%'); }
+.dark .bg-yellow-100 { background-color: theme('colors.yellow.400 / 18%'); }
+.dark .text-yellow-50, .dark .text-yellow-100 { color: theme('colors.yellow.400 / 16%'); }
+.dark .text-yellow-200 { color: theme('colors.yellow.400 / 45%'); }
+.dark .text-yellow-600 { color: theme('colors.yellow.400'); }
+.dark .text-yellow-700, .dark .text-yellow-800, .dark .text-yellow-900, .dark .text-yellow-950 { color: theme('colors.yellow.300'); }
+.dark .border-yellow-100, .dark .border-yellow-200, .dark .border-yellow-300 { border-color: theme('colors.yellow.400 / 30%'); }
+.dark .ring-yellow-100, .dark .ring-yellow-200 { --tw-ring-color: theme('colors.yellow.400 / 30%'); }

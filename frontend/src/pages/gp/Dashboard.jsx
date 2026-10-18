@@ -9,6 +9,7 @@ import { complaintDaySeries, tailBand } from '../../data/series';
 import { Card, Chip, Kpi, PageHeader, SimBadge } from '../../components/ui';
 import LineChart from '../../components/LineChart';
 import VillageMap from '../../components/VillageMap';
+import { WaterLevel } from '../../components/water';
 
 export default function Dashboard() {
   const { step } = useDemo();
@@ -41,7 +42,7 @@ export default function Dashboard() {
             <Card title="Suggested incidents" action={<SimBadge>Evidence fusion</SimBadge>}>
               <ul className="flex flex-col gap-3">
                 {suggestions.map((s) => (
-                  <li key={s.asset_id} className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 p-3">
+                  <li key={s.asset_id} className="flex flex-wrap items-center gap-3 rounded-2xl border border-black/[0.08] p-3">
                     <Chip level={s.priority === 'HIGH' ? 'problem' : 'warning'}>{s.priority}</Chip>
                     <div className="min-w-0 flex-1">
                       <p className="font-semibold">
@@ -67,7 +68,7 @@ export default function Dashboard() {
             {alerts.length === 0 && <p className="text-muted">No active alerts. North Area was verified restored on {fmtTime(scripted.verification.verified_at)}.</p>}
             <ul className="flex flex-col gap-3">
               {alerts.map((a) => (
-                <li key={a.id} className="flex flex-wrap items-start gap-3 rounded-xl border border-slate-200 p-3">
+                <li key={a.id} className="flex flex-wrap items-start gap-3 rounded-2xl border border-black/[0.08] p-3">
                   <Chip level={a.severity === 'HIGH' ? 'problem' : 'warning'}>{a.severity}</Chip>
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold">{a.text}</p>
@@ -106,6 +107,14 @@ export default function Dashboard() {
         </div>
 
         <div className="flex flex-col gap-5">
+          <Card title="Supply across zones">
+            <div className="flex items-center gap-5">
+              <WaterLevel value={(zones.length - affected) / zones.length} label={`${zones.length - affected}/${zones.length}`} sublabel="zones normal" tone={affected ? 'warning' : 'water'} />
+              <p className="text-sm text-muted">
+                {affected ? `${affected} zone${affected > 1 ? 's have' : ' has'} a supply problem right now.` : 'Every zone has normal supply.'}
+              </p>
+            </div>
+          </Card>
           <Card title="Network map" action={<Link to="/gp/map" className="text-sm font-semibold text-brand-600">Open</Link>}>
             <VillageMap step={step} />
           </Card>

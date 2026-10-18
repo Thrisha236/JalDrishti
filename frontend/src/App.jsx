@@ -1,7 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useDemo } from './demo/DemoContext';
 import AppShell from './components/AppShell';
-import Login from './pages/Login';
+import Landing from './pages/Landing';
 import CitizenHome from './pages/citizen/Home';
 import Report from './pages/citizen/Report';
 import ReportDone from './pages/citizen/ReportDone';
@@ -22,14 +22,15 @@ import RiskRules from './pages/officer/RiskRules';
 
 function RequireRole({ role, children }) {
   const demo = useDemo();
-  if (demo.role !== role) return <Navigate to="/" replace />;
+  if (demo.role !== role) return <Navigate to="/login" replace />;
   return children;
 }
 
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<Login />} />
+      <Route path="/" element={<Landing />} />
+      <Route path="/login" element={<Landing />} />
 
       <Route path="/citizen" element={<RequireRole role="citizen"><AppShell /></RequireRole>}>
         <Route index element={<CitizenHome />} />

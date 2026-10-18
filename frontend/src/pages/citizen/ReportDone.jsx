@@ -3,7 +3,7 @@ import { Link, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useDemo } from '../../demo/DemoContext';
 import { S, storyCode } from '../../demo/steps';
-import Icon from '../../components/Icon';
+import { Ripple } from '../../components/water';
 import Timeline from './Timeline';
 
 export default function ReportDone() {
@@ -20,14 +20,14 @@ export default function ReportDone() {
   if (step < S.REPORTED) return <Navigate to="/citizen/report" replace />;
 
   return (
-    <div className="mx-auto flex max-w-xl flex-col gap-4">
+    <div className="mx-auto flex max-w-4xl flex-col gap-5">
       {photoUrl && (
         <section className="card p-4" aria-live="polite">
           <div className="flex gap-3">
-            <img src={photoUrl} alt="Your photo" className="h-20 w-20 rounded-xl object-cover" />
+            <img src={photoUrl} alt="Your photo" className="h-20 w-20 rounded-2xl object-cover" />
             {checking ? (
               <p className="flex items-center gap-2 font-semibold">
-                <span className="h-5 w-5 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" />
+                <Ripple size="sm" tone="soft" />
                 {t('done.checking')}
               </p>
             ) : (
@@ -37,15 +37,13 @@ export default function ReportDone() {
               </p>
             )}
           </div>
-          {!checking && <p className="mt-3 rounded-lg bg-slate-100 p-3 text-sm text-slate-700">{t('done.disclaimer')}</p>}
+          {!checking && <p className="mt-3 rounded-2xl bg-water-50 p-3 text-sm text-muted">{t('done.disclaimer')}</p>}
         </section>
       )}
 
-      <section className="card p-5 text-center">
-        <span className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-b from-green-50 to-green-100 text-green-700 shadow-card">
-          <Icon name="shield" className="h-9 w-9" />
-        </span>
-        <h1 className="text-2xl font-bold">{t('done.received', { code: storyCode(report) })}</h1>
+      <section className="card p-6 text-center">
+        <Ripple icon="shield" size="lg" className="mx-auto mb-5 mt-2" />
+        <h1 className="font-display text-4xl leading-none tracking-tight">{t('done.received', { code: storyCode(report) })}</h1>
         <div className="mt-4 text-left">
           <Timeline step={step} />
         </div>

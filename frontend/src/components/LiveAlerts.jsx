@@ -19,7 +19,7 @@ export default function LiveAlerts({ alerts, compact = false }) {
       {alerts.map((a) => {
         const water = a.kind === 'WATER_SERVICE';
         return (
-          <li key={a.id} className={`flex flex-wrap items-start gap-3 rounded-xl border p-3 ${water ? 'border-red-200 bg-red-50' : 'border-slate-300 bg-slate-50'}`}>
+          <li key={a.id} className={`flex flex-wrap items-start gap-3 rounded-xl border p-3 ${water ? 'border-red-200 bg-red-50' : 'border-black/15 bg-water-50'}`}>
             {water ? <Chip level="problem">Water · {a.severity}</Chip> : <Chip level="neutral">Equipment</Chip>}
             <div className="min-w-0 flex-1">
               <p className="font-semibold">{a.text}</p>

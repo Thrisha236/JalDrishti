@@ -1,0 +1,130 @@
+/* Entrance animations */
+@keyframes fade-rise {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-rise {
+  animation: fade-rise 0.8s ease-out both;
+}
+
+.animate-fade-rise-delay {
+  animation: fade-rise 0.8s ease-out 0.2s both;
+}
+
+.animate-fade-rise-delay-2 {
+  animation: fade-rise 0.8s ease-out 0.4s both;
+}
+
+/* Water motion: drifting wave layers, ripples, flowing pipes, rising level */
+@keyframes wave-drift {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes ripple {
+  from {
+    transform: scale(0.6);
+    opacity: 0.55;
+  }
+  to {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+
+@keyframes flow {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+
+@keyframes fill-rise {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+.animate-wave-drift {
+  animation: wave-drift 14s linear infinite;
+}
+
+.animate-wave-drift-slow {
+  animation: wave-drift 22s linear infinite reverse;
+}
+
+.animate-ripple {
+  animation: ripple 2.8s ease-out infinite;
+}
+
+.animate-flow {
+  animation: flow 1.2s linear infinite;
+}
+
+.animate-fill-rise {
+  animation: fill-rise 1.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Caustics: light patterns drifting across the app background.
+   Each layer moves exactly one tile of its repeating texture, so the loop is seamless. */
+@keyframes caustic-a {
+  to {
+    transform: translate3d(520px, 520px, 0);
+  }
+}
+
+@keyframes caustic-b {
+  to {
+    transform: translate3d(-760px, 760px, 0);
+  }
+}
+
+@keyframes blob-drift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(6vw, -4vh, 0) scale(1.12);
+  }
+  100% {
+    transform: translate3d(-4vw, 5vh, 0) scale(0.95);
+  }
+}
+
+.animate-caustic-a {
+  animation: caustic-a 48s linear infinite;
+}
+
+.animate-caustic-b {
+  animation: caustic-b 70s linear infinite;
+}
+
+.animate-blob-drift {
+  animation: blob-drift 28s ease-in-out infinite alternate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-caustic-a,
+  .animate-caustic-b,
+  .animate-blob-drift,
+  .animate-fade-rise,
+  .animate-fade-rise-delay,
+  .animate-fade-rise-delay-2,
+  .animate-wave-drift,
+  .animate-wave-drift-slow,
+  .animate-ripple,
+  .animate-flow,
+  .animate-fill-rise {
+    animation: none;
+  }
+}

@@ -4,8 +4,9 @@ import { seed, riskFor, HOME_VILLAGE, CITIZEN_AREA } from '../data/seed';
 import { areaStatus, S, visibleComplaints } from '../demo/steps';
 import { SimBadge } from './ui';
 
-const ZONE_FILL = { normal: '#DCFCE7', warning: '#FEF3C7', problem: '#FEE2E2' };
-const BAND_STROKE = { HIGH: '#B91C1C', MEDIUM: '#B45309', LOW: '#0F766E' };
+// Theme variables and translucent fills, so the map works in light and dark mode.
+const ZONE_FILL = { normal: 'rgb(var(--water-100))', warning: 'rgb(251 191 36 / 0.22)', problem: 'rgb(248 113 113 / 0.22)' };
+const BAND_STROKE = { HIGH: '#DC2626', MEDIUM: '#D97706', LOW: 'rgb(var(--water-600))' };
 const flipY = (p) => [p[0], 1000 - p[1]];
 
 export default function VillageMap({ step, mode = 'gp', selected, onSelect }) {
@@ -21,7 +22,7 @@ export default function VillageMap({ step, mode = 'gp', selected, onSelect }) {
 
   return (
     <div>
-      <svg viewBox="0 0 1000 1000" className="w-full rounded-xl border border-slate-200 bg-slate-50" role="img" aria-label="Schematic village water network map">
+      <svg viewBox="0 0 1000 1000" className="w-full rounded-2xl border border-water-200 bg-water-50/60" role="img" aria-label="Schematic village water network map">
         {areas.map((z) => {
           const status = areaStatus(step, z.id);
           const pts = z.polygon.map(flipY);
@@ -29,8 +30,8 @@ export default function VillageMap({ step, mode = 'gp', selected, onSelect }) {
           const ly = Math.min(...pts.map((p) => p[1]));
           return (
             <g key={z.id}>
-              <polygon points={pts.map((p) => p.join(',')).join(' ')} fill={ZONE_FILL[status.level]} stroke="#94A3B8" strokeDasharray="8 6" strokeWidth="3" />
-              <text x={lx + 16} y={ly + 40} fontSize="30" fontWeight="700" fill="#334155">
+              <polygon points={pts.map((p) => p.join(',')).join(' ')} fill={ZONE_FILL[status.level]} stroke="rgb(var(--water-300))" strokeDasharray="8 6" strokeWidth="3" />
+              <text x={lx + 16} y={ly + 40} fontSize="30" fontWeight="700" fill="rgb(var(--ink))">
                 {z.name}
                 {mode === 'citizen' && z.id === CITIZEN_AREA ? ' (you)' : ''}
               </text>
@@ -49,9 +50,21 @@ export default function VillageMap({ step, mode = 'gp', selected, onSelect }) {
               <polyline
                 points={pts.map((p) => p.join(',')).join(' ')}
                 fill="none"
-                stroke={mode === 'citizen' ? '#0F766E' : BAND_STROKE[risk.band]}
+                stroke={mode === 'citizen' ? 'rgb(var(--water-600))' : BAND_STROKE[risk.band]}
                 strokeWidth={isSel ? 16 : risk.band === 'HIGH' && mode !== 'citizen' ? 12 : 8}
                 strokeLinecap="round"
+              />
+              {/* Water moving through the pipe */}
+              <polyline
+                points={pts.map((p) => p.join(',')).join(' ')}
+                fill="none"
+                stroke="#FFFFFF"
+                strokeOpacity="0.75"
+                strokeWidth="3"
+                strokeDasharray="4 20"
+                strokeLinecap="round"
+                className="animate-flow"
+                pointerEvents="none"
               />
               {mode !== 'citizen' && (
                 <text x={mid[0] + 14} y={mid[1] - 14} fontSize="28" fontWeight="700" fill={BAND_STROKE[risk.band]}>
@@ -66,8 +79,8 @@ export default function VillageMap({ step, mode = 'gp', selected, onSelect }) {
           const [x, y] = flipY(a.geometry.point);
           return (
             <g key={a.id}>
-              <circle cx={x} cy={y} r="22" fill="#fff" stroke="#0F766E" strokeWidth="4" />
-              <text x={x} y={y + 9} textAnchor="middle" fontSize="24" fontWeight="700" fill="#0F766E">
+              <circle cx={x} cy={y} r="22" fill="rgb(var(--white))" stroke="rgb(var(--ink))" strokeWidth="4" />
+              <text x={x} y={y + 9} textAnchor="middle" fontSize="24" fontWeight="700" fill="rgb(var(--ink))">
                 {pointIcon[a.type] ?? '?'}
               </text>
             </g>
@@ -83,8 +96,8 @@ export default function VillageMap({ step, mode = 'gp', selected, onSelect }) {
             const by = y - 52 < 0 ? y + 18 : y - 52;
             return (
               <g key={n.id}>
-                <rect x={bx} y={by} width="128" height="36" rx="18" fill="#0F766E" />
-                <text x={bx + 64} y={by + 25} textAnchor="middle" fontSize="22" fill="#fff">
+                <rect x={bx} y={by} width="128" height="36" rx="18" fill="rgb(var(--ink))" />
+                <text x={bx + 64} y={by + 25} textAnchor="middle" fontSize="22" fill="rgb(var(--white))">
                   {n.code} ●
                 </text>
               </g>
@@ -93,8 +106,8 @@ export default function VillageMap({ step, mode = 'gp', selected, onSelect }) {
 
         {showCluster && (
           <g>
-            <circle cx={cx} cy={1000 - cy} r="95" fill="#EF4444" fillOpacity="0.15" stroke="#B91C1C" strokeWidth="3" strokeDasharray="10 8" />
-            <text x={cx} y={1000 - cy - 110} textAnchor="middle" fontSize="26" fontWeight="700" fill="#B91C1C">
+            <circle cx={cx} cy={1000 - cy} r="95" fill="#EF4444" fillOpacity="0.15" stroke="#DC2626" strokeWidth="3" strokeDasharray="10 8" />
+            <text x={cx} y={1000 - cy - 110} textAnchor="middle" fontSize="26" fontWeight="700" fill="#DC2626">
               {mode === 'citizen' ? 'Your report (approx. area)' : `${complaints.length} complaints (approx.)`}
             </text>
           </g>
@@ -105,7 +118,7 @@ export default function VillageMap({ step, mode = 'gp', selected, onSelect }) {
           <>
             <span><span className="mr-1 inline-block h-2 w-4 rounded bg-red-700" />High risk</span>
             <span><span className="mr-1 inline-block h-2 w-4 rounded bg-amber-700" />Medium</span>
-            <span><span className="mr-1 inline-block h-2 w-4 rounded bg-brand-600" />Low</span>
+            <span><span className="mr-1 inline-block h-2 w-4 rounded bg-water-600" />Low</span>
           </>
         )}
         <span>S source · P pump · T tank · V valve</span>

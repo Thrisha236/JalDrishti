@@ -24,7 +24,7 @@ function EvidencePanel({ data, heading = 'Why this priority' }) {
               <div className="flex-1">
                 <p className="font-semibold">{e.text}</p>
                 <div className="mt-1 flex items-center gap-2">
-                  <div className="h-2 flex-1 rounded bg-slate-100">
+                  <div className="h-2 flex-1 rounded bg-water-50">
                     <div className="h-2 rounded bg-brand-600" style={{ width: `${Math.min(100, (e.contribution / 0.35) * 100)}%` }} />
                   </div>
                   <span className="w-12 text-right text-sm tabular-nums text-muted">{e.contribution.toFixed(2)}</span>
@@ -37,7 +37,7 @@ function EvidencePanel({ data, heading = 'Why this priority' }) {
             </li>
           ))}
         </ol>
-        <p className="mt-4 border-t border-slate-100 pt-3 text-sm">
+        <p className="mt-4 border-t border-black/[0.06] pt-3 text-sm">
           <span className="font-semibold">Evidence score {data.evidence_score}</span>{' '}
           <span className="text-muted">— {data.evidence_score_note}. HIGH needs at least 0.6 and two independent kinds of evidence.</span>
         </p>
@@ -185,7 +185,7 @@ function LiveIncident({ code }) {
               <>
                 <label className="mb-3 block text-sm">
                   <span className="font-medium">Assign to</span>
-                  <select value={assignee} onChange={(e) => setAssignee(e.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3">
+                  <select value={assignee} onChange={(e) => setAssignee(e.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-black/15 bg-white px-3">
                     {TECHNICIANS().map((u) => (
                       <option key={u.id} value={u.id}>
                         {u.display_name}
