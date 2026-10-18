@@ -4,7 +4,8 @@ import { useDemo } from '../../demo/DemoContext';
 import { openIncidentCount } from '../../demo/steps';
 import { areas, assets, currentIncidentCode, riskFor, STORY_ASSET } from '../../data/seed';
 import { Card, PageHeader, RiskChip } from '../../components/ui';
-import VillageMap from '../../components/VillageMap';
+import NetworkMap from '../../components/NetworkMap';
+import { useLiveTelemetry } from '../../data/telemetry';
 
 export default function GpMap() {
   const { step } = useDemo();
@@ -12,13 +13,14 @@ export default function GpMap() {
   const asset = assets[selected];
   const risk = riskFor(selected);
   const isStory = selected === STORY_ASSET;
+  const { data: telemetry } = useLiveTelemetry({ withSeries: false });
 
   return (
     <div>
-      <PageHeader title="Village Map — Ramapuram" subtitle="Tap a pipeline to see its record" />
+      <PageHeader title="Village Map — Ramapuram" subtitle="Tap a pipeline to see its record. Zone colours, pipe risk and sensor status update live." />
       <div className="grid gap-5 lg:grid-cols-3">
         <Card className="lg:col-span-2">
-          <VillageMap step={step} selected={selected} onSelect={setSelected} />
+          <NetworkMap step={step} selected={selected} onSelect={setSelected} liveNodes={telemetry?.live.nodes} />
         </Card>
         <Card title={`Pipeline ${asset.code}`}>
           <p className="mb-2 text-muted">
