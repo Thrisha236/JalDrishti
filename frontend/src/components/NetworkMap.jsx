@@ -7,6 +7,7 @@ import VillageMap from './VillageMap';
 import { Ripple } from './water';
 import { useSensorLayer } from './layers/SensorLayer';
 import { useWhatIfLayer } from './layers/WhatIfLayer';
+import { useServiceLayer } from './layers/ServiceLayer';
 
 // MapLibre is large, so it loads only when a 3D map is shown.
 const TerrainMap = lazy(() => import('./TerrainMap'));
@@ -27,6 +28,7 @@ const LEGEND_CITIZEN = [
 const GP_LAYERS = [
   ['network', 'Network'],
   ['sensors', 'Sensors'],
+  ['service', 'Service'],
   ['whatif', 'What-if'],
 ];
 
@@ -75,9 +77,9 @@ function Segmented({ label, value, options, onChange }) {
   );
 }
 
-export default function NetworkMap({ step, mode = 'gp', selected, onSelect, telemetry }) {
+export default function NetworkMap({ step, mode = 'gp', selected, onSelect, telemetry, initialLayer = 'network' }) {
   const [view, setView] = useState('3d');
-  const [layer, setLayer] = useState('network');
+  const [layer, setLayer] = useState(initialLayer);
   const [failed, setFailed] = useState(false);
   const onFail = useCallback(() => setFailed(true), []);
   const show3d = view === '3d' && !failed;
@@ -87,6 +89,7 @@ export default function NetworkMap({ step, mode = 'gp', selected, onSelect, tele
   const layers = {
     sensors: useSensorLayer(telemetry, activeLayer === 'sensors'),
     whatif: useWhatIfLayer(activeLayer === 'whatif'),
+    service: useServiceLayer(step, activeLayer === 'service'),
   };
   const current = layers[activeLayer];
 
@@ -118,6 +121,7 @@ export default function NetworkMap({ step, mode = 'gp', selected, onSelect, tele
                   pins={current?.pins}
                   onPinClick={current?.onPinClick}
                   houseColors={current?.houseColors}
+                  onHouseClick={current?.onHouseClick}
                 />
               </Suspense>
             </MapBoundary>

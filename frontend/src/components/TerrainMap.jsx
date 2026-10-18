@@ -168,9 +168,10 @@ const VIEW_PAINT = {
  * Props: step (demo story step), mode ('gp' | 'citizen'), selected asset id, onSelect(assetId),
  * liveNodes (sensor node health from the API), onFail() when the map cannot load (offline, no WebGL),
  * view ('network' or an analysis layer name), pins (layer markers: { id, at, color, label, selected,
- * pulse: 'none' | 'slow' | 'fast', ariaLabel }), onPinClick(id), houseColors (house id → colour).
+ * pulse: 'none' | 'slow' | 'fast', ariaLabel }), onPinClick(id), houseColors (house id → colour),
+ * onHouseClick(houseId) when a layer lets you inspect individual homes.
  */
-export default function TerrainMap({ step, mode = 'gp', selected, onSelect, liveNodes, onFail, view = 'network', pins = [], onPinClick, houseColors }) {
+export default function TerrainMap({ step, mode = 'gp', selected, onSelect, liveNodes, onFail, view = 'network', pins = [], onPinClick, houseColors, onHouseClick }) {
   const box = useRef(null);
   const mapRef = useRef(null);
   const markers = useRef({});
@@ -179,6 +180,8 @@ export default function TerrainMap({ step, mode = 'gp', selected, onSelect, live
   onSelectRef.current = onSelect;
   const onPinClickRef = useRef(onPinClick);
   onPinClickRef.current = onPinClick;
+  const onHouseClickRef = useRef(onHouseClick);
+  onHouseClickRef.current = onHouseClick;
   const [ready, setReady] = useState(false);
 
   // Create the map once.
@@ -293,6 +296,9 @@ export default function TerrainMap({ step, mode = 'gp', selected, onSelect, live
       });
 
       map.on('click', 'pipes-hit', (e) => onSelectRef.current?.(e.features[0].properties.id));
+      map.on('click', 'houses-3d', (e) => onHouseClickRef.current?.(e.features[0].properties.id));
+      map.on('mouseenter', 'houses-3d', () => (map.getCanvas().style.cursor = onHouseClickRef.current ? 'pointer' : ''));
+      map.on('mouseleave', 'houses-3d', () => (map.getCanvas().style.cursor = ''));
       map.on('mouseenter', 'pipes-hit', () => (map.getCanvas().style.cursor = onSelectRef.current ? 'pointer' : ''));
       map.on('mouseleave', 'pipes-hit', () => (map.getCanvas().style.cursor = ''));
       setReady(true);
