@@ -11,8 +11,11 @@ class Base(DeclarativeBase):
 
 
 def make_engine(url: str = DATABASE_URL):
-    connect_args = {"check_same_thread": False} if url.startswith("sqlite") else {}
-    engine = create_engine(url, connect_args=connect_args)
+    sqlite = url.startswith("sqlite")
+    connect_args = {"check_same_thread": False} if sqlite else {}
+    # A server database keeps a small pool of connections, and checks each is alive before using it.
+    pool = {} if sqlite else {"pool_size": 10, "max_overflow": 20, "pool_pre_ping": True}
+    engine = create_engine(url, connect_args=connect_args, **pool)
     if url.startswith("sqlite"):
         # SQLite does not enforce foreign keys unless asked.
         @event.listens_for(engine, "connect")

@@ -35,8 +35,11 @@ class Village(Base):
     ord: Mapped[int] = mapped_column(Integer)
     name: Mapped[str]
     lgd_code: Mapped[str]
+    block: Mapped[str | None]  # administrative level between village and district
     district: Mapped[str]
     state: Mapped[str]
+    lat: Mapped[float | None] = mapped_column(Float)  # fictional map position (display and GeoJSON only)
+    lon: Mapped[float | None] = mapped_column(Float)
     is_mock: Mapped[bool] = mapped_column(Boolean)
 
 
@@ -182,6 +185,7 @@ class User(Base):
     display_name: Mapped[str]
     village_id: Mapped[str | None] = mapped_column(ForeignKey("villages.id"))
     service_area_id: Mapped[str | None] = mapped_column(ForeignKey("service_areas.id"))
+    household_id: Mapped[str | None]  # the household this villager lives in, e.g. "sa-north-h12" (zone register, mock)
     village_ids: Mapped[Any | None] = mapped_column(JSON)
     language: Mapped[str]
     is_mock: Mapped[bool] = mapped_column(Boolean)
@@ -203,6 +207,9 @@ class Alert(Base):
     is_simulated: Mapped[bool] = mapped_column(Boolean)
     # Set by the rules engine when the condition has been false for the clear window (Stage 7).
     cleared_at: Mapped[str | None] = mapped_column(default=None)
+    # A Gram Panchayat or officer saw it. The alert stays open until the condition clears.
+    acknowledged_by: Mapped[str | None] = mapped_column(ForeignKey("users.id"), default=None)
+    acknowledged_at: Mapped[str | None] = mapped_column(default=None)
 
 
 class Complaint(Base):
@@ -263,6 +270,8 @@ class Incident(Base):
     summary: Mapped[str | None] = mapped_column(Text)
     is_mock: Mapped[bool | None] = mapped_column(Boolean)
     is_simulated: Mapped[bool | None] = mapped_column(Boolean)
+    # FUSION: opened from live evidence. PREVENTIVE: opened from the AI maintenance planner before anything failed.
+    origin: Mapped[str] = mapped_column(String, default="FUSION")
 
 
 class IncidentEvidence(Base):
@@ -372,3 +381,52 @@ class IntegrationEvent(Base):
     summary: Mapped[str] = mapped_column(Text)
     payload: Mapped[Any | None] = mapped_column(JSON)
     trigger: Mapped[str] = mapped_column(String, default="auto")  # auto | manual
+
+
+class WaterQualityPoint(Base):
+    """A place where field-test-kit samples are taken: the source, the tank, a tail tap or a home tap."""
+
+    __tablename__ = "water_quality_points"
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    ord: Mapped[int] = mapped_column(Integer)
+    label: Mapped[str]
+    type: Mapped[str]  # source | tank | tap
+    service_area_id: Mapped[str | None] = mapped_column(ForeignKey("service_areas.id"))
+    asset_id: Mapped[str | None] = mapped_column(ForeignKey("assets.id"))  # for the source and the tank
+    sensor_code: Mapped[str | None]  # for taps: the field-sensor code that fixes the position on the map
+
+
+class WaterQualityTest(Base):
+    """One field-test-kit result. The verdict is worked out on the server from the values (IS 10500 limits)."""
+
+    __tablename__ = "water_quality_tests"
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    ord: Mapped[int] = mapped_column(Integer)
+    point_id: Mapped[str] = mapped_column(ForeignKey("water_quality_points.id"))
+    date: Mapped[str]
+    tester: Mapped[str]
+    values: Mapped[Any] = mapped_column(JSON)
+    verdict: Mapped[str]  # safe | watch | unsafe
+    issues: Mapped[Any | None] = mapped_column(JSON)
+    created_by: Mapped[str | None] = mapped_column(ForeignKey("users.id"))
+    created_at: Mapped[str | None]
+    is_mock: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class ServiceCheck(Base):
+    """A villager's daily service validation: did water come, was it enough, what did it look like.
+    One per household per day (a second submission the same day replaces the first). No names are shared outward."""
+
+    __tablename__ = "service_checks"
+    __table_args__ = (Index("ix_service_checks_area_day", "service_area_id", "day"),)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
+    household_id: Mapped[str]
+    service_area_id: Mapped[str] = mapped_column(ForeignKey("service_areas.id"))
+    day: Mapped[str]  # YYYY-MM-DD
+    got_water: Mapped[bool] = mapped_column(Boolean)
+    quantity: Mapped[str]  # ENOUGH | LOW | NONE
+    quality: Mapped[str | None]  # CLEAR | COLOURED | SMELL | OTHER
+    rating: Mapped[int | None]  # 1-5 satisfaction with the service
+    comment: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[str]

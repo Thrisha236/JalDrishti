@@ -40,6 +40,17 @@ def fresh_login_limits():
     reset_login_failures()
 
 
+@pytest.fixture(autouse=True)
+def no_rate_limit(monkeypatch):
+    """Every test shares one client address, so the per-minute limit would trip on the busier tests. test_security turns it back on."""
+    from app import config, security
+
+    monkeypatch.setattr(config, "RATE_LIMIT_PER_MINUTE", 0)
+    security.reset_rate_limits()
+    yield
+    security.reset_rate_limits()
+
+
 @pytest.fixture()
 def client(engine):
     Session = sessionmaker(bind=engine, expire_on_commit=False)

@@ -1,0 +1,11 @@
+.git
+.claude
+**/node_modules
+**/.venv
+**/__pycache__
+**/dist
+*.db
+backend/uploads
+backend/tests
+docs
+.env

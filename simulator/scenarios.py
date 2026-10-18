@@ -36,6 +36,13 @@ SCENARIOS = {
     # A leak that is only starting: tail pressure and flow slide slowly (no alert yet). The early-warning models
     # should notice the drift and predict the breach before the rules engine raises an alert.
     "degrading": {},
+    # Supply that stops and starts (a valve being rotated, a pump cycling): ten ticks of water, ten ticks dry, repeating.
+    "intermittent": {},
+}
+
+# Scenarios that repeat a dry spell: after `on_ticks` of normal readings the `off` values apply until the period ends.
+CYCLES = {
+    "intermittent": {"period": 20, "on_ticks": 10, "off": {"sen-head-flow": 4.0, "sen-tail-flow": 0.0, "sen-tail-pressure": 0.15, "sen-head-pressure": 1.75}},
 }
 
 # Scenarios whose values move gradually: sensor -> (start value, end value, ticks to get there).
@@ -58,6 +65,9 @@ def values_for(scenario: str, tick: int, rng: random.Random) -> dict[str, float]
     target = {**BASELINE, **SCENARIOS[scenario]}
     for sensor, (start, end, ticks) in RAMPS.get(scenario, {}).items():
         target[sensor] = start + (end - start) * min(1.0, tick / ticks)
+    cycle = CYCLES.get(scenario)
+    if cycle and tick % cycle["period"] >= cycle["on_ticks"]:
+        target.update(cycle["off"])
     out = {}
     for sensor, value in target.items():
         if sensor == "sen-tank-level":

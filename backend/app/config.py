@@ -50,3 +50,31 @@ CORS_ORIGINS = os.environ.get("JALRAKSHAK_CORS", "http://localhost:5173,http://1
 VERIFY_WINDOW_SECONDS = int(os.environ.get("JALRAKSHAK_VERIFY_WINDOW_SECONDS", "60"))
 VERIFY_MIN_READINGS = 5  # per sensor per window; fewer means the window cannot be judged
 VERIFY_IN_BAND_SHARE = 0.8  # share of readings that must sit inside the normal band
+
+# ---- deployment and safeguards ----
+# development (default) or production. Production refuses to start with demo settings (see check_production).
+ENVIRONMENT = os.environ.get("JALRAKSHAK_ENV", "development")
+# Sensor readings older than this are deleted automatically. 0 keeps everything.
+READINGS_RETENTION_DAYS = int(os.environ.get("JALRAKSHAK_READINGS_RETENTION_DAYS", "30"))
+# Requests per minute per client address (sensor ingestion gets 4x). 0 turns the limit off.
+RATE_LIMIT_PER_MINUTE = int(os.environ.get("JALRAKSHAK_RATE_LIMIT", "900"))
+MAX_BODY_BYTES = 12 * 1024 * 1024
+# Behind a reverse proxy, take the client address from X-Forwarded-For. Only turn this on when a proxy you control sets it.
+TRUST_PROXY = os.environ.get("JALRAKSHAK_TRUST_PROXY", "0") == "1"
+
+
+def check_production() -> list[str]:
+    """What is wrong with these settings for a real deployment. Empty means fine. Demo conveniences must be off."""
+    problems = []
+    if not os.environ.get("JALRAKSHAK_SECRET"):
+        problems.append("Set JALRAKSHAK_SECRET (the token signing key), or every restart signs everyone out and workers disagree")
+    if DEMO_MODE:
+        problems.append("Set JALRAKSHAK_DEMO=0: demo mode enables the reset endpoint and scripted reports")
+    if DEMO_PASSWORD == "jalrakshak-demo":
+        problems.append("Set JALRAKSHAK_DEMO_PASSWORD: the default demo password is public")
+    if any(k.startswith("dev-key") for k in DEVICE_KEYS.values()):
+        problems.append("Set JALRAKSHAK_DEVICE_KEYS: the default sensor keys are public")
+    if DATABASE_URL.startswith("sqlite"):
+        problems.append("Set JALRAKSHAK_DB to a PostgreSQL URL: SQLite is for a single demo machine")
+    return problems
+

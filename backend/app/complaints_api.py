@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from . import config
 from . import models as m
-from . import photos
+from . import integrations, photos
 from . import read_model as rm
 from .auth import CurrentUser, require_roles, village_ids_of
 from .db import get_session
@@ -65,6 +65,27 @@ def _coarse_location(area: m.ServiceArea) -> dict:
     return {"x": round(sum(xs) / len(xs)), "y": round(sum(ys) / len(ys)), "precision": "approx_1km"}
 
 
+GEO_ROUND_M = 25  # a geo-tagged report is rounded to the nearest 25 m: enough to find the lane, not the door
+
+
+def _inside(point: tuple[float, float], polygon: list) -> bool:
+    """Ray-casting point-in-polygon test, in the plan's metre coordinates."""
+    x, y = point
+    hit = False
+    for (xi, yi), (xj, yj) in zip(polygon, polygon[-1:] + polygon[:-1]):
+        if (yi > y) != (yj > y) and x < (xj - xi) * (y - yi) / (yj - yi) + xi:
+            hit = not hit
+    return hit
+
+
+def _geotag(area: m.ServiceArea, x: float, y: float) -> dict:
+    """An opt-in precise location for a report, checked to be inside the villager's own area and then rounded."""
+    if not _inside((x, y), area.polygon):
+        raise HTTPException(422, "That spot is outside your area. Mark a place inside it, or share the area only.")
+    r = GEO_ROUND_M
+    return {"x": round(x / r) * r, "y": round(y / r) * r, "precision": "approx_25m"}
+
+
 def _can_view(user: m.User, c: m.Complaint, session: Session) -> bool:
     if user.role == "citizen":
         return c.citizen_id == user.id
@@ -86,6 +107,9 @@ async def create_complaint(
     share_location: Annotated[bool, Form()] = True,
     photo: Annotated[UploadFile | None, File()] = None,
     channel: Annotated[Channel, Form()] = Channel.APP,
+    geo_x: Annotated[float | None, Form()] = None,
+    geo_y: Annotated[float | None, Form()] = None,
+    geotag_consent: Annotated[bool, Form()] = False,
 ):
     require_roles(user, "citizen")
     area = session.get(m.ServiceArea, service_area_id)
@@ -109,7 +133,16 @@ async def create_complaint(
         storage_key = photos.clean_and_store(await photos.read_limited(photo))
 
     code = _next_code(session)
-    location = _coarse_location(area) if share_location else {"x": None, "y": None, "precision": "not_shared"}
+    if (geo_x is None) != (geo_y is None):
+        raise HTTPException(422, "Send both coordinates of the spot, or neither")
+    if geo_x is not None:
+        if not geotag_consent:
+            raise HTTPException(422, "A precise location is only stored if you agree to it (geotag_consent)")
+        if not share_location:
+            raise HTTPException(422, "You chose not to share a location, so a spot cannot be stored")
+        location = _geotag(area, geo_x, geo_y)
+    else:
+        location = _coarse_location(area) if share_location else {"x": None, "y": None, "precision": "not_shared"}
     order = session.query(m.Complaint).count() + 1000
     session.add(
         m.Complaint(
@@ -130,6 +163,8 @@ async def create_complaint(
                 observation_code=obs_code, message=message, disclaimer=photos.DISCLAIMER,
             )
         )
+    session.flush()
+    integrations.on_complaint(session, session.get(m.Complaint, code), "RECEIVED")
     _audit(session, user, "create", "complaint", code, {"category": category.value, "service_area_id": service_area_id, "has_photo": bool(storage_key), "channel": channel.value})
     session.commit()
     return rm.complaint_with_analysis(session, session.get(m.Complaint, code))

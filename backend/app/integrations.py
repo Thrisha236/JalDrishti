@@ -15,7 +15,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from . import fhtc, ml
+from . import fhtc, ml, retention
 from . import models as m
 
 IST = timezone(timedelta(hours=5, minutes=30))
@@ -33,18 +33,23 @@ CONNECTORS = {
     },
     "imis": {
         "name": "IMIS", "full_name": "JJM Integrated Management Information System", "prefix": "IMIS", "direction": "PUSH",
-        "purpose": "Receives service incidents with their repair status, and monitoring snapshots, against the scheme and Sujal Gaon ID.",
-        "carries": ["Incidents and repair status", "Sensor monitoring snapshots per service area"],
+        "purpose": "Receives service incidents with their repair status, every alert, and monitoring snapshots, against the scheme and Sujal Gaon ID.",
+        "carries": ["Incidents and repair status", "Alerts (service, quality, AI and community)", "Sensor monitoring snapshots per service area"],
     },
     "jjm_dashboard": {
         "name": "JJM Dashboard", "full_name": "National tap-connection functionality reporting", "prefix": "JJMD", "direction": "PUSH",
-        "purpose": "Receives how many household taps are functional, partly functional or not working, per village.",
-        "carries": ["Functional / partial / non-functional taps per village"],
+        "purpose": "Receives how many household taps are functional, partly functional or not working, per village, and which tap IDs need attention.",
+        "carries": ["Functional / partial / non-functional taps per village", "Household-level tap IDs that are not fully working"],
+    },
+    "meri_panchayat": {
+        "name": "Meri Panchayat", "full_name": "Citizen participation and feedback", "prefix": "MP", "direction": "PUSH",
+        "purpose": "Receives villagers' reports and daily service validations, anonymised, so community feedback reaches the same platform as the monitoring data.",
+        "carries": ["Complaints and service reports (category, channel, state: no text, names or photos)", "Daily service validation counts per zone"],
     },
     "wqmis": {
         "name": "WQMIS", "full_name": "Water Quality Management Information System", "prefix": "WQ", "direction": "PUSH",
-        "purpose": "Receives sample requests when the quality outlook says a field-kit test is needed.",
-        "carries": ["Sample requests with the pipeline and predicted risk"],
+        "purpose": "Receives every field-test result, and sample requests when the quality outlook says a test is needed.",
+        "carries": ["Field-test results (verdict and failed parameters)", "Sample requests with the pipeline and predicted risk"],
     },
 }
 
@@ -112,10 +117,96 @@ def on_incident(session: Session, inc: m.Incident, at: datetime | None = None, t
         "incident": {"code": inc.code, "asset": asset.code, "priority": inc.priority, "status": inc.status, "opened_at": inc.opened_at,
                      "closed_at": inc.closed_at, "evidence_score": inc.evidence_score, "probable_cause": inc.probable_cause},
     }
-    return _push_once(session, now, "imis", "incident", inc.code, inc.status, f"Incident {inc.code} on {asset.code}: {inc.status.replace('_', ' ').lower()}", payload, trigger)
+    pushed = _push_once(session, now, "imis", "incident", inc.code, inc.status, f"Incident {inc.code} on {asset.code}: {inc.status.replace('_', ' ').lower()}", payload, trigger)
+    for c in session.scalars(select(m.Complaint).where(m.Complaint.incident_code == inc.code)):
+        on_complaint(session, c, STATE_BY_INCIDENT.get(inc.status, "UNDER_REVIEW"), now)
+    return pushed
 
 
 # ---------- monitoring, functionality, quality (pushed on a schedule) ----------
+
+STATE_BY_INCIDENT = {"TRIAGED": "UNDER_REVIEW", "TASK_ASSIGNED": "UNDER_REVIEW", "REPAIR_DONE": "REPAIR_DONE", "VERIFIED_RESTORED": "RESOLVED", "RESOLVED_UNVERIFIED": "CLOSED", "CLOSED_NO_FAULT": "CLOSED"}
+
+
+def on_complaint(session: Session, c: m.Complaint, state: str, at: datetime | None = None) -> bool:
+    """A villager's report goes to the mock Meri Panchayat as it moves through RECEIVED, UNDER_REVIEW, REPAIR_DONE, RESOLVED or CLOSED.
+    The text, the villager and any photo are never sent: only the category, the channel, the zone and the state."""
+    if c.is_simulated:
+        return False  # scripted story reports are not live feedback
+    now = at or datetime.now(IST)
+    area = session.get(m.ServiceArea, c.service_area_id)
+    village = session.get(m.Village, area.village_id)
+    payload = {
+        "lgd_code": village.lgd_code, "sujal_gaon_id": area.sujal_gaon_id,
+        "feedback": {"id": c.public_code, "category": c.category, "channel": c.channel, "received_at": c.created_at, "state": state,
+                     "has_photo": session.query(m.ComplaintMedia).filter_by(complaint_code=c.public_code).count() > 0,
+                     "location_shared": bool(c.location and c.location.get("x") is not None), "location_precision": (c.location or {}).get("precision")},
+    }
+    return _push_once(session, now, "meri_panchayat", "feedback", c.public_code, state, f"Report #{c.public_code} ({c.category.replace('_', ' ').lower()}): {state.lower().replace('_', ' ')}", payload)
+
+
+def _push_validation(session: Session, now: datetime, trigger: str, force: bool) -> int:
+    """Today's service validations, counted per zone (never per household)."""
+    sent = 0
+    for area in session.scalars(select(m.ServiceArea).order_by(m.ServiceArea.ord)):
+        z = fhtc.assess_zone(session, area, now)
+        v = z["validation"]
+        if not v["reported"]:
+            continue
+        village = session.get(m.Village, area.village_id)
+        version = f"{v['reported']}-{v['no_water']}-{v['low_water']}-{v['quality_problems']}" + (now.strftime("-%H%M%S%f") if force else "")
+        payload = {"lgd_code": village.lgd_code, "sujal_gaon_id": area.sujal_gaon_id, "date": fhtc.today_ist(now), "households": z["households"], "reported": v["reported"],
+                   "no_water": v["no_water"], "low_water": v["low_water"], "quality_problems": v["quality_problems"], "local_faults": v["local_faults"]}
+        sent += _push_once(session, now, "meri_panchayat", "service_validation", area.id, version,
+                           f"{area.name}: {v['reported']} of {z['households']} households reported today ({v['no_water']} no water, {v['low_water']} low)", payload, trigger)
+    return sent
+
+
+def _push_taps(session: Session, now: datetime, trigger: str, force: bool) -> int:
+    """The tap IDs (not names) of households that are not fully working, per zone, to the JJM Dashboard."""
+    sent = 0
+    for area in session.scalars(select(m.ServiceArea).order_by(m.ServiceArea.ord)):
+        affected = [h for h in fhtc.homes(session, area, now) if h["status"] != "FUNCTIONAL"]
+        last = session.scalars(select(m.IntegrationEvent).where(m.IntegrationEvent.connector == "jjm_dashboard", m.IntegrationEvent.entity == "tap_status", m.IntegrationEvent.entity_id == area.id).order_by(m.IntegrationEvent.id.desc())).first()
+        if not affected and (last is None or last.version == "none"):
+            continue  # nothing to report, and nothing reported before that needs clearing
+        village = session.get(m.Village, area.village_id)
+        digest = "none" if not affected else f"{len(affected)}-{hash(tuple(sorted(h['tap_id'] for h in affected))) & 0xFFFFFF:06x}"
+        payload = {"lgd_code": village.lgd_code, "sujal_gaon_id": area.sujal_gaon_id, "as_of": now.isoformat(timespec="seconds"),
+                   "taps": [{"tap_id": h["tap_id"], "status": h["status"], "source": h["status_source"]} for h in affected[:200]], "truncated": len(affected) > 200,
+                   "basis": "estimate from simulated sensors and villagers' service checks"}
+        sent += _push_once(session, now, "jjm_dashboard", "tap_status", area.id, digest + (now.strftime("-%H%M%S%f") if force else ""),
+                           f"{area.name}: {len(affected)} taps not fully working" if affected else f"{area.name}: all taps working again", payload, trigger)
+    return sent
+
+
+def on_alert(session: Session, alert: m.Alert, state: str, at: datetime | None = None) -> bool:
+    """An alert opening, being acknowledged or clearing is pushed to the mock IMIS, once per state."""
+    now = at or datetime.now(IST)
+    area = session.get(m.ServiceArea, alert.service_area_id)
+    village = session.get(m.Village, area.village_id)
+    asset = session.get(m.Asset, alert.asset_id)
+    scheme = session.get(m.Scheme, asset.scheme_id)
+    payload = {
+        "lgd_code": village.lgd_code, "sujalam_bharat_id": scheme.sujalam_bharat_id, "sujal_gaon_id": area.sujal_gaon_id,
+        "alert": {"id": alert.id, "kind": alert.kind, "rule": alert.rule_code, "severity": alert.severity, "state": state, "asset": asset.code,
+                  "raised_at": alert.raised_at, "cleared_at": alert.cleared_at, "text": alert.text},
+    }
+    return _push_once(session, now, "imis", "alert", alert.id, state, f"Alert {alert.id} ({alert.kind.replace('_', ' ').lower()}, {alert.severity}): {state.lower()}", payload)
+
+
+def on_quality_test(session: Session, test: m.WaterQualityTest, point: m.WaterQualityPoint, at: datetime | None = None) -> bool:
+    """A field-test-kit result goes to the mock WQMIS. The tester's name is never sent."""
+    now = at or datetime.now(IST)
+    area = session.get(m.ServiceArea, point.service_area_id or session.get(m.Asset, point.asset_id).service_area_id)
+    village = session.get(m.Village, area.village_id)
+    payload = {
+        "lgd_code": village.lgd_code, "sujal_gaon_id": area.sujal_gaon_id,
+        "sample": {"point": point.label, "point_type": point.type, "date": test.date, "verdict": test.verdict,
+                   "failed_parameters": [i["label"] for i in (test.issues or [])], "standard": "IS 10500:2012", "method": "field test kit (screening)"},
+    }
+    return _push_once(session, now, "wqmis", "test_result", test.id, test.verdict, f"{point.label}: {test.verdict} on {test.date}", payload)
+
 
 def _push_monitoring(session: Session, now: datetime, trigger: str, throttle: bool) -> int:
     """One snapshot per node that has reported. Automatic pushes are throttled to one per node per minute."""
@@ -188,7 +279,14 @@ def sync(session: Session, now: datetime | None = None) -> dict:
         "imis": _push_monitoring(session, now, "manual", False),
         "jjm_dashboard": _push_functionality(session, now, "manual", True),
         "wqmis": _push_samples(session, now, "manual"),
+        "meri_panchayat": _push_validation(session, now, "manual", True),
     }
+    counts["jjm_dashboard"] += _push_taps(session, now, "manual", True)
+    for c in session.scalars(select(m.Complaint).where(m.Complaint.is_simulated.is_(False))):
+        inc = session.get(m.Incident, c.incident_code) if c.incident_code else None
+        counts["meri_panchayat"] += on_complaint(session, c, STATE_BY_INCIDENT.get(inc.status, "UNDER_REVIEW") if inc else "RECEIVED", now)
+    for a in session.scalars(select(m.Alert).where(m.Alert.is_simulated.is_(False), m.Alert.cleared_at.is_(None))):
+        counts["imis"] += on_alert(session, a, "ACKNOWLEDGED" if a.acknowledged_at else "OPEN", now)
     for inc in session.scalars(select(m.Incident).where(m.Incident.is_history.is_(False))):
         counts["imis"] += on_incident(session, inc, now, "manual")
     session.commit()
@@ -212,7 +310,8 @@ def auto_push(session: Session, now: datetime | None = None) -> int:
     try:
         sent = _push_monitoring(session, now, "auto", True)
         if _heavy_due(session, now):
-            sent += _push_functionality(session, now, "auto", False) + _push_samples(session, now, "auto")
+            sent += _push_functionality(session, now, "auto", False) + _push_samples(session, now, "auto") + _push_taps(session, now, "auto", False) + _push_validation(session, now, "auto", False)
+            retention.purge_readings(session, now)
         session.commit()
         return sent
     except Exception:  # noqa: BLE001 - see docstring

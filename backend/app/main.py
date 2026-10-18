@@ -4,6 +4,7 @@ Run from the backend folder:  uvicorn app.main:app --reload
 Interactive docs:             http://127.0.0.1:8000/docs
 """
 
+from contextlib import asynccontextmanager
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException, Query
@@ -17,16 +18,34 @@ from .auth import router as auth_router
 from .complaints_api import router as complaints_router
 from .incidents_api import router as incidents_router
 from .predictions_api import router as predictions_router
+from .quality_api import router as quality_router
+from .alerts_api import router as alerts_router
+from .maintenance_api import router as maintenance_router
+from .households_api import router as households_router
 from .risk_api import router as risk_router
 from .telemetry_api import router as telemetry_router
+from . import config, security
+from .analytics_api import router as analytics_router
 from .config import CORS_ORIGINS
 from .db import get_session
 
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    """Production refuses to start with the public demo settings."""
+    if config.ENVIRONMENT == "production":
+        problems = config.check_production()
+        if problems:
+            raise RuntimeError("Refusing to start in production with demo settings:\n- " + "\n- ".join(problems))
+    yield
+
+
 app = FastAPI(
+    lifespan=lifespan,
     title="JalRakshak API",
-    version="0.5.0",
+    version="0.12.0",
     description="Prototype. All villages, people, assets, IDs and readings are fictional demo data. No government system is integrated.",
 )
+security.install(app)
 app.add_middleware(CORSMiddleware, allow_origins=CORS_ORIGINS, allow_methods=["GET", "POST"], allow_headers=["Authorization", "Content-Type", "X-Device-Key"])
 app.include_router(auth_router)
 app.include_router(complaints_router)
@@ -34,6 +53,11 @@ app.include_router(telemetry_router)
 app.include_router(risk_router)
 app.include_router(incidents_router)
 app.include_router(predictions_router)
+app.include_router(quality_router)
+app.include_router(alerts_router)
+app.include_router(maintenance_router)
+app.include_router(households_router)
+app.include_router(analytics_router)
 
 DB = Annotated[Session, Depends(get_session)]
 API = "/api/v1"
@@ -114,7 +138,10 @@ def pipeline(asset_id: str, session: DB):
 @app.get(f"{API}/alerts")
 def alerts(session: DB, village_id: Annotated[str | None, Query()] = None):
     area_ids = _area_ids(session, village_id)
-    rows = rm._rows(session, m.Alert, *([m.Alert.service_area_id.in_(area_ids)] if area_ids is not None else []))
-    return [rm.alert(a) for a in rows]
+    # Public: only the threshold-rule alerts. AI, water-quality and community alerts are for officials (/alerts/feed).
+    conditions = [m.Alert.kind.in_(("WATER_SERVICE", "EQUIPMENT_HEALTH"))]
+    if area_ids is not None:
+        conditions.append(m.Alert.service_area_id.in_(area_ids))
+    return [rm.alert(a) for a in rm._rows(session, m.Alert, *conditions)]
 
 

@@ -148,6 +148,8 @@ def live(_user: CurrentUser, session: DB):
 
 
 SEVERITY_ORDER = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3}
+# The threshold rules' alerts. AI, water-quality and community alerts are in the Alert Center (/alerts/feed).
+RULE_KINDS = ("WATER_SERVICE", "EQUIPMENT_HEALTH")
 
 
 def _live_alert(a: m.Alert) -> dict:
@@ -159,7 +161,7 @@ def active_alerts(_user: CurrentUser, session: DB):
     """Open alerts from the rules engine (scripted story alerts excluded). Re-evaluates first, so a node that
     has gone silent is noticed even when no new readings arrive."""
     rules.evaluate(session)
-    rows = session.scalars(select(m.Alert).where(m.Alert.is_simulated.is_(False), m.Alert.cleared_at.is_(None))).all()
+    rows = session.scalars(select(m.Alert).where(m.Alert.is_simulated.is_(False), m.Alert.cleared_at.is_(None), m.Alert.kind.in_(RULE_KINDS))).all()
     rows = sorted(rows, key=lambda a: (a.kind != "WATER_SERVICE", SEVERITY_ORDER.get(a.severity, 9), a.raised_at))
     return [_live_alert(a) for a in rows]
 
@@ -169,6 +171,6 @@ def recent_alerts(_user: CurrentUser, session: DB, minutes: Annotated[int, Query
     """Live alerts raised in the last `minutes`, open or cleared, newest first."""
     since = _iso(_now() - timedelta(minutes=minutes))
     rows = session.scalars(
-        select(m.Alert).where(m.Alert.is_simulated.is_(False), m.Alert.raised_at >= since).order_by(m.Alert.raised_at.desc(), m.Alert.ord.desc())
+        select(m.Alert).where(m.Alert.is_simulated.is_(False), m.Alert.raised_at >= since, m.Alert.kind.in_(RULE_KINDS)).order_by(m.Alert.raised_at.desc(), m.Alert.ord.desc())
     ).all()
     return [_live_alert(a) for a in rows]

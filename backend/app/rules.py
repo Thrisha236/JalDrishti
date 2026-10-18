@@ -16,7 +16,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from . import config
+from . import config, integrations
 from . import models as m
 
 IST = timezone(timedelta(hours=5, minutes=30))
@@ -219,7 +219,9 @@ def check(session: Session, now: datetime) -> list[Finding]:
               {"tail_pressure_bar": tp[0] if tp else None, "normal_band": [tail_pressure.band_low, tail_pressure.band_high],
                "baseline_bar": tail_pressure.baseline})
 
-    return findings
+    from . import ai_alerts  # local import: ai_alerts builds the Finding objects defined above
+
+    return findings + ai_alerts.findings(session, now)
 
 
 def _next_alert_id(session: Session) -> str:
@@ -241,16 +243,18 @@ def evaluate(session: Session, now: datetime | None = None) -> dict:
             alert = m.Alert(
                 id=_next_alert_id(session), ord=1000 + session.query(m.Alert).count(), kind=f.kind, rule_code=f.rule_code,
                 severity=f.severity, asset_id=f.asset_id, sensor_id=f.sensor_id, service_area_id=f.service_area_id,
-                raised_at=_iso(now), details={**f.details, "engine": ENGINE}, text=f.text, is_simulated=False,
+                raised_at=_iso(now), details={"engine": ENGINE, **f.details}, text=f.text, is_simulated=False,
             )
             session.add(alert)
             session.flush()
             raised.append(alert.id)
+            integrations.on_alert(session, alert, "OPEN", now)
         elif f.state and current is not None:
-            current.text, current.details = f.text, {**f.details, "engine": ENGINE}  # keep the latest numbers
+            current.text, current.details = f.text, {"engine": ENGINE, **f.details}  # keep the latest numbers
         elif f.state is False and current is not None:
             current.cleared_at = _iso(now)
             current.details = {**(current.details or {}), "cleared_reason": f.details.get("clear_reason", "condition no longer present")}
             cleared.append(current.id)
+            integrations.on_alert(session, current, "CLEARED", now)
     session.commit()
     return {"raised": raised, "cleared": cleared}

@@ -1,6 +1,8 @@
 """Turn database rows back into the seed's JSON shape. The frontend consumes this shape, and the
 round-trip test (seed -> database -> snapshot) proves nothing is lost on the way."""
 
+from datetime import datetime
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -29,7 +31,7 @@ def config(session: Session, key: str):
 # ---------- reference data ----------
 
 def village(v: m.Village) -> dict:
-    return {"id": v.id, "name": v.name, "lgd_code": v.lgd_code, "district": v.district, "state": v.state, "is_mock": v.is_mock}
+    return {"id": v.id, "name": v.name, "lgd_code": v.lgd_code, "block": v.block, "district": v.district, "state": v.state, "lat": v.lat, "lon": v.lon, "is_mock": v.is_mock}
 
 
 def service_area(a: m.ServiceArea) -> dict:
@@ -104,10 +106,24 @@ def user(u: m.User) -> dict:
     return _drop_none(
         {
             "id": u.id, "username": u.username, "role": u.role, "display_name": u.display_name, "village_id": u.village_id,
-            "service_area_id": u.service_area_id, "village_ids": u.village_ids, "language": u.language, "is_mock": u.is_mock,
+            "service_area_id": u.service_area_id, "household_id": u.household_id, "village_ids": u.village_ids, "language": u.language, "is_mock": u.is_mock,
         },
-        "username", "village_id", "service_area_id", "village_ids",
+        "username", "village_id", "service_area_id", "household_id", "village_ids",
     )
+
+
+def water_quality(session: Session) -> dict:
+    """The field-test points and the recorded tests, in the seed's shape (verdicts come from /water-quality)."""
+    meta = config(session, "water_quality_meta")
+    points = [
+        _drop_none(
+            {"id": p.id, "label": p.label, "type": p.type, "service_area_id": p.service_area_id, "asset_id": p.asset_id, "sensor_code": p.sensor_code},
+            "asset_id", "sensor_code",
+        )
+        for p in _rows(session, m.WaterQualityPoint)
+    ]
+    tests = [{"id": t.id, "point_id": t.point_id, "date": t.date, "tester": t.tester, "values": t.values, "is_mock": t.is_mock} for t in _rows(session, m.WaterQualityTest)]
+    return {"standard": meta["standard"], "note": meta["note"], "points": points, "tests": tests}
 
 
 # ---------- story / operational data ----------
@@ -157,6 +173,8 @@ def complaint_progress(session: Session, c: m.Complaint) -> list[dict]:
             events.append({"key": "restored", "at": v.verified_at})
         elif v is not None and v.result == "RESOLVED_UNVERIFIED":
             events.append({"key": "resolved_unverified", "at": v.verified_at})
+        elif inc.status == "CLOSED_NO_FAULT":
+            events.append({"key": "resolved_unverified", "at": inc.closed_at})
     return events
 
 
@@ -200,7 +218,7 @@ def incident_live(session: Session, i: m.Incident) -> dict:
     """Incident with its lifecycle: status, grouped complaints and the maintenance task, if any."""
     t = session.scalars(select(m.MaintenanceTask).where(m.MaintenanceTask.incident_code == i.code)).first()
     complaints = session.scalars(select(m.Complaint.public_code).where(m.Complaint.incident_code == i.code).order_by(m.Complaint.created_at)).all()
-    return {**incident(session, i), "status": i.status, "complaint_codes": list(complaints), "task_code": t.code if t else None}
+    return {**incident(session, i), "status": i.status, "origin": i.origin, "complaint_codes": list(complaints), "task_code": t.code if t else None}
 
 
 def task(session: Session, t: m.MaintenanceTask) -> dict:
@@ -216,7 +234,10 @@ def task(session: Session, t: m.MaintenanceTask) -> dict:
 def task_live(session: Session, t: m.MaintenanceTask) -> dict:
     out = task(session, t)
     assignee = session.get(m.User, t.assignee_id)
-    return {**out, "status": out["updates"][-1]["status"] if out["updates"] else None, "assignee_name": assignee.display_name}
+    status = out["updates"][-1]["status"] if out["updates"] else None
+    overdue = status != "REPAIRED" and datetime.fromisoformat(t.due_at) < datetime.now(datetime.fromisoformat(t.due_at).tzinfo)
+    inc = session.get(m.Incident, t.incident_code)
+    return {**out, "status": status, "assignee_name": assignee.display_name, "overdue": bool(overdue), "origin": inc.origin if inc else "FUSION"}
 
 
 def verification(session: Session, v: m.Verification) -> dict:
@@ -315,6 +336,7 @@ def snapshot(session: Session) -> dict:
         "sensors": [sensor(s) for s in _rows(session, m.Sensor)],
         "supply_schedules": [schedule(s) for s in _rows(session, m.SupplySchedule)],
         "users": [user(u) for u in _rows(session, m.User)],
+        "water_quality": water_quality(session),
         "history_incidents": [history_incident(i) for i in _rows(session, m.Incident, m.Incident.is_history.is_(True))],
         "story": {
             **story_meta,

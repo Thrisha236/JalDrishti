@@ -31,6 +31,7 @@ class FailureType(str, Enum):
     valve_fault = "valve_fault"
     pump_fault = "pump_fault"
     other = "other"
+    no_fault_found = "no_fault_found"  # a preventive inspection that found nothing to fix: not a failure, never a repair record
 
 
 class AssessBody(BaseModel):
@@ -210,28 +211,36 @@ def my_notifications(user: CurrentUser, session: DB):
 
 # ---------- maintenance tasks ----------
 
+def make_task(session: Session, user: m.User, inc: m.Incident, assignee_id: str, due_at: datetime | None = None, default_days: int = 1) -> m.MaintenanceTask:
+    """Create the maintenance task for a triaged incident (corrective or preventive) and move the incident to TASK_ASSIGNED.
+    The caller commits. The assignee must be a technician of the incident's village; the due time must be in the future."""
+    tech = session.get(m.User, assignee_id)
+    if tech is None or tech.role != "technician" or tech.village_id != session.get(m.ServiceArea, inc.service_area_id).village_id:
+        raise HTTPException(422, "Assign a technician from this village")
+    now = _now()
+    due = due_at.astimezone(IST) if due_at and due_at.tzinfo else (now + timedelta(days=default_days)).replace(hour=17, minute=0, second=0, microsecond=0)
+    if due <= now:
+        raise HTTPException(422, "Due time must be in the future")
+    code = _next_code(list(session.scalars(select(m.MaintenanceTask.code))), "T-", 118, 3)
+    task = m.MaintenanceTask(code=code, incident_code=inc.code, asset_id=inc.asset_id, assignee_id=tech.id, created_by=user.id, due_at=_iso(due), is_simulated=False)
+    session.add(task)
+    session.flush()
+    session.add(m.TaskUpdate(ord=0, task_code=code, status="ASSIGNED", at=_iso(now), note=None))
+    inc.status = "TASK_ASSIGNED"
+    integrations.on_incident(session, inc)
+    _audit(session, user, "create", "task", code, {"incident": inc.code, "assignee": tech.id, "origin": inc.origin})
+    return task
+
+
 @router.post("/tasks", status_code=201)
 def create_task(body: TaskBody, user: CurrentUser, session: DB):
     require_roles(user, "gp")
     inc = _incident_for_user(session, user, body.incident_code)
     if inc.is_history or inc.status != "TRIAGED":
         raise HTTPException(409, f"Incident {inc.code} is {inc.status}; a task can only be created for a newly triaged incident")
-    tech = session.get(m.User, body.assignee_id)
-    if tech is None or tech.role != "technician" or tech.village_id != session.get(m.ServiceArea, inc.service_area_id).village_id:
-        raise HTTPException(422, "Assign a technician from this village")
-    now = _now()
-    due = body.due_at.astimezone(IST) if body.due_at and body.due_at.tzinfo else (now + timedelta(days=1)).replace(hour=17, minute=0, second=0, microsecond=0)
-    if due <= now:
-        raise HTTPException(422, "Due time must be in the future")
-    code = _next_code(list(session.scalars(select(m.MaintenanceTask.code))), "T-", 118, 3)
-    session.add(m.MaintenanceTask(code=code, incident_code=inc.code, asset_id=inc.asset_id, assignee_id=tech.id, created_by=user.id, due_at=_iso(due), is_simulated=False))
-    session.flush()
-    session.add(m.TaskUpdate(ord=0, task_code=code, status="ASSIGNED", at=_iso(now), note=None))
-    inc.status = "TASK_ASSIGNED"
-    integrations.on_incident(session, inc)
-    _audit(session, user, "create", "task", code, {"incident": inc.code, "assignee": tech.id})
+    task = make_task(session, user, inc, body.assignee_id, body.due_at)
     session.commit()
-    return rm.task_live(session, session.get(m.MaintenanceTask, code))
+    return rm.task_live(session, session.get(m.MaintenanceTask, task.code))
 
 
 @router.get("/tasks")
@@ -272,7 +281,12 @@ def update_task(code: str, body: TaskUpdateBody, user: CurrentUser, session: DB)
 
     now = _iso(_now())
     session.add(m.TaskUpdate(ord=len(updates), task_code=code, status=body.status, at=now, note=body.note))
-    if body.status == "REPAIRED":
+    if body.status == "REPAIRED" and body.failure_type == FailureType.no_fault_found:
+        # Nothing was wrong: close the incident without a repair record (it must not raise the pipe's failure count) or a restoration check.
+        inc.status, inc.closed_at = "CLOSED_NO_FAULT", now
+        verification.notify(session, inc.code, "resolved_unverified", now)
+        integrations.on_incident(session, inc)
+    elif body.status == "REPAIRED":
         repair_id = _next_code(list(session.scalars(select(m.Repair.id))), "rep-", 100, 3)
         session.add(
             m.Repair(id=repair_id, ord=1000 + session.query(m.Repair).count(), asset_id=t.asset_id, date=now[:10],

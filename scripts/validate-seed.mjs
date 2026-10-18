@@ -86,6 +86,34 @@ for (const v of seed.villages) check(/DEMO/.test(v.lgd_code), `${v.id}: LGD code
 for (const a of seed.service_areas) check(a.sujal_gaon_id === null || /DEMO/.test(a.sujal_gaon_id), `${a.id}: Sujal Gaon ID must be a DEMO id or null`);
 for (const s of seed.schemes) check(/DEMO/.test(s.sujalam_bharat_id), `${s.id}: Sujalam Bharat ID must be a DEMO id`);
 
+// Administrative hierarchy: every village sits in a block, district and state, and has a fictional map position.
+for (const v of seed.villages) {
+  check(v.block && v.district && v.state, `${v.id}: needs block, district and state`);
+  check(Number.isFinite(v.lat) && Number.isFinite(v.lon), `${v.id}: needs a (fictional) lat and lon`);
+}
+
+// Villagers live in a household of their own zone's register ("<zone>-h<1..household_count>").
+for (const u of seed.users) {
+  if (!u.household_id) continue;
+  const m = /^(.*)-h(\d+)$/.exec(u.household_id);
+  const zone = m && seed.service_areas.find((a) => a.id === m[1]);
+  check(zone && zone.id === u.service_area_id && +m[2] >= 1 && +m[2] <= zone.household_count, `${u.id}: household_id ${u.household_id} is not in their zone's register`);
+}
+
+// Field-test-kit water quality: points and tests must refer to real things and carry the mock label.
+const wq = seed.water_quality;
+const wqPoints = byId(wq.points);
+for (const p of wq.points) {
+  check(!p.service_area_id || areas.has(p.service_area_id), `water point ${p.id}: unknown service area`);
+  check(!p.asset_id || assets.has(p.asset_id), `water point ${p.id}: unknown asset`);
+  check(p.type !== 'tap' || (p.service_area_id && p.sensor_code), `water point ${p.id}: a tap needs a zone and a sensor code`);
+}
+for (const t of wq.tests) {
+  check(wqPoints.has(t.point_id), `water test ${t.id}: unknown point ${t.point_id}`);
+  check(t.is_mock === true, `water test ${t.id}: missing is_mock: true`);
+  check(Object.keys(t.values).length > 0, `water test ${t.id}: no measurements`);
+}
+
 // No real-looking phone numbers anywhere in the seed (10-digit mobiles, 1800 toll-free numbers).
 const raw = readFileSync(seedPath, 'utf8');
 const phoneLike = raw.match(/(?<![\d.])(?:\+91[\s-]?)?[6-9]\d{4}[\s-]?\d{5}(?!\d)|\b1800[\s-]?\d{3}[\s-]?\d{4}\b/g);

@@ -331,6 +331,105 @@ def failure_outlook(session: Session, village_ids: set[str] | None = None) -> li
     return sorted(out, key=lambda r: (order[r["priority"]], -(r["risk_score"] or 0)))
 
 
+# ---------- 5. supply regularity (is the water arriving steadily?) ----------
+
+REGULARITY_MINUTES = 30
+MIN_REGULARITY_READINGS = 12
+
+
+def supply_regularity(session: Session, now: datetime | None = None, minutes: int = REGULARITY_MINUTES) -> dict:
+    """Tail-end flow over the last half hour, during supply hours only: steady, intermittent (starting and stopping
+    again and again), off, or unsteady. Intermittent supply is a common rural complaint that a single "no flow" rule misses."""
+    from . import rules  # local import: rules imports the alert builders, which import this module
+
+    now = now or datetime.now(IST)
+    base = {"window_minutes": minutes, "model": "Flow on/off pattern during supply hours"}
+    s = network_sensors(session).get("tail_flow")
+    if s is None:
+        return {**base, "status": "insufficient_data", "reason": "No tail flow sensor is configured."}
+    if s.id not in trusted_sensor_ids(session, now):
+        return {**base, "status": "insufficient_data", "reason": "The tail node is not reporting, or the sensor has a fault."}
+    area_id = session.get(m.Asset, session.get(m.SensorNode, s.node_id).asset_id).service_area_id
+    since = _iso(now - timedelta(minutes=minutes))
+    rows = session.execute(select(m.Reading.ts, m.Reading.value).where(m.Reading.sensor_id == s.id, m.Reading.ts >= since, m.Reading.quality_flag == "ok").order_by(m.Reading.ts)).all()
+    rows = [(ts, v) for ts, v in rows if rules.in_supply_window(session, area_id, datetime.fromisoformat(ts))]
+    if len(rows) < MIN_REGULARITY_READINGS:
+        return {**base, "status": "insufficient_data", "reason": f"Need at least {MIN_REGULARITY_READINGS} readings during supply hours; have {len(rows)}."}
+    floor = 0.2 * s.baseline  # below a fifth of normal flow the tap is effectively dry
+    on = [v >= floor for _, v in rows]
+    transitions = sum(1 for a, b in zip(on, on[1:]) if a != b)
+    on_pct = round(100 * sum(on) / len(on))
+    if on_pct < 5:
+        pattern, message = "off", "No water reached the tail end during supply hours."
+    elif on_pct >= 90 and transitions <= 1:
+        pattern, message = "steady", "Water is arriving steadily."
+    elif transitions >= 4 and 15 <= on_pct <= 90:
+        pattern, message = "intermittent", f"Supply is stopping and starting: flow was on {on_pct}% of the time with {transitions} switches in {minutes} minutes."
+    else:
+        pattern, message = "unsteady", f"Flow was on {on_pct}% of the time during supply hours."
+    return {**base, "status": "ok", "pattern": pattern, "on_pct": on_pct, "transitions": transitions, "readings": len(rows), "message": message, "asset_id": session.get(m.SensorNode, s.node_id).asset_id}
+
+
+# ---------- 6. complaint clusters (DBSCAN) ----------
+
+CLUSTER_EPS_M = 120
+CLUSTER_MIN_REPORTS = 3
+CLUSTER_HOURS = 24
+
+
+def _dist_to_line(p: tuple[float, float], line: list) -> float:
+    best = float("inf")
+    for (x0, y0), (x1, y1) in zip(line, line[1:]):
+        dx, dy = x1 - x0, y1 - y0
+        t = 0.0 if dx == dy == 0 else max(0.0, min(1.0, ((p[0] - x0) * dx + (p[1] - y0) * dy) / (dx * dx + dy * dy)))
+        best = min(best, math.hypot(p[0] - (x0 + t * dx), p[1] - (y0 + t * dy)))
+    return best
+
+
+def complaint_clusters(session: Session, now: datetime | None = None, hours: int = CLUSTER_HOURS) -> list[dict]:
+    """Groups of villager reports that sit close together on the map (DBSCAN, 120 m, at least 3 reports).
+    A cluster along a pipe points at a network fault rather than three unrelated household problems.
+    Reports shared with the coarse (zone-level) location cluster by zone; geo-tagged reports cluster by place."""
+    from sklearn.cluster import DBSCAN
+
+    now = now or datetime.now(IST)
+    pts = []
+    for c in session.scalars(select(m.Complaint)):
+        if not c.location or c.location.get("x") is None:
+            continue
+        if c.is_simulated:
+            if not config.DEMO_MODE:  # scripted reports carry story dates; they count only in demo mode
+                continue
+        elif now - datetime.fromisoformat(c.created_at) > timedelta(hours=hours):
+            continue
+        pts.append(c)
+    if len(pts) < CLUSTER_MIN_REPORTS:
+        return []
+    labels = DBSCAN(eps=CLUSTER_EPS_M, min_samples=CLUSTER_MIN_REPORTS).fit_predict(np.array([[c.location["x"], c.location["y"]] for c in pts], dtype=float))
+    village_of = {a.id: a.village_id for a in session.scalars(select(m.ServiceArea))}
+    pipes = [(a, a.geometry["line"]) for a in session.scalars(select(m.Asset).where(m.Asset.type == "pipeline")) if a.geometry.get("line")]
+    out = []
+    for lab in sorted(set(labels) - {-1}):
+        members = [c for c, l in zip(pts, labels) if l == lab]
+        cx = sum(c.location["x"] for c in members) / len(members)
+        cy = sum(c.location["y"] for c in members) / len(members)
+        areas = [c.service_area_id for c in members]
+        # Every village is drawn on the same plan, so only pipelines of the reports' own village can be the cause.
+        own = [p for p in pipes if village_of[p[0].service_area_id] == village_of[max(set(areas), key=areas.count)]]
+        asset, line = min(own, key=lambda p: _dist_to_line((cx, cy), p[1]))
+        cats: dict[str, int] = {}
+        for c in members:
+            cats[c.category] = cats.get(c.category, 0) + 1
+        out.append({
+            "id": f"cluster-{lab + 1}", "size": len(members), "complaint_codes": sorted(c.public_code for c in members), "categories": cats,
+            "service_area_id": max(set(areas), key=areas.count), "centre": [round(cx), round(cy)],
+            "radius_m": round(max(math.hypot(c.location["x"] - cx, c.location["y"] - cy) for c in members)),
+            "asset_id": asset.id, "asset_code": asset.code, "distance_to_pipe_m": round(_dist_to_line((cx, cy), line)),
+            "coarse": all(c.location.get("precision") == "approx_1km" for c in members),
+        })
+    return sorted(out, key=lambda c: -c["size"])
+
+
 # ---------- everything together ----------
 
 def rm_as_of(session: Session) -> str:
@@ -347,6 +446,10 @@ MODEL_CARDS = [
      "output": "Minutes until the reading leaves its normal band, with a confidence label", "training": "None: fitted to the live readings each time", "limits": "Assumes the recent trend continues; low-confidence trends are not forecast."},
     {"id": "quality", "name": "Water-quality outlook", "method": "First-order chlorine decay + low-pressure ingress check", "inputs": "Pipe volume, live tail flow and pressure",
      "output": "Predicted residual chlorine at the tail, and where to take a field-kit sample", "training": "None: physical model with assumed dose and decay rate", "limits": "Assumptions, not measurements. Indicator only; never a safety certification."},
+    {"id": "regularity", "name": "Supply regularity", "method": "Flow on/off pattern", "inputs": "Last 30 min of tail flow, during supply hours only",
+     "output": "Steady, intermittent, off or unsteady, with how often the water stopped", "training": "None: counted from the readings", "limits": "Needs 12 readings during supply hours; the dry-tap floor (a fifth of normal flow) is an assumption."},
+    {"id": "clusters", "name": "Complaint clusters", "method": "DBSCAN (scikit-learn)", "inputs": "Where villagers' reports were made in the last 24 hours",
+     "output": "Groups of at least 3 reports within 120 m, and the pipeline nearest to each group", "training": "None: unsupervised", "limits": "Reports shared at zone level (not geo-tagged) cluster by zone, so the pin is the zone centre."},
     {"id": "failure", "name": "Failure outlook", "method": "Mean time between failures + risk score", "inputs": "Repair history and the pipeline risk score",
      "output": "Expected window for the next failure and a priority", "training": "None: computed from records", "limits": "Needs at least two recorded failures; a ranking, not a probability."},
 ]
@@ -359,14 +462,18 @@ def predictions(session: Session, village_ids: set[str] | None = None, now: date
     forecasts = [forecast_sensor(session, sensors[k], now, minutes=10, horizon_min=15) for k in ("tail_pressure", "tank") if k in sensors]
     quality = quality_outlook(session, now)
     failures = failure_outlook(session, village_ids)
+    regularity = supply_regularity(session, now)
+    clusters = complaint_clusters(session, now)
     attention = (
         (1 if anomaly["status"] == "anomaly" else 0)
         + sum(1 for f in forecasts if f.get("level") in ("warning", "breach"))
         + sum(1 for q in quality if q["level"] != "OK")
         + sum(1 for f in failures if f["priority"] == "HIGH")
+        + (1 if regularity.get("pattern") in ("intermittent", "off") else 0)
+        + len(clusters)
     )
     return {
         "generated_at": _iso(now), "as_of": rm_as_of(session), "is_simulated": True, "attention_count": attention,
-        "anomaly": anomaly, "forecasts": forecasts, "quality": quality, "failures": failures, "models": MODEL_CARDS,
+        "anomaly": anomaly, "forecasts": forecasts, "quality": quality, "failures": failures, "regularity": regularity, "clusters": clusters, "models": MODEL_CARDS,
         "note": "Models run on simulated sensor data in this prototype. Scores are rankings, not probabilities.",
     }

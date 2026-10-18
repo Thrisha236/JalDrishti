@@ -35,6 +35,7 @@ CAUSE_BY_RULE = {
     "TAIL_PRESSURE_LOW_IN_SUPPLY": "Possible leak or partial blockage on {pipe} (unconfirmed)",
     "PUMP_OFF_IN_SUPPLY": "Pump not running during supply: power or pump fault (unconfirmed)",
     "NO_FLOW_IN_SUPPLY": "No supply reaching the network: pump, valve or source problem (unconfirmed)",
+    "INTERMITTENT_SUPPLY": "Supply on {pipe} is stopping and starting: valve operation, a cycling pump or air in the line (unconfirmed)",
 }
 
 

@@ -16,7 +16,11 @@ from scenarios import NODE_SENSORS, values_for  # noqa: E402
 from test_incidents import KEYS  # noqa: E402
 
 IST = timezone(timedelta(hours=5, minutes=30))
-NOW = datetime.now(IST)
+
+
+def now_() -> datetime:
+    """The current time. Read it fresh in each test: the full suite takes minutes, and a time fixed at import would make the readings look stale."""
+    return datetime.now(IST)
 
 
 @pytest.fixture(autouse=True)
@@ -25,8 +29,9 @@ def demo(monkeypatch):
     monkeypatch.setattr(config, "DEMO_SUPPLY_ALWAYS_ON", True)
 
 
-def feed(session, scenario: str, ticks: int, seconds_per_tick: float = 5.0, first_tick: int = 0, now: datetime = NOW):
+def feed(session, scenario: str, ticks: int, seconds_per_tick: float = 5.0, first_tick: int = 0, now: datetime | None = None):
     """Store simulated readings straight in the database, ending at `now`, and mark both nodes as just seen."""
+    now = now or now_()
     rng = random.Random(11)
     sensors = {s.id: s for s in session.query(m.Sensor)}
     for k in range(ticks):
@@ -43,14 +48,14 @@ def feed(session, scenario: str, ticks: int, seconds_per_tick: float = 5.0, firs
 
 def test_normal_operation_is_not_an_anomaly(session):
     feed(session, "normal", 30)
-    a = ml.assess_anomaly(session, NOW)
+    a = ml.assess_anomaly(session, now_())
     assert a["status"] == "normal" and a["index"] < 50 and a["explanation"] == []
     assert a["model"].startswith("Isolation Forest") and "no accuracy is claimed" in a["note"]
 
 
 def test_a_leak_is_flagged_with_the_readings_that_are_off(session):
     feed(session, "leak", 30)
-    a = ml.assess_anomaly(session, NOW)
+    a = ml.assess_anomaly(session, now_())
     assert a["status"] == "anomaly" and a["index"] >= 50 and a["asset_code"] == "P-21"
     assert any("Tail pressure" in line and "below" in line for line in a["explanation"])
     gap = next(f for f in a["features"] if f["key"] == "flow_gap")
@@ -59,10 +64,10 @@ def test_a_leak_is_flagged_with_the_readings_that_are_off(session):
 
 def test_no_trusted_data_means_no_judgement(session):
     feed(session, "normal", 30)
-    assert ml.assess_anomaly(session, NOW + timedelta(minutes=10))["status"] == "insufficient_data"  # nodes stopped reporting
+    assert ml.assess_anomaly(session, now_() + timedelta(minutes=10))["status"] == "insufficient_data"  # nodes stopped reporting
     session.query(m.Reading).delete()
     session.commit()
-    a = ml.assess_anomaly(session, NOW)
+    a = ml.assess_anomaly(session, now_())
     assert a["status"] == "insufficient_data" and "Not enough trusted readings" in a["reason"]
 
 
@@ -75,7 +80,7 @@ def tail_pressure(session):
 def test_a_slow_slide_is_predicted_before_it_leaves_the_band(session):
     # 25 ticks of the degrading scenario: 1.22 -> 1.06 bar, still inside the 1.05-1.40 band.
     feed(session, "degrading", 25, seconds_per_tick=24)
-    f = ml.forecast_sensor(session, tail_pressure(session), NOW, minutes=10)
+    f = ml.forecast_sensor(session, tail_pressure(session), now_(), minutes=10)
     assert f["status"] == "ok" and f["current"] >= 1.05
     assert f["slope_per_min"] < 0 and f["level"] in ("warning", "watch") and f["minutes_to_breach"] > 0
     assert "drop below 1.05" in f["message"] and f["confidence"] in ("medium", "high")
@@ -84,19 +89,19 @@ def test_a_slow_slide_is_predicted_before_it_leaves_the_band(session):
 
 def test_steady_readings_forecast_nothing(session):
     feed(session, "normal", 30, seconds_per_tick=20)
-    f = ml.forecast_sensor(session, tail_pressure(session), NOW, minutes=10)
+    f = ml.forecast_sensor(session, tail_pressure(session), now_(), minutes=10)
     assert f["status"] == "ok" and f["level"] == "stable" and f["minutes_to_breach"] is None and f["message"] is None
 
 
 def test_a_reading_already_out_of_band_is_reported_as_a_breach(session):
     feed(session, "leak", 30, seconds_per_tick=20)
-    f = ml.forecast_sensor(session, tail_pressure(session), NOW, minutes=10)
+    f = ml.forecast_sensor(session, tail_pressure(session), now_(), minutes=10)
     assert f["level"] == "breach" and "Already below" in f["message"]
 
 
 def test_forecast_needs_enough_readings(session):
     feed(session, "normal", 4)
-    f = ml.forecast_sensor(session, tail_pressure(session), NOW, minutes=10)
+    f = ml.forecast_sensor(session, tail_pressure(session), now_(), minutes=10)
     assert f["status"] == "insufficient_data" and "at least 8" in f["reason"]
 
 
@@ -104,23 +109,23 @@ def test_forecast_needs_enough_readings(session):
 
 def test_quality_outlook_ok_watch_and_at_risk(session):
     feed(session, "normal", 30)
-    ok = ml.quality_outlook(session, NOW)[0]
+    ok = ml.quality_outlook(session, now_())[0]
     assert ok["level"] == "OK" and ok["data_source"] == "live sensors" and ok["predicted_residual_mg_l"] >= 0.4 and ok["asset_code"] == "P-21"
     assert "never certifies" in ok["disclaimer"] and ok["assumptions"]["diameter_assumed"] is True
 
     session.query(m.Reading).delete()
     feed(session, "leak", 30)
-    watch = ml.quality_outlook(session, NOW)[0]
+    watch = ml.quality_outlook(session, now_())[0]
     assert watch["level"] == "WATCH" and watch["water_age_hours"] > ok["water_age_hours"] and "field-kit" in watch["action"]
 
     session.query(m.Reading).delete()
     feed(session, "pump-off", 30)
-    risk = ml.quality_outlook(session, NOW)[0]
+    risk = ml.quality_outlook(session, now_())[0]
     assert risk["level"] == "AT_RISK" and any("drawn in" in r for r in risk["reasons"])
 
 
 def test_quality_outlook_falls_back_to_baseline_and_says_so(session):
-    q = ml.quality_outlook(session, NOW)[0]
+    q = ml.quality_outlook(session, now_())[0]
     assert q["data_source"].startswith("recorded baseline") and q["level"] == "OK"
 
 
@@ -150,7 +155,7 @@ def zone(summary, area_id):
 
 def test_normal_supply_keeps_the_taps_functional(session):
     feed(session, "normal", 30)
-    s = fhtc.summary(session, {"vil-ramapuram"}, NOW)
+    s = fhtc.summary(session, {"vil-ramapuram"}, now_())
     north = zone(s, "sa-north")
     assert north["data_source"] == "live sensor" and north["households"] == 64
     assert north["functional"] + north["partial"] + north["non_functional"] == 64
@@ -159,26 +164,26 @@ def test_normal_supply_keeps_the_taps_functional(session):
 
 def test_a_leak_pushes_the_far_end_homes_below_55_litres(session):
     feed(session, "normal", 30)
-    normal = zone(fhtc.summary(session, {"vil-ramapuram"}, NOW), "sa-north")
+    normal = zone(fhtc.summary(session, {"vil-ramapuram"}, now_()), "sa-north")
     session.query(m.Reading).delete()
     feed(session, "leak", 30)
-    north = zone(fhtc.summary(session, {"vil-ramapuram"}, NOW), "sa-north")
+    north = zone(fhtc.summary(session, {"vil-ramapuram"}, now_()), "sa-north")
     assert north["partial"] > 0 and north["functional_pct"] < normal["functional_pct"] and north["tail_bar"] < 0.8
     worst = north["worst"][0]
     assert worst["status"] == "PARTIAL" and worst["position"] > 0.5  # tail-end homes suffer first
-    central = zone(fhtc.summary(session, {"vil-ramapuram"}, NOW), "sa-central")
+    central = zone(fhtc.summary(session, {"vil-ramapuram"}, now_()), "sa-central")
     assert central["data_source"] == "head sensor + baseline" and central["functional_pct"] >= 95  # a leak on P-21 spares Central
 
 
 def test_pump_failure_takes_every_zone_down(session):
     feed(session, "pump-off", 30)
-    s = fhtc.summary(session, {"vil-ramapuram"}, NOW)
+    s = fhtc.summary(session, {"vil-ramapuram"}, now_())
     assert all(z["functional_pct"] == 0 and z["non_functional"] > 0 for z in s["zones"])
     assert s["functional_pct"] == 0
 
 
 def test_without_live_data_it_uses_baselines_and_says_so(session):
-    s = fhtc.summary(session, None, NOW)
+    s = fhtc.summary(session, None, now_())
     assert {z["data_source"] for z in s["zones"]} == {"recorded baseline"}
     assert [v["name"] for v in s["villages"]] == ["Ramapuram", "Kondapur", "Sitarampalli"]
     assert s["history"][-1]["simulated"] is False and all(h["simulated"] for h in s["history"][:-1]) and len(s["history"]) == 14
@@ -191,7 +196,7 @@ def test_predictions_and_fhtc_need_a_signed_in_official(client, as_citizen, as_g
     assert client.get("/api/v1/predictions", headers=as_citizen).status_code == 403
     assert client.get("/api/v1/fhtc", headers=as_citizen).status_code == 403
     p = client.get("/api/v1/predictions", headers=as_gp).json()
-    assert p["is_simulated"] is True and {c["id"] for c in p["models"]} == {"anomaly", "forecast", "quality", "failure"}
+    assert p["is_simulated"] is True and {c["id"] for c in p["models"]} == {"anomaly", "forecast", "quality", "failure", "regularity", "clusters"}
     assert {f["village_id"] for f in p["failures"]} == {"vil-ramapuram"}  # the GP sees their own village
     assert {f["village_id"] for f in client.get("/api/v1/predictions", headers=as_officer).json()["failures"]} == {"vil-ramapuram", "vil-kondapur", "vil-sitarampalli"}
     assert [v["name"] for v in client.get("/api/v1/fhtc", headers=as_gp).json()["villages"]] == ["Ramapuram"]

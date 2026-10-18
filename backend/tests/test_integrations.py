@@ -23,7 +23,7 @@ def events(client, headers, **params):
 def test_everything_is_labelled_as_a_mock(client, as_gp):
     body = client.get("/api/v1/integrations", headers=as_gp).json()
     assert body["mock"] is True and "MOCK CONNECTORS" in body["notice"] and "No real government system is contacted" in body["notice"]
-    assert {c["id"] for c in body["connectors"]} == {"sujal_gaon", "imis", "jjm_dashboard", "wqmis"}
+    assert {c["id"] for c in body["connectors"]} == {"sujal_gaon", "imis", "jjm_dashboard", "wqmis", "meri_panchayat"}
     assert {c["status"] for c in body["connectors"]} == {"CONNECTED_MOCK"}
     assert {c["direction"] for c in body["connectors"]} == {"PULL", "PUSH"}
 
@@ -124,7 +124,7 @@ def test_a_quality_risk_sends_a_sample_request_to_wqmis(client, as_gp, monkeypat
     wq = events(client, as_gp, connector="wqmis")
     assert len(wq) == 1 and wq[0]["entity"] == "sample_request" and wq[0]["payload"]["risk"] == "AT_RISK"
     assert "Indicator from a model" in wq[0]["payload"]["note"]
-    assert any(e["connector"] == "jjm_dashboard" and e["payload"]["non_functional"] > 0 for e in events(client, as_gp))
+    assert any(e["connector"] == "jjm_dashboard" and e["entity"] == "functionality" and e["payload"]["non_functional"] > 0 for e in events(client, as_gp))
 
 
 def test_a_failing_connector_never_loses_a_reading(client, as_gp, monkeypatch):

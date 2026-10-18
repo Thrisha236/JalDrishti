@@ -8,7 +8,7 @@ from pathlib import Path
 
 from sqlalchemy.orm import Session
 
-from . import config
+from . import config, quality
 from . import models as m
 from .config import SEED_PATH
 from .db import Base, SessionLocal, engine
@@ -70,6 +70,17 @@ def load_seed(session: Session, seed: dict) -> None:
     for i, u in enumerate(seed["users"]):
         add(m.User(ord=i, password_hash=demo_hash if u.get("username") else None, **u))
     session.flush()
+
+    # Field-test-kit water quality: the test points and the demo records. Verdicts are worked out here, not stored in the seed.
+    wq = seed["water_quality"]
+    add(m.Config(key="water_quality_meta", value={"standard": wq["standard"], "note": wq["note"]}))
+    for i, p in enumerate(wq["points"]):
+        add(m.WaterQualityPoint(ord=i, **p))
+    session.flush()
+    point_type = {p["id"]: p["type"] for p in wq["points"]}
+    for i, t in enumerate(wq["tests"]):
+        status, issues = quality.verdict(point_type[t["point_id"]], t["values"])
+        add(m.WaterQualityTest(ord=i, verdict=status, issues=issues, **t))
 
     for i, h in enumerate(seed["history_incidents"]):
         add(m.Incident(ord=i, is_history=True, **h))

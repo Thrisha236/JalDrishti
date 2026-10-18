@@ -79,9 +79,9 @@
   },
 
   "villages": [
-    { "id": "vil-ramapuram", "name": "Ramapuram", "lgd_code": "LGD-DEMO-001", "district": "Demo District", "state": "Demo State", "is_mock": true },
-    { "id": "vil-kondapur", "name": "Kondapur", "lgd_code": "LGD-DEMO-002", "district": "Demo District", "state": "Demo State", "is_mock": true },
-    { "id": "vil-sitarampalli", "name": "Sitarampalli", "lgd_code": "LGD-DEMO-003", "district": "Demo District", "state": "Demo State", "is_mock": true }
+    { "id": "vil-ramapuram", "name": "Ramapuram", "lgd_code": "LGD-DEMO-001", "block": "Demo Block A", "district": "Demo District", "state": "Demo State", "lat": 18.2460, "lon": 79.9820, "is_mock": true },
+    { "id": "vil-kondapur", "name": "Kondapur", "lgd_code": "LGD-DEMO-002", "block": "Demo Block A", "district": "Demo District", "state": "Demo State", "lat": 18.2910, "lon": 80.0410, "is_mock": true },
+    { "id": "vil-sitarampalli", "name": "Sitarampalli", "lgd_code": "LGD-DEMO-003", "block": "Demo Block B", "district": "Demo District 2", "state": "Demo State", "lat": 18.1650, "lon": 80.0930, "is_mock": true }
   ],
 
   "service_areas": [
@@ -171,14 +171,38 @@
   ],
 
   "users": [
-    { "id": "usr-citizen-north", "username": "villager1", "role": "citizen", "display_name": "Demo Villager (North Area)", "village_id": "vil-ramapuram", "service_area_id": "sa-north", "language": "te", "is_mock": true },
-    { "id": "usr-citizen-north-2", "username": "villager2", "role": "citizen", "display_name": "Demo Villager 2 (North Area)", "village_id": "vil-ramapuram", "service_area_id": "sa-north", "language": "hi", "is_mock": true },
-    { "id": "usr-citizen-north-3", "username": "villager3", "role": "citizen", "display_name": "Demo Villager 3 (North Area)", "village_id": "vil-ramapuram", "service_area_id": "sa-north", "language": "en", "is_mock": true },
+    { "id": "usr-citizen-north", "username": "villager1", "role": "citizen", "display_name": "Demo Villager (North Area)", "village_id": "vil-ramapuram", "service_area_id": "sa-north", "household_id": "sa-north-h12", "language": "te", "is_mock": true },
+    { "id": "usr-citizen-north-2", "username": "villager2", "role": "citizen", "display_name": "Demo Villager 2 (North Area)", "village_id": "vil-ramapuram", "service_area_id": "sa-north", "household_id": "sa-north-h30", "language": "hi", "is_mock": true },
+    { "id": "usr-citizen-north-3", "username": "villager3", "role": "citizen", "display_name": "Demo Villager 3 (North Area)", "village_id": "vil-ramapuram", "service_area_id": "sa-north", "household_id": "sa-north-h47", "language": "en", "is_mock": true },
     { "id": "usr-gp-ramapuram", "username": "gp.ramapuram", "role": "gp", "display_name": "Demo GP Operator (Ramapuram)", "village_id": "vil-ramapuram", "language": "en", "is_mock": true },
     { "id": "usr-officer-block", "username": "officer.block", "role": "officer", "display_name": "Demo Block Officer", "village_ids": ["vil-ramapuram", "vil-kondapur", "vil-sitarampalli"], "language": "en", "is_mock": true },
     { "id": "usr-tech-ravi", "role": "technician", "display_name": "Ravi (Technician, demo)", "village_id": "vil-ramapuram", "language": "te", "is_mock": true }
   ],
 
+  "water_quality": {
+    "standard": "IS 10500:2012 (acceptable and permissible limits)",
+    "note": "Fictional field-test-kit records by demo testers. A field kit is a screening tool, not a laboratory certificate.",
+    "points": [
+      { "id": "tp-bw1", "label": "Borewell BW-1 (raw)", "type": "source", "service_area_id": null, "asset_id": "ast-bw1" },
+      { "id": "tp-oht1", "label": "Overhead tank OHT-1", "type": "tank", "service_area_id": null, "asset_id": "ast-oht1" },
+      { "id": "tp-N-T1", "label": "Tail tap N-T1", "type": "tap", "service_area_id": "sa-north", "sensor_code": "N-T1" },
+      { "id": "tp-C-T1", "label": "Tail tap C-T1", "type": "tap", "service_area_id": "sa-central", "sensor_code": "C-T1" },
+      { "id": "tp-S-T1", "label": "Tail tap S-T1", "type": "tap", "service_area_id": "sa-south", "sensor_code": "S-T1" },
+      { "id": "tp-N-H3", "label": "Home tap N-H3", "type": "tap", "service_area_id": "sa-north", "sensor_code": "N-H3" },
+      { "id": "tp-C-H2", "label": "Home tap C-H2", "type": "tap", "service_area_id": "sa-central", "sensor_code": "C-H2" },
+      { "id": "tp-S-H2", "label": "Home tap S-H2", "type": "tap", "service_area_id": "sa-south", "sensor_code": "S-H2" }
+    ],
+    "tests": [
+      { "id": "qt-1", "point_id": "tp-bw1", "date": "2026-10-10", "tester": "FTK tester 1", "values": { "bacteria": "absent", "ph": 7.6, "tds": 640, "fluoride": 1.2, "nitrate": 18, "iron": 0.2 }, "is_mock": true },
+      { "id": "qt-2", "point_id": "tp-oht1", "date": "2026-10-10", "tester": "FTK tester 1", "values": { "bacteria": "absent", "chlorine": 0.6, "ph": 7.4, "turbidity": 0.4 }, "is_mock": true },
+      { "id": "qt-3", "point_id": "tp-N-T1", "date": "2026-10-12", "tester": "FTK tester 2", "values": { "bacteria": "absent", "chlorine": 0.3, "turbidity": 0.8 }, "is_mock": true },
+      { "id": "qt-4", "point_id": "tp-N-H3", "date": "2026-10-12", "tester": "FTK tester 2", "values": { "bacteria": "absent", "chlorine": 0.4 }, "is_mock": true },
+      { "id": "qt-5", "point_id": "tp-C-T1", "date": "2026-10-13", "tester": "FTK tester 3", "values": { "bacteria": "absent", "chlorine": 0.25, "turbidity": 0.6 }, "is_mock": true },
+      { "id": "qt-6", "point_id": "tp-C-H2", "date": "2026-10-13", "tester": "FTK tester 3", "values": { "bacteria": "absent", "chlorine": 0.45 }, "is_mock": true },
+      { "id": "qt-7", "point_id": "tp-S-T1", "date": "2026-10-14", "tester": "FTK tester 4", "values": { "bacteria": "present", "chlorine": 0, "turbidity": 4 }, "is_mock": true },
+      { "id": "qt-8", "point_id": "tp-S-H2", "date": "2026-10-14", "tester": "FTK tester 4", "values": { "bacteria": "absent", "chlorine": 0.05 }, "is_mock": true }
+    ]
+  },
   "history_incidents": [
     { "code": "INC-0289", "asset_id": "ast-p21", "service_area_id": "sa-north", "opened_at": "2025-09-02T07:40:00+05:30", "closed_at": "2025-09-04T08:10:00+05:30", "status": "RESOLVED_UNVERIFIED", "summary": "Leak at collar; repaired before sensors were installed, so restoration could not be sensor-verified.", "is_mock": true }
   ],
