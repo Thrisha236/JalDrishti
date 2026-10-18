@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useDemo } from '../../demo/DemoContext';
-import { areaStatus, complaintStatus, S, storyCode } from '../../demo/steps';
+import { areaStatus } from '../../demo/steps';
+import { useMyComplaints } from '../../data/myComplaints';
 import { CITIZEN_AREA, dataSource, fmtDate, fmtTime, scheduleFor } from '../../data/seed';
 import { apiFetch } from '../../data/api';
 import { usePolling } from '../../data/telemetry';
@@ -68,11 +69,10 @@ const ORB = { normal: { value: 0.78, tone: 'water' }, warning: { value: 0.42, to
 
 export default function CitizenHome() {
   const { t } = useTranslation();
-  const { step, report } = useDemo();
-  const code = storyCode(report);
+  const { step } = useDemo();
   const status = areaStatus(step, CITIZEN_AREA);
   const schedule = scheduleFor(CITIZEN_AREA);
-  const cStatus = complaintStatus(step);
+  const { list: complaints } = useMyComplaints();
 
   return (
     <div className="mx-auto grid max-w-6xl items-start gap-5 lg:grid-cols-2">
@@ -106,33 +106,56 @@ export default function CitizenHome() {
 
       <QualityNote />
 
-      <Link to="/citizen/report" className="relative flex min-h-20 animate-fade-rise-delay-2 items-center gap-4 overflow-hidden rounded-3xl bg-black p-5 text-white shadow-card transition-transform duration-200 hover:scale-[1.02]">
-        <Waves className="absolute inset-x-0 bottom-0 h-8 text-white/10" />
-        <span className="relative flex h-12 w-12 items-center justify-center rounded-full bg-white/15">
-          <Icon name="alert" className="h-7 w-7" />
-        </span>
-        <span className="relative flex-1">
-          <span className="block font-display text-2xl tracking-tight">{t('home.reportCta')}</span>
-          <span className="block text-sm text-white/70">{t('home.reportSub')}</span>
-        </span>
-        <Icon name="arrow" className="relative h-6 w-6" />
-      </Link>
+      {/* Report actions stay together in one grid cell. */}
+      <div className="flex flex-col gap-3">
+        <Link to="/citizen/report" className="relative flex min-h-20 animate-fade-rise-delay-2 items-center gap-4 overflow-hidden rounded-3xl bg-black p-5 text-white shadow-card transition-transform duration-200 hover:scale-[1.02]">
+          <Waves className="absolute inset-x-0 bottom-0 h-8 text-white/10" />
+          <span className="relative flex h-12 w-12 items-center justify-center rounded-full bg-white/15">
+            <Icon name="alert" className="h-7 w-7" />
+          </span>
+          <span className="relative flex-1">
+            <span className="block font-display text-2xl tracking-tight">{t('home.reportCta')}</span>
+            <span className="block text-sm text-white/70">{t('home.reportSub')}</span>
+          </span>
+          <Icon name="arrow" className="relative h-6 w-6" />
+        </Link>
+        <Link to="/citizen/phone" className="card flex items-center gap-3 p-4 transition hover:border-water-300">
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">
+            <Icon name="phone" className="h-5 w-5" />
+          </span>
+          <span className="flex-1 text-sm">{t('report.byPhone')}</span>
+          <Icon name="arrow" />
+        </Link>
+      </div>
 
       <section className="card p-6">
-        <h2 className="section-title mb-3">{t('home.myComplaints')}</h2>
-        {cStatus ? (
-          <Link to={`/citizen/complaints/${code}`} className="flex items-center gap-3 rounded-2xl border border-black/[0.08] p-3 transition hover:border-water-300 hover:bg-water-50">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-water-50 text-water-600">
-              <Icon name="drop" className="h-5 w-5" />
-            </span>
-            <span className="flex-1">
-              <span className="block font-semibold">#{code} · {t(`category.${report?.category ?? 'LOW_WATER'}`)}</span>
-              <span className="block text-sm text-muted">
-                {t(step >= S.VERIFIED ? 'timeline.restored' : step >= S.ASSIGNED ? 'timeline.repairStarted' : step >= S.INCIDENT ? 'timeline.checking' : 'timeline.received')}
-              </span>
-            </span>
-            <Icon name="arrow" />
-          </Link>
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <h2 className="section-title">{t('home.myComplaints')}</h2>
+          {complaints.length > 0 && (
+            <Link to="/citizen/complaints" className="text-sm font-semibold">
+              {t('track.all')} ({complaints.length})
+            </Link>
+          )}
+        </div>
+        {complaints.length ? (
+          <ul className="flex flex-col gap-2">
+            {complaints.slice(0, 3).map((c) => (
+              <li key={c.code}>
+                <Link to={`/citizen/complaints/${c.code}`} className="flex items-center gap-3 rounded-2xl border border-black/[0.08] p-3 transition hover:border-water-300 hover:bg-water-50">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-water-50 text-water-600">
+                    <Icon name={c.channel === 'APP' ? 'drop' : 'phone'} className="h-5 w-5" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-semibold">
+                      #{c.code} · {t(`category.${c.category}`)}
+                    </span>
+                    <span className="block text-sm text-muted">{t(c.statusKey)}</span>
+                  </span>
+                  <Icon name="arrow" />
+                </Link>
+              </li>
+            ))}
+          </ul>
         ) : (
           <p className="text-muted">{t('home.none')}</p>
         )}

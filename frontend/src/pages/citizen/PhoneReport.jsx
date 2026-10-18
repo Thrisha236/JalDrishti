@@ -6,7 +6,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useDemo } from '../../demo/DemoContext';
-import { S, storyCode } from '../../demo/steps';
+import { S } from '../../demo/steps';
+import { nextOfflineCode } from '../../data/myComplaints';
 import { areas, CITIZEN_AREA, dataSource, reloadData } from '../../data/seed';
 import { apiFetch } from '../../data/api';
 import { PageHeader } from '../../components/ui';
@@ -117,13 +118,16 @@ const VOICE_LANG = { en: 'en-IN', te: 'te-IN', hi: 'hi-IN' };
 
 /** Shared submit: the same complaint API as the app, with the channel recorded. */
 function useSubmit() {
-  const { step, report, setReport, advanceTo } = useDemo();
+  const { step, report, setReport, reports, addReport, advanceTo } = useDemo();
   return async (category, channel) => {
+    const firstOfStory = !report && step < S.REPORTED;
     if (dataSource !== 'api') {
-      if (step >= S.REPORTED) return { duplicate: storyCode(report) };
-      setReport({ category, area: CITIZEN_AREA, hasPhoto: false, channel });
+      const code = nextOfflineCode(reports);
+      const r = { public_code: code, category, area: CITIZEN_AREA, hasPhoto: false, createdAt: new Date().toISOString(), channel };
+      addReport(r);
+      if (firstOfStory) setReport(r);
       advanceTo(S.REPORTED);
-      return { code: storyCode(null) };
+      return { code };
     }
     const form = new FormData();
     form.append('category', category);
@@ -131,10 +135,8 @@ function useSubmit() {
     form.append('channel', channel);
     try {
       const saved = await apiFetch('/complaints', { role: 'citizen', method: 'POST', body: form });
-      if (step < S.REPORTED) {
-        setReport({ public_code: saved.public_code, category: saved.category, area: saved.service_area_id, hasPhoto: false, channel });
-        advanceTo(S.REPORTED);
-      }
+      if (firstOfStory) setReport({ public_code: saved.public_code, category: saved.category, area: saved.service_area_id, hasPhoto: false, channel });
+      advanceTo(S.REPORTED);
       await reloadData();
       return { code: saved.public_code };
     } catch (err) {

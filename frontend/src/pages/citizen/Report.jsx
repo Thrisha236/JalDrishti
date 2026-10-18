@@ -1,8 +1,9 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useDemo } from '../../demo/DemoContext';
-import { S, storyCode } from '../../demo/steps';
+import { S } from '../../demo/steps';
+import { nextOfflineCode } from '../../data/myComplaints';
 import { areasFor, HOME_VILLAGE, CITIZEN_AREA, dataSource, reloadData } from '../../data/seed';
 import { apiFetch } from '../../data/api';
 import Icon from '../../components/Icon';
@@ -23,7 +24,7 @@ const MAX_PHOTO_MB = 8;
 export default function Report() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { step, advanceTo, report, setReport, photoUrl, setPhotoUrl } = useDemo();
+  const { step, advanceTo, report, setReport, reports, addReport, photoUrl, setPhotoUrl } = useDemo();
   const fileRef = useRef(null);
   const [category, setCategory] = useState(null);
   const [description, setDescription] = useState('');
@@ -32,6 +33,14 @@ export default function Report() {
   const [photoFile, setPhotoFile] = useState(null);
   const [error, setError] = useState('');
   const [sending, setSending] = useState(false);
+
+  // A new report starts without the previous report's photo.
+  useEffect(() => {
+    setPhotoUrl((url) => {
+      if (url) URL.revokeObjectURL(url);
+      return null;
+    });
+  }, [setPhotoUrl]);
 
   const onPhoto = (e) => {
     const file = e.target.files?.[0];
@@ -55,9 +64,15 @@ export default function Report() {
     e.preventDefault();
     if (!category) return setError(t('report.pick'));
     setError('');
+    // Each complaint gets its own track ID. The first one is also the demo story's complaint.
+    const firstOfStory = !report && step < S.REPORTED;
+    let submitted;
     if (dataSource !== 'api') {
       // Offline demo: nothing leaves the browser.
-      setReport({ category, area, hasPhoto: Boolean(photoFile) });
+      const code = nextOfflineCode(reports);
+      submitted = { public_code: code, category, area, hasPhoto: Boolean(photoFile), createdAt: new Date().toISOString(), channel: 'APP' };
+      addReport(submitted);
+      if (firstOfStory) setReport(submitted);
     } else {
       const form = new FormData();
       form.append('category', category);
@@ -69,14 +84,15 @@ export default function Report() {
       try {
         const saved = await apiFetch('/complaints', { role: 'citizen', method: 'POST', body: form });
         const analysis = saved.image_analysis?.[0];
-        setReport({
+        submitted = {
           public_code: saved.public_code,
           category: saved.category,
           area: saved.service_area_id,
           hasPhoto: saved.media.length > 0,
           observation_code: analysis?.observation_code ?? null,
           observation: analysis?.message ?? null,
-        });
+        };
+        if (firstOfStory) setReport(submitted);
         await reloadData();
       } catch (err) {
         setSending(false);
@@ -86,22 +102,8 @@ export default function Report() {
       setSending(false);
     }
     advanceTo(S.REPORTED);
-    navigate('/citizen/report/done');
+    navigate('/citizen/report/done', { state: { submitted } });
   };
-
-  if (step >= S.REPORTED) {
-    const code = storyCode(report);
-    return (
-      <div className="mx-auto max-w-4xl">
-        <div className="card p-5">
-          <p className="mb-4">{t('report.already', { code })}</p>
-          <button type="button" onClick={() => navigate(`/citizen/complaints/${code}`)} className="btn-primary w-full">
-            {t('done.track')}
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <form onSubmit={submit} className="mx-auto flex max-w-4xl flex-col gap-5">
