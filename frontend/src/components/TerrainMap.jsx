@@ -7,7 +7,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { seed, riskFor, HOME_VILLAGE, CITIZEN_AREA } from '../data/seed';
 import { areaStatus, S, visibleComplaints } from '../demo/steps';
 import { MAP_ANCHOR } from '../data/mapAnchor';
-import { fieldLayout, HEALTH } from '../data/fieldLayout';
+import { fieldLayout } from '../data/fieldLayout';
 
 
 const M_PER_DEG = 111320;
@@ -142,37 +142,43 @@ function paint(map, layer, prop, value) {
 
 const prefersReducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
-function housesGeoJson() {
+/** Homes as GeoJSON; `colors` (house id → colour) lets a layer paint individual homes. */
+function housesGeoJson(colors) {
   return {
     type: 'FeatureCollection',
     features: fieldLayout().houses.map((h) => {
       const ring = h.polygon.map(toLngLat);
-      return { type: 'Feature', properties: { id: h.id, height: h.height }, geometry: { type: 'Polygon', coordinates: [[...ring, ring[0]]] } };
+      return {
+        type: 'Feature',
+        properties: { id: h.id, height: h.height, color: colors?.[h.id] ?? null },
+        geometry: { type: 'Polygon', coordinates: [[...ring, ring[0]]] },
+      };
     }),
   };
 }
 
-// How strongly the network shows in each view. The sensor view fades it so sensor health stands out.
+// How strongly the network shows. Analysis layers (sensors, what-if, service, quality) fade it
+// so their own colours stand out.
 const VIEW_PAINT = {
   network: { 'zones-fill': ['fill-opacity', 0.22], pipes: ['line-opacity', 1], 'pipes-casing': ['line-opacity', 0.55], 'pipes-flow': ['line-opacity', 0.85], 'houses-3d': ['fill-extrusion-opacity', 0.92] },
-  sensors: { 'zones-fill': ['fill-opacity', 0.07], pipes: ['line-opacity', 0.35], 'pipes-casing': ['line-opacity', 0.2], 'pipes-flow': ['line-opacity', 0.25], 'houses-3d': ['fill-extrusion-opacity', 0.6] },
+  overlay: { 'zones-fill': ['fill-opacity', 0.07], pipes: ['line-opacity', 0.35], 'pipes-casing': ['line-opacity', 0.2], 'pipes-flow': ['line-opacity', 0.25], 'houses-3d': ['fill-extrusion-opacity', 0.75] },
 };
 
 /**
  * Props: step (demo story step), mode ('gp' | 'citizen'), selected asset id, onSelect(assetId),
  * liveNodes (sensor node health from the API), onFail() when the map cannot load (offline, no WebGL),
- * view ('network' | 'sensors'), sensors (field sensors with health), statusFilter (states to show),
- * selectedSensor (code) and onSelectSensor(code).
+ * view ('network' or an analysis layer name), pins (layer markers: { id, at, color, label, selected,
+ * pulse: 'none' | 'slow' | 'fast', ariaLabel }), onPinClick(id), houseColors (house id → colour).
  */
-export default function TerrainMap({ step, mode = 'gp', selected, onSelect, liveNodes, onFail, view = 'network', sensors = [], statusFilter, selectedSensor, onSelectSensor }) {
+export default function TerrainMap({ step, mode = 'gp', selected, onSelect, liveNodes, onFail, view = 'network', pins = [], onPinClick, houseColors }) {
   const box = useRef(null);
   const mapRef = useRef(null);
   const markers = useRef({});
-  const sensorMarkers = useRef({});
+  const pinMarkers = useRef({});
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
-  const onSelectSensorRef = useRef(onSelectSensor);
-  onSelectSensorRef.current = onSelectSensor;
+  const onPinClickRef = useRef(onPinClick);
+  onPinClickRef.current = onPinClick;
   const [ready, setReady] = useState(false);
 
   // Create the map once.
@@ -225,7 +231,7 @@ export default function TerrainMap({ step, mode = 'gp', selected, onSelect, live
         type: 'fill-extrusion',
         source: 'houses',
         paint: {
-          'fill-extrusion-color': ['interpolate', ['linear'], ['get', 'height'], 3.5, '#E9E1D0', 6.5, '#F8F4EC'],
+          'fill-extrusion-color': ['coalesce', ['get', 'color'], ['interpolate', ['linear'], ['get', 'height'], 3.5, '#E9E1D0', 6.5, '#F8F4EC']],
           'fill-extrusion-height': ['get', 'height'],
           'fill-extrusion-opacity': 0.92,
         },
@@ -309,7 +315,7 @@ export default function TerrainMap({ step, mode = 'gp', selected, onSelect, live
     return () => {
       clearTimeout(giveUp);
       cancelAnimationFrame(frame);
-      [markers, sensorMarkers].forEach((ref) => {
+      [markers, pinMarkers].forEach((ref) => {
         Object.values(ref.current).forEach((m) => m.remove());
         ref.current = {};
       });
@@ -408,47 +414,56 @@ export default function TerrainMap({ step, mode = 'gp', selected, onSelect, live
     });
   }, [ready, step, mode, selected, liveNodes]);
 
-  // Fade the network in the sensor view; hide pipe labels and node pins there (CSS on the container).
+  // Fade the network in analysis layers; hide pipe labels and node pins there (CSS on the container).
   useEffect(() => {
     if (!ready) return;
     const map = mapRef.current;
+    const overlay = view !== 'network';
     // Toggled directly: MapLibre owns the container's other classes, so React must not rewrite className.
-    box.current.classList.toggle('is-sensor-view', view === 'sensors');
-    Object.entries(VIEW_PAINT[view] ?? VIEW_PAINT.network).forEach(([layer, [prop, value]]) => paint(map, layer, prop, value));
+    box.current.classList.toggle('is-overlay-view', overlay);
+    Object.entries(VIEW_PAINT[overlay ? 'overlay' : 'network']).forEach(([layer, [prop, value]]) => paint(map, layer, prop, value));
   }, [ready, view]);
 
-  // Sensor health markers, only in the sensor view.
+  // Per-home colours from the active layer (cut-off homes, service score, ...).
+  useEffect(() => {
+    if (!ready) return;
+    mapRef.current.getSource('houses').setData(housesGeoJson(houseColors));
+  }, [ready, houseColors]);
+
+  // Markers for the active layer.
   useEffect(() => {
     if (!ready) return;
     const map = mapRef.current;
-    const shown = view === 'sensors' ? sensors.filter((s) => !statusFilter || statusFilter.includes(s.status)) : [];
-    const keep = new Set(shown.map((s) => s.code));
-    shown.forEach((s) => {
-      let m = sensorMarkers.current[s.code];
+    const keep = new Set(pins.map((p) => p.id));
+    pins.forEach((p) => {
+      let m = pinMarkers.current[p.id];
       if (!m) {
         const node = document.createElement('button');
         node.type = 'button';
         node.className = 'map-health';
         node.addEventListener('click', (e) => {
           e.stopPropagation();
-          onSelectSensorRef.current?.(s.code);
+          onPinClickRef.current?.(p.id);
         });
-        m = new maplibregl.Marker({ element: node, anchor: 'center', opacityWhenCovered: '1' }).setLngLat(toLngLat(s.at)).addTo(map);
-        sensorMarkers.current[s.code] = m;
+        m = new maplibregl.Marker({ element: node, anchor: 'center', opacityWhenCovered: '1' }).setLngLat(toLngLat(p.at)).addTo(map);
+        pinMarkers.current[p.id] = m;
+      } else {
+        m.setLngLat(toLngLat(p.at));
       }
       const node = m.getElement();
-      node.dataset.status = s.status;
-      node.classList.toggle('is-selected', s.code === selectedSensor);
-      node.setAttribute('aria-label', `${s.code}, ${s.kindLabel}: ${HEALTH[s.status].label}`);
-      node.innerHTML = `<span class="map-health__dot"></span><span class="map-health__label">${esc(s.code)}</span>`;
+      node.style.setProperty('--health', p.color);
+      node.dataset.pulse = p.pulse ?? 'slow';
+      node.classList.toggle('is-selected', Boolean(p.selected));
+      node.setAttribute('aria-label', p.ariaLabel ?? p.label);
+      node.innerHTML = `<span class="map-health__dot"></span><span class="map-health__label">${esc(p.label)}</span>`;
     });
-    Object.keys(sensorMarkers.current).forEach((code) => {
-      if (!keep.has(code)) {
-        sensorMarkers.current[code].remove();
-        delete sensorMarkers.current[code];
+    Object.keys(pinMarkers.current).forEach((id) => {
+      if (!keep.has(id)) {
+        pinMarkers.current[id].remove();
+        delete pinMarkers.current[id];
       }
     });
-  }, [ready, view, sensors, statusFilter, selectedSensor]);
+  }, [ready, pins]);
 
   return <div ref={box} className="h-full w-full" role="region" aria-label="3D map of the demo water network on real terrain" />;
 }
