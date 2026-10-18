@@ -2,12 +2,39 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useDemo } from '../../demo/DemoContext';
 import { areaStatus, complaintStatus, S, storyCode } from '../../demo/steps';
-import { CITIZEN_AREA, dataSource, fmtTime, scheduleFor } from '../../data/seed';
+import { CITIZEN_AREA, dataSource, fmtDate, fmtTime, scheduleFor } from '../../data/seed';
 import { apiFetch } from '../../data/api';
 import { usePolling } from '../../data/telemetry';
 import { LevelChip, SimBadge } from '../../components/ui';
 import Icon from '../../components/Icon';
 import { Waves, WaterLevel } from '../../components/water';
+import { latestByPoint, QUALITY, useQualityTests, zoneQuality } from '../../data/quality';
+
+/** Latest field-test verdict for the villager's area; a boil-water notice when it failed. */
+function QualityNote() {
+  const { t } = useTranslation();
+  const tests = useQualityTests();
+  const status = zoneQuality(CITIZEN_AREA, tests);
+  const last = Object.values(latestByPoint(tests))
+    .filter((x) => x.point.zone === CITIZEN_AREA)
+    .map((x) => x.date)
+    .sort()
+    .at(-1);
+  const unsafe = status === 'unsafe';
+  return (
+    <section className={`card animate-fade-rise-delay p-6 ${unsafe ? 'border-rose-200 bg-rose-50/80' : ''}`} aria-live="polite">
+      <div className="mb-3 flex items-center gap-2">
+        <Icon name="flask" className="h-5 w-5 text-teal-600" />
+        <h2 className="section-title">{t('quality.title')}</h2>
+      </div>
+      <p className="flex items-start gap-3">
+        <span className="mt-1.5 inline-block h-3 w-3 shrink-0 rounded-full" style={{ background: QUALITY[status].color }} />
+        <span className={unsafe ? 'font-medium text-rose-900' : ''}>{t(`quality.${status}`, { date: fmtDate(last) })}</span>
+      </p>
+      <p className="mt-2 text-xs text-muted">{t('quality.who')}</p>
+    </section>
+  );
+}
 
 /** API mode: the villager's in-app notifications, newest first. */
 function Updates() {
@@ -76,6 +103,8 @@ export default function CitizenHome() {
           ))}
         </div>
       </section>
+
+      <QualityNote />
 
       <Link to="/citizen/report" className="relative flex min-h-20 animate-fade-rise-delay-2 items-center gap-4 overflow-hidden rounded-3xl bg-black p-5 text-white shadow-card transition-transform duration-200 hover:scale-[1.02]">
         <Waves className="absolute inset-x-0 bottom-0 h-8 text-white/10" />

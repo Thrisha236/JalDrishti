@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useDemo } from '../../demo/DemoContext';
 import { S, storyCode } from '../../demo/steps';
-import { dataSource, fmtTime, labelOf, reloadData, scripted, story, users } from '../../data/seed';
+import { areas, assets, dataSource, fmtTime, labelOf, reloadData, scripted, story, STORY_ASSET, users } from '../../data/seed';
+import { QUALITY, useQualityTests, zoneQuality } from '../../data/quality';
 import { apiFetch, publicGet } from '../../data/api';
 import { usePolling } from '../../data/telemetry';
 import { tailBand, verificationSeries, complaintDaySeries } from '../../data/series';
@@ -10,6 +11,23 @@ import { Card, Chip, EmptyState, PageHeader, SimBadge } from '../../components/u
 import { Ripple, WaterLevel } from '../../components/water';
 import Icon from '../../components/Icon';
 import LineChart from '../../components/LineChart';
+
+/** Restored supply is not the same as safe water: show the zone's latest field test next to the verdict. */
+function QualityLine() {
+  const tests = useQualityTests();
+  const zone = assets[STORY_ASSET]?.service_area_id;
+  if (!zone) return null;
+  const status = zoneQuality(zone, tests);
+  return (
+    <p className="mt-1 flex items-center gap-2 text-xs">
+      <span className="inline-block h-2 w-2 rounded-full" style={{ background: QUALITY[status].color }} />
+      Water quality in {areas[zone]?.name}: {QUALITY[status].label}.
+      <Link to="/gp/quality" className="font-semibold">
+        {status === 'safe' ? 'See tests' : 'Re-test before calling it safe'}
+      </Link>
+    </p>
+  );
+}
 
 const FLOW = ['ASSIGNED', 'INSPECTING', 'REPAIRING', 'REPAIRED'];
 const NEXT_LABEL = { INSPECTING: 'Start inspection', REPAIRING: 'Start repair', REPAIRED: 'Record repair done' };
@@ -175,6 +193,7 @@ function LiveRestoration({ incidentCode, repaired }) {
                   {fmtTime(ver.verified_at)} · incident {incidentCode} closed · villager #{storyCode(report)} notified in the app
                 </p>
                 <p className="text-xs text-muted">Supply readings only. This is not a water-quality or safety certification.</p>
+                <QualityLine />
               </div>
             </div>
           )}

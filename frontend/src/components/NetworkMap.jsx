@@ -8,6 +8,7 @@ import { Ripple } from './water';
 import { useSensorLayer } from './layers/SensorLayer';
 import { useWhatIfLayer } from './layers/WhatIfLayer';
 import { useServiceLayer } from './layers/ServiceLayer';
+import { useQualityLayer } from './layers/QualityLayer';
 
 // MapLibre is large, so it loads only when a 3D map is shown.
 const TerrainMap = lazy(() => import('./TerrainMap'));
@@ -29,6 +30,7 @@ const GP_LAYERS = [
   ['network', 'Network'],
   ['sensors', 'Sensors'],
   ['service', 'Service'],
+  ['quality', 'Quality'],
   ['whatif', 'What-if'],
 ];
 
@@ -90,6 +92,7 @@ export default function NetworkMap({ step, mode = 'gp', selected, onSelect, tele
     sensors: useSensorLayer(telemetry, activeLayer === 'sensors'),
     whatif: useWhatIfLayer(activeLayer === 'whatif'),
     service: useServiceLayer(step, activeLayer === 'service'),
+    quality: useQualityLayer(activeLayer === 'quality'),
   };
   const current = layers[activeLayer];
 
