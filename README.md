@@ -601,6 +601,7 @@ The Issues layer places every problem where it is happening: sensor alerts, AI w
 
 ### UI
 
+- **Typography:** headings and big numbers now use Plus Jakarta Sans (firm, upright) with Inter for body text, replacing the thin italic serif. It is set in one place (`frontend/src/styles/fonts.css` and `tailwind.config.js`), so the font can be swapped in one line.
 - The landing page now states the three goals as visual cards, over a readable backing.
 - The GP dashboard leads with a tap-functionality ring, an AI gauge, a connected-platforms strip and a live pressure chart, and the scripted story card appears only when the backend is off.
 - The officer overview adds tap functionality by village and the AI inspection ranking.

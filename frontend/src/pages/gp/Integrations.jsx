@@ -38,7 +38,7 @@ function Flow({ connectors }) {
       })}
       <g>
         <rect x={CENTRE.x} y={CENTRE.y} width={CENTRE.w} height={CENTRE.h} rx="22" fill="#000" />
-        <text x={CENTRE.x + CENTRE.w / 2} y={CENTRE.y + 38} textAnchor="middle" fontSize="22" fill="#fff" fontFamily="'Instrument Serif', serif">JalRakshak</text>
+        <text x={CENTRE.x + CENTRE.w / 2} y={CENTRE.y + 38} textAnchor="middle" fontSize="22" fill="#fff" fontFamily="'Plus Jakarta Sans', Inter, sans-serif" fontWeight="700">JalRakshak</text>
         <text x={CENTRE.x + CENTRE.w / 2} y={CENTRE.y + 60} textAnchor="middle" fontSize="10" fill="#fff" fillOpacity="0.7">sensors · villagers · GP</text>
       </g>
       {connectors.map((c) => {

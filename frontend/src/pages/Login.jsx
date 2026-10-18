@@ -80,7 +80,7 @@ export default function LoginDialog({ onClose }) {
           </button>
           <div className="mb-6 text-center">
             <p className="mb-3 text-xs text-muted">{t('app.demoLogin')}</p>
-            <h1 id="login-title" className="font-display text-4xl font-normal sm:text-5xl" style={{ lineHeight: 0.95, letterSpacing: '-1.5px' }}>
+            <h1 id="login-title" className="font-display text-3xl font-bold sm:text-4xl" style={{ lineHeight: 1.1, letterSpacing: '-0.03em' }}>
               Step <em className="text-muted">into the flow.</em>
             </h1>
             <p className="mt-3 text-sm text-muted">{t('app.tagline')}</p>

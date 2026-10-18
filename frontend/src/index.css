@@ -92,11 +92,21 @@
   .btn-outline {
     @apply btn border border-black/15 bg-white/70 text-ink hover:border-black/40;
   }
+  /* Headings and big numbers share one firm sans-serif style; the grey part of a title stays upright. */
+  .font-display {
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+  .page-title em,
+  .font-display em {
+    font-style: normal;
+    font-weight: 500;
+  }
   .page-title {
-    @apply font-display text-4xl font-normal leading-[0.95] tracking-tight text-ink md:text-5xl;
+    @apply font-display text-3xl font-bold leading-tight tracking-tight text-ink md:text-4xl;
   }
   .section-title {
-    @apply font-display text-2xl font-normal leading-tight tracking-tight text-ink;
+    @apply font-display text-lg font-semibold leading-snug tracking-tight text-ink md:text-xl;
   }
 }
 

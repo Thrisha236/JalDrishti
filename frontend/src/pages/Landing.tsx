@@ -55,8 +55,8 @@ export default function Landing() {
 
       <section className="relative z-10 flex flex-col items-center justify-center px-6 pb-20 text-center" style={{ paddingTop: 'calc(8rem - 75px)' }}>
         <h1
-          className="max-w-7xl animate-fade-rise font-display text-5xl font-normal sm:text-7xl md:text-8xl"
-          style={{ lineHeight: 0.95, letterSpacing: '-2.46px', color: '#000000' }}
+          className="max-w-6xl animate-fade-rise font-display text-4xl font-extrabold sm:text-6xl md:text-7xl"
+          style={{ lineHeight: 1.05, letterSpacing: '-0.035em', color: '#000000' }}
         >
           Beyond <em style={{ color: '#6F6F6F' }}>the tap,</em> we guard <em style={{ color: '#6F6F6F' }}>every drop.</em>
         </h1>

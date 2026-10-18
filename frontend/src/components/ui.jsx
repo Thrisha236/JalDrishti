@@ -114,7 +114,7 @@ export function Kpi({ label, value, level = 'neutral', note, icon = 'chart' }) {
       </span>
       <div className="relative min-w-0">
         <p className="text-sm text-muted">{label}</p>
-        <p className="mt-1 font-display text-5xl leading-none tracking-tight">{value}</p>
+        <p className="mt-1 font-display text-4xl leading-none tracking-tight xl:text-5xl">{value}</p>
         {note && <p className="mt-1 truncate text-xs text-muted">{note}</p>}
       </div>
     </div>
@@ -131,7 +131,7 @@ export function EmptyState({ icon = 'drop', title, children }) {
   );
 }
 
-/** Page heading. Text after " — " is set in grey italics, like the landing headline. */
+/** Page heading. Text after " — " is set in lighter grey, like the landing headline. */
 export function PageHeader({ title, subtitle, children }) {
   const [main, emphasis] = typeof title === 'string' ? title.split(' — ') : [title];
   return (
