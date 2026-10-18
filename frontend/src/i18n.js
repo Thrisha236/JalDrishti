@@ -23,6 +23,12 @@ const en = {
     untested: 'Not tested yet in your area.',
     who: 'Tested by trained women of the village with a field test kit.',
   },
+  track: {
+    id: 'Track ID', title: 'Track a complaint', hint: 'Enter the track ID from your SMS, call or screen, for example 2048', button: 'Track',
+    notFound: 'No complaint with track ID {{code}} in your account.', another: 'Report another problem', all: 'See all',
+    reported: 'Reported {{when}}', count: '{{count}} complaints', open: 'Open', closed: 'Closed', keep: 'Keep this track ID to follow your complaint.',
+    via: { APP: 'in the app', MISSED_CALL: 'by missed call', WHATSAPP: 'by WhatsApp' },
+  },
   home: { timing: "Today's water timing", next: 'Next supply', reportCta: 'Report a Problem', reportSub: 'No water, low water, dirty water, leakage', myComplaints: 'My complaints', none: 'No complaints yet' },
   report: {
     title: 'What is the problem?', byPhone: 'No smartphone? Report by missed call or WhatsApp', addPhoto: 'Add a photo', replace: 'Replace', remove: 'Remove', more: 'Tell us more (optional)',
@@ -70,6 +76,12 @@ const te = {
     untested: 'మీ ప్రాంతంలో ఇంకా పరీక్షించలేదు.',
     who: 'గ్రామంలో శిక్షణ పొందిన మహిళలు ఫీల్డ్ టెస్ట్ కిట్‌తో పరీక్షించారు.',
   },
+  track: {
+    id: 'ట్రాక్ ఐడీ', title: 'ఫిర్యాదును ట్రాక్ చేయండి', hint: 'SMS, కాల్ లేదా తెరపై వచ్చిన ట్రాక్ ఐడీని ఇవ్వండి, ఉదా. 2048', button: 'ట్రాక్ చేయండి',
+    notFound: 'మీ ఖాతాలో {{code}} ట్రాక్ ఐడీతో ఫిర్యాదు లేదు.', another: 'మరో సమస్యను తెలపండి', all: 'అన్నీ చూడండి',
+    reported: '{{when}}న తెలిపారు', count: '{{count}} ఫిర్యాదులు', open: 'తెరిచి ఉంది', closed: 'ముగిసింది', keep: 'మీ ఫిర్యాదును అనుసరించడానికి ఈ ట్రాక్ ఐడీని గుర్తుంచుకోండి.',
+    via: { APP: 'యాప్‌లో', MISSED_CALL: 'మిస్డ్ కాల్ ద్వారా', WHATSAPP: 'వాట్సాప్ ద్వారా' },
+  },
   home: { timing: 'ఈరోజు నీటి సమయం', next: 'తదుపరి సరఫరా', reportCta: 'సమస్యను తెలపండి', reportSub: 'నీరు లేదు, తక్కువ నీరు, మురికి నీరు, లీకేజీ', myComplaints: 'నా ఫిర్యాదులు', none: 'ఇంకా ఫిర్యాదులు లేవు' },
   report: {
     title: 'సమస్య ఏమిటి?', byPhone: 'స్మార్ట్‌ఫోన్ లేదా? మిస్డ్ కాల్ లేదా వాట్సాప్ ద్వారా తెలపండి', addPhoto: 'ఫోటో జోడించండి', replace: 'మార్చు', remove: 'తీసివేయి', more: 'మరింత చెప్పండి (ఐచ్ఛికం)',
@@ -116,6 +128,12 @@ const hi = {
     unsafe: 'अभी पीने के लिए सुरक्षित नहीं। अगली जाँच ठीक आने तक पानी उबालकर पिएँ।',
     untested: 'आपके क्षेत्र में अभी जाँच नहीं हुई।',
     who: 'गाँव की प्रशिक्षित महिलाओं ने फ़ील्ड टेस्ट किट से जाँच की।',
+  },
+  track: {
+    id: 'ट्रैक आईडी', title: 'शिकायत ट्रैक करें', hint: 'SMS, कॉल या स्क्रीन पर मिली ट्रैक आईडी डालें, जैसे 2048', button: 'ट्रैक करें',
+    notFound: 'आपके खाते में {{code}} ट्रैक आईडी वाली कोई शिकायत नहीं है।', another: 'एक और समस्या बताएँ', all: 'सभी देखें',
+    reported: '{{when}} को दर्ज', count: '{{count}} शिकायतें', open: 'खुली', closed: 'बंद', keep: 'अपनी शिकायत देखने के लिए यह ट्रैक आईडी संभालकर रखें।',
+    via: { APP: 'ऐप से', MISSED_CALL: 'मिस्ड कॉल से', WHATSAPP: 'व्हाट्सऐप से' },
   },
   home: { timing: 'आज पानी का समय', next: 'अगली आपूर्ति', reportCta: 'समस्या बताएं', reportSub: 'पानी नहीं, कम पानी, गंदा पानी, रिसाव', myComplaints: 'मेरी शिकायतें', none: 'अभी कोई शिकायत नहीं' },
   report: {

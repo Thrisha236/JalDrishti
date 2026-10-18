@@ -18,16 +18,18 @@ export function DemoProvider({ children }) {
   const [role, setRole] = useState(saved.role ?? null);
   const [step, setStep] = useState(saved.step ?? 0);
   const [report, setReport] = useState(saved.report ?? null);
+  // Offline demo only: every complaint the villager filed (API mode reads them from the server).
+  const [reports, setReports] = useState(saved.reports ?? []);
   // The photo preview lives only in memory: it is never stored or uploaded in Stage 3.
   const [photoUrl, setPhotoUrl] = useState(null);
 
   useEffect(() => {
     try {
-      localStorage.setItem(KEY, JSON.stringify({ role, step, report }));
+      localStorage.setItem(KEY, JSON.stringify({ role, step, report, reports }));
     } catch {
       /* storage unavailable: the demo still works for this session */
     }
-  }, [role, step, report]);
+  }, [role, step, report, reports]);
 
   // A missing or expired session sends the user back to the sign-in screen.
   useEffect(() => onAuthRequired(() => setRole(null)), []);
@@ -37,15 +39,18 @@ export function DemoProvider({ children }) {
   const reset = useCallback(() => {
     setStep(0);
     setReport(null);
+    setReports([]);
     setPhotoUrl((url) => {
       if (url) URL.revokeObjectURL(url);
       return null;
     });
   }, []);
 
+  const addReport = useCallback((r) => setReports((list) => [r, ...list]), []);
+
   const value = useMemo(
-    () => ({ role, setRole, step, advanceTo, next, reset, report, setReport, photoUrl, setPhotoUrl }),
-    [role, step, advanceTo, next, reset, report, photoUrl],
+    () => ({ role, setRole, step, advanceTo, next, reset, report, setReport, reports, addReport, photoUrl, setPhotoUrl }),
+    [role, step, advanceTo, next, reset, report, reports, addReport, photoUrl],
   );
   return <DemoContext.Provider value={value}>{children}</DemoContext.Provider>;
 }
