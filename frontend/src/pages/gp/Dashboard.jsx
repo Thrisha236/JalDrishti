@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useDemo } from '../../demo/DemoContext';
 import { activeAlerts, areaStatus, openIncidentCount, S, visibleComplaints } from '../../demo/steps';
@@ -10,6 +11,8 @@ import { Card, Chip, Kpi, PageHeader, SimBadge } from '../../components/ui';
 import LineChart from '../../components/LineChart';
 import VillageMap from '../../components/VillageMap';
 import { WaterLevel } from '../../components/water';
+import { LPCD_TARGET, serviceScores, serviceSummary } from '../../data/service';
+import { useQualityTests } from '../../data/quality';
 
 export default function Dashboard() {
   const { step } = useDemo();
@@ -21,6 +24,8 @@ export default function Dashboard() {
   const series = complaintDaySeries();
   const { data: telemetry } = useLiveTelemetry({ withSeries: false });
   const liveNodes = telemetry?.live.nodes;
+  const qualityTests = useQualityTests();
+  const service = useMemo(() => serviceSummary(serviceScores(step, qualityTests)), [step, qualityTests]);
   const { data: suggestions } = usePolling(() => apiFetch('/incidents/suggestions', { role: 'gp' }), 10000, dataSource === 'api');
 
   return (
@@ -107,6 +112,24 @@ export default function Dashboard() {
         </div>
 
         <div className="flex flex-col gap-5">
+          <Card title="Water Service Score" accent="water" action={<Link to="/gp/map?layer=service" className="text-sm font-semibold text-brand-600">See homes</Link>}>
+            <div className="flex items-end gap-4">
+              <p className="font-display text-6xl leading-none tracking-tight">{service.score}</p>
+              <p className="pb-1 text-sm text-muted">out of 100 · quantity, regularity and quality, home by home</p>
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+              <p>
+                <span className="block font-display text-3xl leading-none">
+                  {service.meeting}/{service.homes}
+                </span>
+                <span className="text-muted">homes at {LPCD_TARGET}+ L/person/day</span>
+              </p>
+              <p>
+                <span className="block font-display text-3xl leading-none">{service.equity}</span>
+                <span className="text-muted">equity index</span>
+              </p>
+            </div>
+          </Card>
           <Card title="Supply across zones">
             <div className="flex items-center gap-5">
               <WaterLevel value={(zones.length - affected) / zones.length} label={`${zones.length - affected}/${zones.length}`} sublabel="zones normal" tone={affected ? 'warning' : 'water'} />
