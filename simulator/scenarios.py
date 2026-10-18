@@ -33,6 +33,19 @@ SCENARIOS = {
     "pump-off": {"sen-pump-current": 0.0, "sen-head-flow": 0.0, "sen-head-pressure": 0.05, "sen-tail-flow": 0.0, "sen-tail-pressure": 0.02},
     # Node B stops reporting (flat battery, antenna fault). The water may be fine: this is an equipment problem.
     "node-offline": {},
+    # A leak that is only starting: tail pressure and flow slide slowly (no alert yet). The early-warning models
+    # should notice the drift and predict the breach before the rules engine raises an alert.
+    "degrading": {},
+}
+
+# Scenarios whose values move gradually: sensor -> (start value, end value, ticks to get there).
+RAMPS = {
+    "degrading": {
+        "sen-tail-pressure": (1.22, 0.78, 90),
+        "sen-tail-flow": (45.0, 33.0, 90),
+        "sen-head-flow": (48.0, 52.0, 90),
+        "sen-head-pressure": (1.80, 1.72, 90),
+    },
 }
 
 SILENT_NODES = {"node-offline": {"node-b"}}
@@ -43,6 +56,8 @@ def values_for(scenario: str, tick: int, rng: random.Random) -> dict[str, float]
     if scenario not in SCENARIOS:
         raise ValueError(f"Unknown scenario {scenario!r}; choose from {', '.join(SCENARIOS)}")
     target = {**BASELINE, **SCENARIOS[scenario]}
+    for sensor, (start, end, ticks) in RAMPS.get(scenario, {}).items():
+        target[sensor] = start + (end - start) * min(1.0, tick / ticks)
     out = {}
     for sensor, value in target.items():
         if sensor == "sen-tank-level":

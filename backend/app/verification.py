@@ -16,7 +16,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from . import config
+from . import config, integrations
 from . import models as m
 
 IST = timezone(timedelta(hours=5, minutes=30))
@@ -185,6 +185,7 @@ def check(session: Session, v: m.Verification, now: datetime | None = None) -> m
             v.result, v.verified_at = "VERIFIED_RESTORED", w.end
             inc.status, inc.closed_at = "VERIFIED_RESTORED", w.end
             notify(session, inc.code, "restored_verified", w.end)
+            integrations.on_incident(session, inc)
             break
     else:
         if rows and rows[-1].result == "FAILED":

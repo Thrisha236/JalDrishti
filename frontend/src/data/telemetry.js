@@ -7,7 +7,7 @@ export const POLL_MS = 5000;
 export const CHART_SENSORS = ['sen-tail-pressure', 'sen-tail-flow', 'sen-head-pressure', 'sen-head-flow', 'sen-pump-current', 'sen-tank-level'];
 
 /** Calls load() now and every `ms`, pausing while the tab is hidden. Returns { data, error, updatedAt }. */
-export function usePolling(load, ms = POLL_MS, enabled = true) {
+export function usePolling(load, ms = POLL_MS, enabled = true, refreshKey = 0) {
   const [state, setState] = useState({ data: null, error: null, updatedAt: null });
   const loadRef = useRef(load);
   loadRef.current = load;
@@ -32,7 +32,7 @@ export function usePolling(load, ms = POLL_MS, enabled = true) {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [ms, enabled]);
+  }, [ms, enabled, refreshKey]);
 
   return state;
 }

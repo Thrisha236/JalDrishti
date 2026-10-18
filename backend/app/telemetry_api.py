@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from . import config
 from . import models as m
 from . import read_model as rm
-from . import rules
+from . import integrations, rules
 from . import verification
 from .auth import CurrentUser
 from .db import get_session
@@ -92,6 +92,7 @@ def ingest(batch: ReadingBatch, session: DB, x_device_key: Annotated[str | None,
     session.commit()
     changes = rules.evaluate(session, now)
     verified = verification.check_open(session, now)
+    integrations.auto_push(session, now)  # mock IMIS / JJM Dashboard / WQMIS feeds, about once a minute
     return {"accepted": len(batch.readings), "flagged": flagged, "node_id": node.id, "ts": _iso(taken), "alerts": changes, "verified": verified}
 
 

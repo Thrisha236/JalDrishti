@@ -18,6 +18,8 @@ const NAV = {
   ],
   gp: [
     { to: '/gp', icon: 'home', label: 'Home', end: true, tint: 'text-sky-600' },
+    { to: '/gp/early-warning', icon: 'spark', label: 'AI Early Warning', tint: 'text-fuchsia-600' },
+    { to: '/gp/taps', icon: 'tap', label: 'Tap Connections', tint: 'text-blue-600' },
     { to: '/gp/water', icon: 'sensor', label: 'Water Status', tint: 'text-cyan-600' },
     { to: '/gp/quality', icon: 'flask', label: 'Water Quality', tint: 'text-teal-600' },
     { to: '/gp/sources', icon: 'gauge', label: 'Water Sources', tint: 'text-sky-600' },
@@ -25,10 +27,14 @@ const NAV = {
     { to: '/gp/pipelines', icon: 'pipe', label: 'Pipeline Health', tint: 'text-amber-600' },
     { to: '/gp/map', icon: 'map', label: 'Village Map', tint: 'text-emerald-600' },
     { to: '/gp/tasks', icon: 'wrench', label: 'Maintenance', tint: 'text-violet-600' },
+    { to: '/gp/integrations', icon: 'link', label: 'Integrations', tint: 'text-indigo-600' },
   ],
   officer: [
     { to: '/officer', icon: 'chart', label: 'Overview', end: true, tint: 'text-sky-600' },
+    { to: '/officer/early-warning', icon: 'spark', label: 'AI Early Warning', tint: 'text-fuchsia-600' },
+    { to: '/officer/taps', icon: 'tap', label: 'Tap Connections', tint: 'text-blue-600' },
     { to: '/officer/pipelines', icon: 'pipe', label: 'High-risk pipelines', tint: 'text-amber-600' },
+    { to: '/officer/integrations', icon: 'link', label: 'Integrations', tint: 'text-indigo-600' },
     { to: '/officer/risk-rules', icon: 'list', label: 'Risk rules', tint: 'text-indigo-600' },
   ],
 };
@@ -204,13 +210,13 @@ export default function AppShell() {
       </div>
 
       {/* Mobile bottom navigation */}
-      <nav className="glass-bar fixed inset-x-0 bottom-0 z-30 flex border-t md:hidden" aria-label="Main">
+      <nav className="glass-bar fixed inset-x-0 bottom-0 z-30 flex overflow-x-auto border-t md:hidden" aria-label="Main">
         {items.map((it) => (
           <NavLink
             key={it.to}
             to={it.to}
             end={it.end}
-            className={({ isActive }) => `flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] ${isActive ? 'text-black' : 'text-muted'}`}
+            className={({ isActive }) => `flex min-h-14 min-w-[4.5rem] flex-1 flex-col items-center justify-center gap-0.5 text-[11px] ${isActive ? 'text-black' : 'text-muted'}`}
           >
             {({ isActive }) => (
               <>

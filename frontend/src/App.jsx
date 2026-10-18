@@ -20,6 +20,9 @@ import Task from './pages/gp/Task';
 import Tasks from './pages/gp/Tasks';
 import Quality from './pages/gp/Quality';
 import Sources from './pages/gp/Sources';
+import EarlyWarning from './pages/gp/EarlyWarning';
+import Taps from './pages/gp/Taps';
+import Integrations from './pages/gp/Integrations';
 import Overview from './pages/officer/Overview';
 import RiskRules from './pages/officer/RiskRules';
 
@@ -57,6 +60,9 @@ export default function App() {
         <Route path="tasks/:code" element={<Task />} />
         <Route path="quality" element={<Quality />} />
         <Route path="sources" element={<Sources />} />
+        <Route path="early-warning" element={<EarlyWarning />} />
+        <Route path="taps" element={<Taps />} />
+        <Route path="integrations" element={<Integrations />} />
       </Route>
 
       <Route path="/officer" element={<RequireRole role="officer"><AppShell /></RequireRole>}>
@@ -64,6 +70,9 @@ export default function App() {
         <Route path="pipelines" element={<Pipelines villageIds={['vil-ramapuram', 'vil-kondapur', 'vil-sitarampalli']} base="/officer" />} />
         <Route path="pipelines/:assetId" element={<PipelineDetail />} />
         <Route path="risk-rules" element={<RiskRules />} />
+        <Route path="early-warning" element={<EarlyWarning />} />
+        <Route path="taps" element={<Taps />} />
+        <Route path="integrations" element={<Integrations />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

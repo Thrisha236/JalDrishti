@@ -16,6 +16,7 @@ from . import read_model as rm
 from .auth import router as auth_router
 from .complaints_api import router as complaints_router
 from .incidents_api import router as incidents_router
+from .predictions_api import router as predictions_router
 from .risk_api import router as risk_router
 from .telemetry_api import router as telemetry_router
 from .config import CORS_ORIGINS
@@ -32,6 +33,7 @@ app.include_router(complaints_router)
 app.include_router(telemetry_router)
 app.include_router(risk_router)
 app.include_router(incidents_router)
+app.include_router(predictions_router)
 
 DB = Annotated[Session, Depends(get_session)]
 API = "/api/v1"

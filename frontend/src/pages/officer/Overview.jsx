@@ -5,6 +5,9 @@ import { currentIncidentCode, HOME_VILLAGE, pipelinesFor, seed } from '../../dat
 import { monthsBetween } from '@shared/risk.mjs';
 import { Card, Chip, Kpi, PageHeader, RiskChip, SimBadge } from '../../components/ui';
 import { WaterLevel } from '../../components/water';
+import { StackBar } from '../../components/viz';
+import { dataSource } from '../../data/seed';
+import { PRIORITY_TONE, useConnectors, useFhtc, usePredictions } from '../../data/ai';
 
 export default function Overview() {
   const { step } = useDemo();
@@ -17,6 +20,10 @@ export default function Overview() {
     .filter((p) => p.count > 0)
     .sort((a, b) => b.count - a.count);
   const maxCount = Math.max(...repeat.map((r) => r.count));
+  const api = dataSource === 'api';
+  const { data: fhtc } = useFhtc('officer');
+  const { data: predictions } = usePredictions('officer');
+  const { data: connectors } = useConnectors('officer');
 
   return (
     <div>
@@ -29,6 +36,60 @@ export default function Overview() {
         <Kpi label="Open incidents" value={open} level={open ? 'problem' : 'normal'} icon="alert" />
         <Kpi label="Overdue tasks" value={0} level="normal" icon="wrench" />
       </div>
+
+      {api && (fhtc || predictions || connectors) && (
+        <div className="mb-5 grid gap-5 xl:grid-cols-3">
+          {fhtc && (
+            <Card title="Tap connections by village" accent="water" action={<Link to="/officer/taps" className="text-sm font-semibold text-brand-600">Open</Link>}>
+              <p className="mb-4 font-display text-6xl leading-none tracking-tight">
+                {fhtc.functional_pct}
+                <span className="text-2xl text-muted">% functional</span>
+              </p>
+              <ul className="flex flex-col gap-3">
+                {fhtc.villages.map((v) => (
+                  <li key={v.village_id}>
+                    <div className="mb-1 flex items-baseline gap-2 text-sm">
+                      <span className="font-medium">{v.name}</span>
+                      <span className="ml-auto tabular-nums text-muted">{v.functional}/{v.households}</span>
+                    </div>
+                    <StackBar functional={v.functional} partial={v.partial} nonFunctional={v.non_functional} height={10} />
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
+          {predictions && (
+            <Card title="AI: inspect these first" accent="evidence" action={<Link to="/officer/early-warning" className="text-sm font-semibold text-brand-600">Open</Link>}>
+              <ul className="flex flex-col gap-3">
+                {predictions.failures.slice(0, 4).map((f) => (
+                  <li key={f.asset_id} className="flex items-center gap-3 text-sm">
+                    <Chip level={PRIORITY_TONE[f.priority]}>{f.priority}</Chip>
+                    <span className="flex-1">
+                      <span className="font-medium">{f.asset_code}</span> <span className="text-muted">· risk {f.risk_score}</span>
+                    </span>
+                    <span className="text-xs text-muted">{f.timing === 'overdue' ? `${f.days_overdue} d overdue` : f.timing === 'unknown' ? 'little history' : f.timing === 'due_soon' ? 'due soon' : 'later'}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-3 text-xs text-muted">From each pipe's own repair history and risk score.</p>
+            </Card>
+          )}
+          {connectors && (
+            <Card title="Connected platforms" accent="record" action={<Link to="/officer/integrations" className="text-sm font-semibold text-brand-600">Open</Link>}>
+              <ul className="flex flex-col gap-2.5">
+                {connectors.connectors.map((c) => (
+                  <li key={c.id} className="flex items-center gap-3 text-sm">
+                    <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${c.last_at ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                    <span className="flex-1 font-medium">{c.name}</span>
+                    <span className="text-xs text-muted">{c.messages} msgs</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-3 text-xs text-muted">Simulated connectors. No real system is contacted.</p>
+            </Card>
+          )}
+        </div>
+      )}
 
       <div className="grid gap-5 lg:grid-cols-2">
         <Card title="Villages">

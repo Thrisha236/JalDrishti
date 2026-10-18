@@ -6,6 +6,7 @@ import { areas, assets, currentIncidentCode, riskFor, STORY_ASSET } from '../../
 import { Card, PageHeader, RiskChip } from '../../components/ui';
 import NetworkMap from '../../components/NetworkMap';
 import { useLiveTelemetry } from '../../data/telemetry';
+import { useFhtc, usePredictions } from '../../data/ai';
 
 export default function GpMap() {
   const { step } = useDemo();
@@ -14,15 +15,17 @@ export default function GpMap() {
   const risk = riskFor(selected);
   const isStory = selected === STORY_ASSET;
   const { data: telemetry } = useLiveTelemetry({ withSeries: false });
+  const { data: predictions } = usePredictions('gp');
+  const { data: fhtc } = useFhtc('gp');
   // Other pages link straight to a layer, e.g. /gp/map?layer=service.
   const [params] = useSearchParams();
 
   return (
     <div>
-      <PageHeader title="Village Map — Ramapuram" subtitle="Tap a pipeline to see its record, or switch to Sensors to see which field sensors are healthy, faulty or due for servicing." />
+      <PageHeader title="Village Map — Ramapuram" subtitle="What is wrong right now, and where. Switch layers for sensors, service, quality and what-if." />
       <div className="grid gap-5 lg:grid-cols-3">
         <Card className="lg:col-span-2">
-          <NetworkMap step={step} selected={selected} onSelect={setSelected} telemetry={telemetry} initialLayer={params.get('layer') ?? 'network'} />
+          <NetworkMap step={step} selected={selected} onSelect={setSelected} telemetry={telemetry} predictions={predictions} fhtc={fhtc} initialLayer={params.get('layer') ?? 'issues'} />
         </Card>
         <Card title={`Pipeline ${asset.code}`}>
           <p className="mb-2 text-muted">

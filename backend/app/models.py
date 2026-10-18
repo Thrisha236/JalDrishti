@@ -352,3 +352,23 @@ class AuditLog(Base):
     entity: Mapped[str]
     entity_id: Mapped[str]
     details: Mapped[Any | None] = mapped_column(JSON)
+
+
+class IntegrationEvent(Base):
+    """Every message exchanged with the MOCK government connectors (IMIS, Sujal Gaon / Sujalam Bharat, JJM Dashboard,
+    WQMIS). Nothing leaves this server: the connectors are simulated, so the demo can show the data flow honestly.
+    `version` stops the same state being pushed twice."""
+
+    __tablename__ = "integration_events"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    at: Mapped[str]
+    connector: Mapped[str]  # sujal_gaon | imis | jjm_dashboard | wqmis
+    direction: Mapped[str]  # PUSH | PULL
+    entity: Mapped[str]  # registry | incident | monitoring | functionality | sample_request
+    entity_id: Mapped[str]
+    version: Mapped[str]
+    status: Mapped[str]  # ACCEPTED_MOCK
+    external_ref: Mapped[str | None]
+    summary: Mapped[str] = mapped_column(Text)
+    payload: Mapped[Any | None] = mapped_column(JSON)
+    trigger: Mapped[str] = mapped_column(String, default="auto")  # auto | manual

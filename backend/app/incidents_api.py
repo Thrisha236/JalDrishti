@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from . import fusion
+from . import fusion, integrations
 from . import verification
 from . import models as m
 from . import read_model as rm
@@ -150,6 +150,7 @@ def open_incident(body: AssessBody, user: CurrentUser, session: DB):
         c.linked_asset_id = body.asset_id
     session.flush()
     verification.notify(session, code, "being_checked", now)
+    integrations.on_incident(session, session.get(m.Incident, code))
     _audit(session, user, "open", "incident", code, {"evidence_score": result["evidence_score"], "priority": result["priority"], "complaints": result["complaint_codes"]})
     session.commit()
     return rm.incident_live(session, session.get(m.Incident, code))
@@ -194,6 +195,7 @@ def resolve_unverified(code: str, body: ResolveBody, user: CurrentUser, session:
     v.result, v.verified_at, v.resolved_by, v.note = "RESOLVED_UNVERIFIED", now, user.id, body.note
     inc.status, inc.closed_at = "RESOLVED_UNVERIFIED", now
     verification.notify(session, code, "resolved_unverified", now)
+    integrations.on_incident(session, inc)
     _audit(session, user, "resolve_unverified", "incident", code, {"method": v.method})
     session.commit()
     return {**rm.verification(session, v), **verification.progress(session, v)}
@@ -226,6 +228,7 @@ def create_task(body: TaskBody, user: CurrentUser, session: DB):
     session.flush()
     session.add(m.TaskUpdate(ord=0, task_code=code, status="ASSIGNED", at=_iso(now), note=None))
     inc.status = "TASK_ASSIGNED"
+    integrations.on_incident(session, inc)
     _audit(session, user, "create", "task", code, {"incident": inc.code, "assignee": tech.id})
     session.commit()
     return rm.task_live(session, session.get(m.MaintenanceTask, code))
@@ -277,6 +280,7 @@ def update_task(code: str, body: TaskUpdateBody, user: CurrentUser, session: DB)
         )
         inc.status = "REPAIR_DONE"
         verification.start(session, inc, now)
+        integrations.on_incident(session, inc)
     if body.status == "REPAIRING":
         session.flush()
         verification.notify(session, inc.code, "repair_started", now)

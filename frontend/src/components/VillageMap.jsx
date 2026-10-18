@@ -3,13 +3,15 @@ import { useTranslation } from 'react-i18next';
 import { seed, riskFor, HOME_VILLAGE, CITIZEN_AREA } from '../data/seed';
 import { areaStatus, S, visibleComplaints } from '../demo/steps';
 import { SimBadge } from './ui';
+import { fieldLayout } from '../data/fieldLayout';
 
 // Theme variables and translucent fills, so the map works in light and dark mode.
 const ZONE_FILL = { normal: 'rgb(var(--water-100))', warning: 'rgb(251 191 36 / 0.22)', problem: 'rgb(248 113 113 / 0.22)' };
 const BAND_STROKE = { HIGH: '#DC2626', MEDIUM: '#D97706', LOW: 'rgb(var(--water-600))' };
 const flipY = (p) => [p[0], 1000 - p[1]];
 
-export default function VillageMap({ step, mode = 'gp', selected, onSelect }) {
+/** `pins`, `onPinClick` and `houseColors` come from the active map layer (the same ones the 3D map draws). */
+export default function VillageMap({ step, mode = 'gp', selected, onSelect, pins = [], onPinClick, houseColors }) {
   const { t } = useTranslation();
   const areas = seed.service_areas.filter((a) => a.village_id === HOME_VILLAGE);
   const assetList = seed.assets.filter((a) => areas.some((z) => z.id === a.service_area_id));
@@ -104,6 +106,14 @@ export default function VillageMap({ step, mode = 'gp', selected, onSelect }) {
             );
           })}
 
+        {houseColors &&
+          fieldLayout().houses
+            .filter((h) => houseColors[h.id])
+            .map((h) => {
+              const [x, y] = flipY(h.centre);
+              return <rect key={h.id} x={x - 7} y={y - 7} width="14" height="14" rx="3" fill={houseColors[h.id]} stroke="rgb(var(--white))" strokeWidth="2" />;
+            })}
+
         {showCluster && (
           <g>
             <circle cx={cx} cy={1000 - cy} r="95" fill="#EF4444" fillOpacity="0.15" stroke="#DC2626" strokeWidth="3" strokeDasharray="10 8" />
@@ -112,6 +122,24 @@ export default function VillageMap({ step, mode = 'gp', selected, onSelect }) {
             </text>
           </g>
         )}
+        {pins.map((p) => {
+          const [x, y] = flipY(p.at);
+          const fast = p.pulse === 'fast';
+          return (
+            <g key={p.id} onClick={() => onPinClick?.(p.id)} className="cursor-pointer" role="button" aria-label={p.ariaLabel ?? p.label}>
+              {p.pulse !== 'none' && (
+                <circle cx={x} cy={y} r="18" fill={p.color} fillOpacity="0.35">
+                  <animate attributeName="r" values="16;40;16" dur={fast ? '1.2s' : '2.6s'} repeatCount="indefinite" />
+                  <animate attributeName="fill-opacity" values="0.45;0;0.45" dur={fast ? '1.2s' : '2.6s'} repeatCount="indefinite" />
+                </circle>
+              )}
+              <circle cx={x} cy={y} r={p.selected ? 20 : 15} fill={p.color} stroke="rgb(var(--white))" strokeWidth="5" />
+              <text x={x + 28} y={y + 9} fontSize="26" fontWeight="700" fill="rgb(var(--ink))" stroke="rgb(var(--white))" strokeWidth="7" paintOrder="stroke" strokeLinejoin="round">
+                {p.label}
+              </text>
+            </g>
+          );
+        })}
       </svg>
       <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
         {mode !== 'citizen' && (

@@ -518,3 +518,112 @@ To see a failed window, send `--scenario leak` after the repair instead.
 - Bands and thresholds (80% in band, 5 readings) are starting values for the bench rig, not field-validated.
 - A failed window asks the GP to re-inspect. It does not yet reopen the task automatically.
 - Notifications are in-app only. SMS or IVR delivery needs a provider and consent handling (Stage 11 or later).
+
+## Mentor round: integration, AI monitoring, prediction, and a visual UI
+
+Our mentor reviewed the prototype and asked for four things. All are built, and all run on **simulated data**.
+
+| Mentor feedback | What was built |
+|---|---|
+| Automatic integration with IMIS, Sujal Gaon IDs and other JJM platforms was "not emphasised anywhere". | An **integration hub** with four *mock* connectors, an ID crosswalk and a message log (below). |
+| An AI/ML platform for real-time monitoring of functional household tap connections and service delivery. | An **AI engine** (anomaly detection, forecasts) and a live **tap-connection monitor** (below). |
+| Early identification and prediction of service disruptions, water quality issues and infrastructure failures. | **AI Early Warning**: a pressure forecast, a water-quality outlook and a failure outlook. |
+| Show issues on the map from the values captured. UI is mostly text. | A live **Issues layer** on the map, and a visual redesign of the landing page and dashboards. |
+
+After pulling, install the new packages and reload the database (new `integration_events` table):
+
+```powershell
+cd backend
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m app.seed_loader
+cd ..\frontend
+npm install
+```
+
+### Honesty: the connectors are mock
+
+Real access to IMIS, Sujalam Bharat and the JJM Dashboard needs authorisation and the official specifications, which we do not have. So:
+
+- every connector is **simulated**: messages are built in an *illustrative* format, "accepted" by a mock endpoint, and written to a log. Nothing leaves the server.
+- every screen says so ("Connected (mock)", an amber banner, `MOCK` on each node of the diagram).
+- all IDs are the demo IDs in the seed (`LGD-DEMO-001`, `SG-DEMO-0421`, `SB-DEMO-001`).
+- replacing a mock with a real connector means swapping one function (`_log` in `backend/app/integrations.py`). The ID crosswalk, message building and audit log stay.
+
+### Integration hub (`backend/app/integrations.py`)
+
+| Connector | Direction | What it carries |
+|---|---|---|
+| Sujal Gaon / Sujalam Bharat | pull | village LGD code, Sujal Gaon ID per zone, scheme ID, asset registry |
+| IMIS | push | incident status changes, and a monitoring snapshot per sensor node |
+| JJM Dashboard | push | functional, partial and non-functional taps per village |
+| WQMIS | push | a sample request when the quality outlook says to test water |
+
+- **Automatic.** An incident being opened, assigned, repaired, verified or resolved is pushed to IMIS. Each node's monitoring snapshot goes out about once a minute as readings arrive. Tap functionality and sample requests go out when they change. A failing connector never loses a sensor reading.
+- **Sync now** sends everything at once.
+- **ID crosswalk.** South has no Sujal Gaon ID in the seed ("not yet issued"), and the screen shows that honestly.
+- Messages carry no personal data (no names, phone numbers or complaint text).
+- Screen: **Integrations** (GP and officer). It shows a data-flow diagram where lines light up while a message moves, connector cards, the crosswalk and a message log with the full message.
+- Endpoints: `GET /integrations` · `GET /integrations/crosswalk` · `GET /integrations/events` · `POST /integrations/sync`.
+
+### AI engine (`backend/app/ml.py`)
+
+Four small, explainable models. **None claims an accuracy**, and the screen says what each was trained on.
+
+1. **Anomaly detection.** An Isolation Forest (scikit-learn) learns normal operation (tail and head pressure and flow, and the head-to-tail flow gap) from 2,000 synthetic windows. It scores the last two minutes of *trusted* sensors and names the readings that are off. The anomaly index is 50 at the edge of normal.
+2. **Disruption forecast.** A robust Theil-Sen trend on tail pressure and tank level gives the minutes until the reading leaves its normal band, with a confidence label. A slow slide is flagged **before** the alert rules fire.
+3. **Water-quality outlook.** A first-order chlorine decay model. Water that moves slowly is older and has less chlorine left, and very low pressure lets dirty water in. It says **where to collect a field-kit sample**. It is an indicator and never certifies water as safe. Dose (0.8 mg/L) and decay (0.30 per hour) are assumptions and are shown on screen.
+4. **Failure outlook.** Mean time between failures from each pipe's repair history, plus its risk score. P-21 fails about every 330 days and its window has passed, so it is flagged HIGH. Pipes with fewer than two failures are marked "too little history".
+
+Faulty sensors are never trusted: the same sensor-health gate as the alert rules applies.
+
+### Tap-connection monitor (`backend/app/fhtc.py`)
+
+For every household in each zone's register (mock) it estimates the water reaching the tap from live head and tail pressure and tail flow. Each home is **functional** (55 L/person/day or more), **partly working** (30 to 54) or **not working**. It falls back to recorded baselines and says so when no sensor is live. Screen: **Tap Connections** (a donut, zones, the worst-served homes, and by village for officers).
+
+Endpoints: `GET /predictions` · `GET /fhtc`.
+
+### See it (about 5 minutes)
+
+Run the backend and frontend as usual. Then, in a terminal at the repo root:
+
+```powershell
+python simulator\sim.py --scenario degrading --interval 5   # a slow leak: the forecast warns first
+python simulator\sim.py --scenario leak --interval 2         # a leak: anomaly, alerts, dry taps, issue pins
+python simulator\sim.py --scenario pump-off --interval 2     # every model goes red
+python simulator\sim.py --scenario normal --interval 2       # back to normal
+```
+
+Sign in as `gp.ramapuram` and open **AI Early Warning**, **Tap Connections**, **Village Map** (the new *Issues* layer is the default) and **Integrations**. Press **Sync now** and open a message to see what would be sent. The officer (`officer.block`) sees the same by village.
+
+### Map: live issues
+
+The Issues layer places every problem where it is happening: sensor alerts, AI warnings, water-quality risk, equipment faults and clusters of taps short of water. Homes below 55 L/person/day are tinted. Pins that would overlap fan out. It also works on the schematic map when the 3D tiles cannot load.
+
+### UI
+
+- The landing page now states the three goals as visual cards, over a readable backing.
+- The GP dashboard leads with a tap-functionality ring, an AI gauge, a connected-platforms strip and a live pressure chart, and the scripted story card appears only when the backend is off.
+- The officer overview adds tap functionality by village and the AI inspection ranking.
+
+### Tests
+
+`python -m pytest` now runs 143 tests. The new ones cover:
+- the anomaly model on normal, leak and pump-off readings, and with no trusted data
+- the forecast on a slow slide, steady readings and a breach
+- the chlorine outlook (OK, watch, at risk) and its baseline fallback
+- the repeat-failure interval and village scoping
+- tap functionality under a leak and a pump failure
+- the integration hub: mock labelling, role checks, the crosswalk, sync, one message per state change, no personal data, rate limiting, and a failing connector
+
+### What Siri added (merged before this round)
+
+A water-themed glass UI with dark mode, a 3D terrain map with Sensors, Service, Quality and What-if layers, water-quality field tests, a water-source outlook, a Water Service Score, missed-call and WhatsApp reporting, and several complaints per villager.
+
+### Known limits of this round
+
+- **The connectors are mock.** The message format is illustrative, not the official schema.
+- **The models are trained on simulated data only.** Dose and decay in the chlorine model are assumptions.
+- Tap functionality is an estimate from pipeline sensors. It needs household tap sensors or sample meters to be a measurement.
+- The failure outlook needs at least two recorded failures per pipe.
+- The water-quality field tests logged on the Quality page are still kept in the browser only.
+- The landing video and satellite imagery come from outside services (see the handover document).

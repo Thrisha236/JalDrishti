@@ -9,6 +9,7 @@ import { useSensorLayer } from './layers/SensorLayer';
 import { useWhatIfLayer } from './layers/WhatIfLayer';
 import { useServiceLayer } from './layers/ServiceLayer';
 import { useQualityLayer } from './layers/QualityLayer';
+import { useIssuesLayer } from './layers/IssuesLayer';
 
 // MapLibre is large, so it loads only when a 3D map is shown.
 const TerrainMap = lazy(() => import('./TerrainMap'));
@@ -27,6 +28,7 @@ const LEGEND_CITIZEN = [
 ];
 
 const GP_LAYERS = [
+  ['issues', 'Issues'],
   ['network', 'Network'],
   ['sensors', 'Sensors'],
   ['service', 'Service'],
@@ -79,7 +81,7 @@ function Segmented({ label, value, options, onChange }) {
   );
 }
 
-export default function NetworkMap({ step, mode = 'gp', selected, onSelect, telemetry, initialLayer = 'network' }) {
+export default function NetworkMap({ step, mode = 'gp', selected, onSelect, telemetry, predictions, fhtc, initialLayer = 'network' }) {
   const [view, setView] = useState('3d');
   const [layer, setLayer] = useState(initialLayer);
   const [failed, setFailed] = useState(false);
@@ -89,6 +91,7 @@ export default function NetworkMap({ step, mode = 'gp', selected, onSelect, tele
 
   // Every layer's hook runs (hook rules); each only builds map content while it is active.
   const layers = {
+    issues: useIssuesLayer({ telemetry, predictions, fhtc }, activeLayer === 'issues'),
     sensors: useSensorLayer(telemetry, activeLayer === 'sensors'),
     whatif: useWhatIfLayer(activeLayer === 'whatif'),
     service: useServiceLayer(step, activeLayer === 'service'),
@@ -145,7 +148,7 @@ export default function NetworkMap({ step, mode = 'gp', selected, onSelect, tele
           </div>
         </>
       ) : (
-        <VillageMap step={step} mode={mode} selected={selected} onSelect={onSelect} />
+        <VillageMap step={step} mode={mode} selected={selected} onSelect={onSelect} pins={current?.pins} onPinClick={current?.onPinClick} houseColors={current?.houseColors} />
       )}
 
       {current?.panel}
