@@ -235,3 +235,81 @@
     animation: none;
   }
 }
+
+/* Sensor view: health markers, and the network labels it hides. */
+.is-sensor-view .map-chip--pipe,
+.is-sensor-view .map-pin,
+.is-sensor-view .map-sensor {
+  display: none;
+}
+
+.map-health {
+  --health: #10b981;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px 3px 4px;
+  border-radius: 9999px;
+  border: 1.5px solid rgba(255, 255, 255, 0.7);
+  background: rgba(11, 17, 24, 0.7);
+  backdrop-filter: blur(6px);
+  color: #fff;
+  font: 600 11px/1.2 Inter, system-ui, sans-serif;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.map-health:hover,
+.map-health.is-selected {
+  transform: scale(1.15);
+  z-index: 2;
+}
+
+.map-health.is-selected {
+  border-color: var(--health);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.85);
+}
+
+.map-health[data-status='service'] {
+  --health: #f59e0b;
+}
+
+.map-health[data-status='damaged'] {
+  --health: #ef4444;
+}
+
+.map-health[data-status='offline'] {
+  --health: #94a3b8;
+}
+
+.map-health__dot {
+  position: relative;
+  height: 12px;
+  width: 12px;
+  border-radius: 9999px;
+  background: var(--health);
+}
+
+.map-health__dot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 2px solid var(--health);
+  animation: ripple 2.4s ease-out infinite;
+}
+
+.map-health[data-status='offline'] .map-health__dot::after {
+  animation: none;
+  border-color: transparent;
+}
+
+.map-health[data-status='damaged'] .map-health__dot::after {
+  animation-duration: 1.2s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-health__dot::after {
+    animation: none;
+  }
+}

@@ -17,10 +17,10 @@ export default function GpMap() {
 
   return (
     <div>
-      <PageHeader title="Village Map — Ramapuram" subtitle="Tap a pipeline to see its record. Zone colours, pipe risk and sensor status update live." />
+      <PageHeader title="Village Map — Ramapuram" subtitle="Tap a pipeline to see its record, or switch to Sensors to see which field sensors are healthy, faulty or due for servicing." />
       <div className="grid gap-5 lg:grid-cols-3">
         <Card className="lg:col-span-2">
-          <NetworkMap step={step} selected={selected} onSelect={setSelected} liveNodes={telemetry?.live.nodes} />
+          <NetworkMap step={step} selected={selected} onSelect={setSelected} telemetry={telemetry} />
         </Card>
         <Card title={`Pipeline ${asset.code}`}>
           <p className="mb-2 text-muted">

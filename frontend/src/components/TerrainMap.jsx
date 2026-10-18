@@ -7,6 +7,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { seed, riskFor, HOME_VILLAGE, CITIZEN_AREA } from '../data/seed';
 import { areaStatus, S, visibleComplaints } from '../demo/steps';
 import { MAP_ANCHOR } from '../data/mapAnchor';
+import { fieldLayout, HEALTH } from '../data/fieldLayout';
 
 
 const M_PER_DEG = 111320;
@@ -19,6 +20,7 @@ const CENTRE = toLngLat([640, 520]);
 const ZONE_COLOR = { normal: '#38BDF8', warning: '#F59E0B', problem: '#EF4444' };
 const BAND_COLOR = { HIGH: '#EF4444', MEDIUM: '#F59E0B', LOW: '#38BDF8' };
 const POINT_LABEL = { source: 'S', pump: 'P', tank: 'T', valve: 'V' };
+// Markers stay fully visible: on this flat terrain MapLibre's occlusion test fades markers that are in plain view.
 const POINT_NAME = { source: 'Borewell', pump: 'Pump house', tank: 'Overhead tank', valve: 'Valve' };
 
 // Marching dashes make water look like it is moving through pipes and streams.
@@ -128,18 +130,49 @@ function el(className, html) {
   return node;
 }
 
+/** setPaintProperty throws while the style is still settling (e.g. terrain loading); retry when idle. */
+function paint(map, layer, prop, value) {
+  if (!map.getLayer(layer)) return;
+  try {
+    map.setPaintProperty(layer, prop, value);
+  } catch {
+    map.once('idle', () => paint(map, layer, prop, value));
+  }
+}
+
 const prefersReducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+function housesGeoJson() {
+  return {
+    type: 'FeatureCollection',
+    features: fieldLayout().houses.map((h) => {
+      const ring = h.polygon.map(toLngLat);
+      return { type: 'Feature', properties: { id: h.id, height: h.height }, geometry: { type: 'Polygon', coordinates: [[...ring, ring[0]]] } };
+    }),
+  };
+}
+
+// How strongly the network shows in each view. The sensor view fades it so sensor health stands out.
+const VIEW_PAINT = {
+  network: { 'zones-fill': ['fill-opacity', 0.22], pipes: ['line-opacity', 1], 'pipes-casing': ['line-opacity', 0.55], 'pipes-flow': ['line-opacity', 0.85], 'houses-3d': ['fill-extrusion-opacity', 0.92] },
+  sensors: { 'zones-fill': ['fill-opacity', 0.07], pipes: ['line-opacity', 0.35], 'pipes-casing': ['line-opacity', 0.2], 'pipes-flow': ['line-opacity', 0.25], 'houses-3d': ['fill-extrusion-opacity', 0.6] },
+};
 
 /**
  * Props: step (demo story step), mode ('gp' | 'citizen'), selected asset id, onSelect(assetId),
- * liveNodes (sensor node health from the API), onFail() when the map cannot load (offline, no WebGL).
+ * liveNodes (sensor node health from the API), onFail() when the map cannot load (offline, no WebGL),
+ * view ('network' | 'sensors'), sensors (field sensors with health), statusFilter (states to show),
+ * selectedSensor (code) and onSelectSensor(code).
  */
-export default function TerrainMap({ step, mode = 'gp', selected, onSelect, liveNodes, onFail }) {
+export default function TerrainMap({ step, mode = 'gp', selected, onSelect, liveNodes, onFail, view = 'network', sensors = [], statusFilter, selectedSensor, onSelectSensor }) {
   const box = useRef(null);
   const mapRef = useRef(null);
   const markers = useRef({});
+  const sensorMarkers = useRef({});
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
+  const onSelectSensorRef = useRef(onSelectSensor);
+  onSelectSensorRef.current = onSelectSensor;
   const [ready, setReady] = useState(false);
 
   // Create the map once.
@@ -164,19 +197,39 @@ export default function TerrainMap({ step, mode = 'gp', selected, onSelect, live
     mapRef.current = map;
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
 
-    // If no imagery has arrived after 12 s (offline, blocked tiles), fall back to the schematic.
+    // Fall back to the schematic when imagery fails (offline, blocked tiles) or the style never loads.
+    // Slow connections just load slowly: only real failures count.
     let gotImagery = false;
+    let tileErrors = 0;
+    let styleLoaded = false;
     map.on('sourcedata', (e) => {
-      if (e.sourceId === 'satellite' && e.tile) gotImagery = true;
+      if (e.sourceId === 'satellite' && (e.tile || e.isSourceLoaded)) gotImagery = true;
     });
-    const giveUp = setTimeout(() => !gotImagery && onFail?.(), 12000);
-    map.on('error', (e) => console.warn('Map:', e.error?.message ?? e));
+    map.on('error', (e) => {
+      if (e.sourceId === 'satellite' && !gotImagery && ++tileErrors >= 4) onFail?.();
+      else if (!e.sourceId) console.warn('Map:', e.error?.message ?? e);
+    });
+    const giveUp = setTimeout(() => !styleLoaded && onFail?.(), 30000);
 
     // Overlays go on as soon as the style is parsed, without waiting for every tile.
     map.once('style.load', () => {
+      styleLoaded = true;
       map.addSource('zones', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
       map.addSource('pipes', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
       map.addSource('cluster', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+      map.addSource('houses', { type: 'geojson', data: housesGeoJson() });
+
+      // Fictional homes, one per household in the zone register, as small 3D blocks.
+      map.addLayer({
+        id: 'houses-3d',
+        type: 'fill-extrusion',
+        source: 'houses',
+        paint: {
+          'fill-extrusion-color': ['interpolate', ['linear'], ['get', 'height'], 3.5, '#E9E1D0', 6.5, '#F8F4EC'],
+          'fill-extrusion-height': ['get', 'height'],
+          'fill-extrusion-opacity': 0.92,
+        },
+      });
 
       // Flat tints: 3D blocks would sit on top of the pipes and wash them out.
       map.addLayer({
@@ -247,7 +300,7 @@ export default function TerrainMap({ step, mode = 'gp', selected, onSelect, live
       if (t - last > 80) {
         last = t;
         stepIndex = (stepIndex + 1) % DASH_STEPS.length;
-        FLOW_LAYERS.forEach((id) => map.getLayer(id) && map.setPaintProperty(id, 'line-dasharray', DASH_STEPS[stepIndex]));
+        if (map.style?._loaded) FLOW_LAYERS.forEach((id) => paint(map, id, 'line-dasharray', DASH_STEPS[stepIndex]));
       }
       frame = requestAnimationFrame(animate);
     };
@@ -256,8 +309,10 @@ export default function TerrainMap({ step, mode = 'gp', selected, onSelect, live
     return () => {
       clearTimeout(giveUp);
       cancelAnimationFrame(frame);
-      Object.values(markers.current).forEach((m) => m.remove());
-      markers.current = {};
+      [markers, sensorMarkers].forEach((ref) => {
+        Object.values(ref.current).forEach((m) => m.remove());
+        ref.current = {};
+      });
       map.remove();
       mapRef.current = null;
     };
@@ -267,7 +322,7 @@ export default function TerrainMap({ step, mode = 'gp', selected, onSelect, live
   useEffect(() => {
     if (!ready) return undefined;
     const map = mapRef.current;
-    const apply = () => map.setPaintProperty('satellite', 'raster-brightness-max', document.documentElement.classList.contains('dark') ? 0.7 : 1);
+    const apply = () => paint(map, 'satellite', 'raster-brightness-max', document.documentElement.classList.contains('dark') ? 0.7 : 1);
     apply();
     const observer = new MutationObserver(apply);
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
@@ -288,7 +343,7 @@ export default function TerrainMap({ step, mode = 'gp', selected, onSelect, live
       keep.add(key);
       let m = markers.current[key];
       if (!m) {
-        m = new maplibregl.Marker({ element: build(), anchor: 'bottom' }).setLngLat(lngLat).addTo(map);
+        m = new maplibregl.Marker({ element: build(), anchor: 'bottom', opacityWhenCovered: '1' }).setLngLat(lngLat).addTo(map);
         markers.current[key] = m;
       } else {
         m.setLngLat(lngLat);
@@ -352,6 +407,48 @@ export default function TerrainMap({ step, mode = 'gp', selected, onSelect, live
       }
     });
   }, [ready, step, mode, selected, liveNodes]);
+
+  // Fade the network in the sensor view; hide pipe labels and node pins there (CSS on the container).
+  useEffect(() => {
+    if (!ready) return;
+    const map = mapRef.current;
+    // Toggled directly: MapLibre owns the container's other classes, so React must not rewrite className.
+    box.current.classList.toggle('is-sensor-view', view === 'sensors');
+    Object.entries(VIEW_PAINT[view] ?? VIEW_PAINT.network).forEach(([layer, [prop, value]]) => paint(map, layer, prop, value));
+  }, [ready, view]);
+
+  // Sensor health markers, only in the sensor view.
+  useEffect(() => {
+    if (!ready) return;
+    const map = mapRef.current;
+    const shown = view === 'sensors' ? sensors.filter((s) => !statusFilter || statusFilter.includes(s.status)) : [];
+    const keep = new Set(shown.map((s) => s.code));
+    shown.forEach((s) => {
+      let m = sensorMarkers.current[s.code];
+      if (!m) {
+        const node = document.createElement('button');
+        node.type = 'button';
+        node.className = 'map-health';
+        node.addEventListener('click', (e) => {
+          e.stopPropagation();
+          onSelectSensorRef.current?.(s.code);
+        });
+        m = new maplibregl.Marker({ element: node, anchor: 'center', opacityWhenCovered: '1' }).setLngLat(toLngLat(s.at)).addTo(map);
+        sensorMarkers.current[s.code] = m;
+      }
+      const node = m.getElement();
+      node.dataset.status = s.status;
+      node.classList.toggle('is-selected', s.code === selectedSensor);
+      node.setAttribute('aria-label', `${s.code}, ${s.kindLabel}: ${HEALTH[s.status].label}`);
+      node.innerHTML = `<span class="map-health__dot"></span><span class="map-health__label">${esc(s.code)}</span>`;
+    });
+    Object.keys(sensorMarkers.current).forEach((code) => {
+      if (!keep.has(code)) {
+        sensorMarkers.current[code].remove();
+        delete sensorMarkers.current[code];
+      }
+    });
+  }, [ready, view, sensors, statusFilter, selectedSensor]);
 
   return <div ref={box} className="h-full w-full" role="region" aria-label="3D map of the demo water network on real terrain" />;
 }
