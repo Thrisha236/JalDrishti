@@ -158,7 +158,7 @@ export default function Dashboard() {
             </Card>
           )}
           {telemetry && (
-            <Card title="Live alerts (sensors)" action={<Link to="/gp/water" className="text-sm font-semibold text-brand-600">Water Status</Link>}>
+            <Card title="Live alerts (sensors)" action={<span className="flex gap-3 text-sm font-semibold text-brand-600"><Link to="/gp/alerts">Alert Center</Link><Link to="/gp/water">Water Status</Link></span>}>
               <LiveAlerts alerts={telemetry.alerts} compact />
             </Card>
           )}

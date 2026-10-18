@@ -141,6 +141,57 @@ function QualityCard({ q, canLog }) {
   );
 }
 
+const PATTERN = {
+  steady: ['normal', 'Steady'],
+  intermittent: ['problem', 'Intermittent'],
+  off: ['problem', 'No water'],
+  unsteady: ['warning', 'Unsteady'],
+};
+
+function RegularityCard({ r }) {
+  const [tone, label] = PATTERN[r.pattern] ?? ['neutral', 'Not enough data'];
+  return (
+    <Card title="Supply regularity" accent="water" action={<Chip level={r.status === 'ok' ? tone : 'neutral'}>{r.status === 'ok' ? label : 'Waiting for data'}</Chip>}>
+      {r.status !== 'ok' ? (
+        <p className="text-sm text-muted">{r.reason}</p>
+      ) : (
+        <>
+          <div className="flex items-end gap-4">
+            <span className="font-display text-6xl leading-none tracking-tight">{r.on_pct}<span className="text-2xl text-muted">%</span></span>
+            <span className="pb-1 text-sm text-muted">of the last {r.window_minutes} minutes of supply hours had water at the tail end</span>
+          </div>
+          <div className="mt-3 h-3 overflow-hidden rounded-full bg-black/[0.06]" role="img" aria-label={`Water present ${r.on_pct}% of the time`}>
+            <div className={`h-full rounded-full ${r.pattern === 'steady' ? 'bg-emerald-500' : r.pattern === 'intermittent' ? 'bg-amber-400' : 'bg-rose-500'}`} style={{ width: `${r.on_pct}%`, transition: 'width 0.6s ease' }} />
+          </div>
+          <p className="mt-3 text-sm">{r.message}</p>
+          <p className="mt-2 text-xs text-muted">{r.transitions} switches between water and no water · {r.readings} readings · {r.model}</p>
+        </>
+      )}
+    </Card>
+  );
+}
+
+function ClustersCard({ rows, base }) {
+  return (
+    <Card title="Clusters of villager reports" accent="people" action={<Chip level="warning">{rows.length} found</Chip>}>
+      <ul className="flex flex-col gap-3">
+        {rows.map((c) => (
+          <li key={c.id} className="rounded-2xl border border-black/[0.08] p-3 text-sm">
+            <p className="font-medium">
+              {c.size} reports near <Link to={`${base}/${c.asset_id}`} className="underline">{c.asset_code}</Link>
+              <span className="font-normal text-muted"> · within {Math.max(c.radius_m, 1)} m · {Object.entries(c.categories).map(([k, n]) => `${n} ${k.replaceAll('_', ' ').toLowerCase()}`).join(', ')}</span>
+            </p>
+            <p className="mt-1 text-xs text-muted">
+              Reports {c.complaint_codes.map((x) => `#${x}`).join(', ')}.{c.coarse ? ' Shared at zone level, so the cluster shows the zone.' : ' Geo-tagged to about 25 m.'} Several reports along one pipeline point to a network fault, not separate household problems.
+            </p>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-3 text-xs text-muted">DBSCAN: at least 3 reports within 120 m in the last 24 hours.</p>
+    </Card>
+  );
+}
+
 function FailureCard({ rows, asOf, base }) {
   return (
     <Card title="Infrastructure failure outlook" accent="risk" action={<SimBadge>As of {fmtDate(asOf)}</SimBadge>}>
@@ -236,6 +287,8 @@ export default function EarlyWarning() {
             <AnomalyCard a={p.anomaly} />
             {pressure && <ForecastCard f={pressure} />}
             {quality && <QualityCard q={quality} canLog={role === 'gp'} />}
+            {p.regularity && <RegularityCard r={p.regularity} />}
+            {p.clusters?.length > 0 && <ClustersCard rows={p.clusters} base={role === 'officer' ? '/officer/pipelines' : '/gp/pipelines'} />}
             <div className="flex flex-col gap-5">
               <FailureCard rows={p.failures} asOf={p.as_of} base={role === 'officer' ? '/officer/pipelines' : '/gp/pipelines'} />
               {tank && <ForecastCard f={tank} />}

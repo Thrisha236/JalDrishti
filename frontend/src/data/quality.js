@@ -1,8 +1,11 @@
 // Water-quality tests with field test kits (FTK), done by trained local women testers (JJM trains
-// five per village). Demo records are fictional; tests logged in the app live in this browser
-// session only until a backend endpoint exists.
-import { useSyncExternalStore } from 'react';
+// five per village). With the backend running, tests are read from and saved to the server, which also
+// judges them (verdicts, alerts and boil-water advisories come from there). Without it, the demo records
+// in the seed are judged here and tests logged in the app last only for this browser session.
+import { useEffect, useSyncExternalStore } from 'react';
+import { apiFetch, currentRole } from './api';
 import { fieldLayout } from './fieldLayout';
+import { assets, dataSource, seed } from './seed';
 
 /** Limits from IS 10500:2012 (acceptable / permissible where relaxed). */
 export const PARAMS = [
@@ -16,12 +19,15 @@ export const PARAMS = [
   { id: 'iron', label: 'Iron', unit: 'mg/L', acceptable: 0.3, permissible: 0.3 },
 ];
 
+/** A field-kit result is a screening, so the words say "passed" and "failed", never "safe to drink". */
 export const QUALITY = {
-  safe: { label: 'Safe', color: '#10B981', score: 100 },
+  safe: { label: 'Passed', color: '#10B981', score: 100 },
   watch: { label: 'Watch', color: '#F59E0B', score: 60 },
-  unsafe: { label: 'Unsafe', color: '#EF4444', score: 0 },
+  unsafe: { label: 'Failed', color: '#EF4444', score: 0 },
   untested: { label: 'Not tested', color: '#94A3B8', score: 100 },
 };
+
+export const QUALITY_DISCLAIMER = 'A field test kit is a screening tool, not a laboratory certificate. If water looks, smells or tastes wrong, do not drink it untreated.';
 
 const RANK = { safe: 0, untested: 0, watch: 1, unsafe: 2 };
 const worse = (a, b) => (RANK[b] > RANK[a] ? b : a);
@@ -39,8 +45,11 @@ export function judge(paramId, value, { raw = false } = {}) {
   return v <= p.permissible ? 'watch' : 'unsafe';
 }
 
-/** Overall verdict and the parameters that caused it. */
+/** Overall verdict and the parameters that caused it. A server verdict, when the test has one, wins. */
 export function verdict(test) {
+  if (test.verdict) {
+    return { status: test.verdict, issues: (test.issues ?? []).map((i) => ({ param: PARAMS.find((p) => p.id === i.param) ?? { id: i.param, label: i.label, unit: i.unit }, value: i.value, level: i.level })) };
+  }
   const raw = test.point.type === 'source';
   let status = 'safe';
   const issues = [];
@@ -52,56 +61,81 @@ export function verdict(test) {
   return { status, issues };
 }
 
-/** Where tests are taken: the source, the tank, and the tail tap of each lane plus a few homes. */
+/** Where tests are taken (from the seed): the source, the tank, and the tail tap of each lane plus a few homes. */
 export function testPoints() {
-  const { sensors, tank } = fieldLayout();
+  const { sensors } = fieldLayout();
   const byCode = Object.fromEntries(sensors.map((s) => [s.code, s]));
-  const points = [
-    { id: 'tp-bw1', label: 'Borewell BW-1 (raw)', type: 'source', zone: null, at: [380, 420] },
-    { id: 'tp-oht1', label: 'Overhead tank OHT-1', type: 'tank', zone: null, at: tank ?? [500, 500] },
-  ];
-  ['N-T1', 'C-T1', 'S-T1', 'N-H3', 'C-H2', 'S-H2'].forEach((code) => {
-    const s = byCode[code];
-    if (s) points.push({ id: `tp-${code}`, label: `${s.kind === 'tail' ? 'Tail tap' : 'Home tap'} ${code}`, type: 'tap', zone: s.zone, zoneName: s.zoneName, at: s.at });
-  });
-  return points;
+  return (seed.water_quality?.points ?? [])
+    .map((p) => {
+      if (p.type === 'tap') {
+        const s = byCode[p.sensor_code];
+        return s && { id: p.id, label: p.label, type: 'tap', zone: p.service_area_id, zoneName: s.zoneName, at: s.at };
+      }
+      const a = assets[p.asset_id];
+      return a && { id: p.id, label: p.label, type: p.type, zone: null, at: a.geometry.point };
+    })
+    .filter(Boolean);
 }
 
-const DEMO_TESTS = [
-  { point: 'tp-bw1', date: '2026-10-10', tester: 'FTK tester 1', values: { bacteria: 'absent', ph: 7.6, tds: 640, fluoride: 1.2, nitrate: 18, iron: 0.2 } },
-  { point: 'tp-oht1', date: '2026-10-10', tester: 'FTK tester 1', values: { bacteria: 'absent', chlorine: 0.6, ph: 7.4, turbidity: 0.4 } },
-  { point: 'tp-N-T1', date: '2026-10-12', tester: 'FTK tester 2', values: { bacteria: 'absent', chlorine: 0.3, turbidity: 0.8 } },
-  { point: 'tp-N-H3', date: '2026-10-12', tester: 'FTK tester 2', values: { bacteria: 'absent', chlorine: 0.4 } },
-  { point: 'tp-C-T1', date: '2026-10-13', tester: 'FTK tester 3', values: { bacteria: 'absent', chlorine: 0.25, turbidity: 0.6 } },
-  { point: 'tp-C-H2', date: '2026-10-13', tester: 'FTK tester 3', values: { bacteria: 'absent', chlorine: 0.45 } },
-  { point: 'tp-S-T1', date: '2026-10-14', tester: 'FTK tester 4', values: { bacteria: 'present', chlorine: 0, turbidity: 4 } },
-  { point: 'tp-S-H2', date: '2026-10-14', tester: 'FTK tester 4', values: { bacteria: 'absent', chlorine: 0.05 } },
-];
-
-// A tiny store so every screen sees tests logged during the session.
+// A tiny store so every screen sees the same tests.
 let tests = null;
 const listeners = new Set();
+const notify = () => listeners.forEach((l) => l());
+
+function fromSeed() {
+  const points = Object.fromEntries(testPoints().map((p) => [p.id, p]));
+  return (seed.water_quality?.tests ?? []).map((t) => ({ id: t.id, demo: t.is_mock, point: points[t.point_id], date: t.date, tester: t.tester, values: t.values })).filter((t) => t.point);
+}
 
 function ensure() {
-  if (!tests) {
-    const points = Object.fromEntries(testPoints().map((p) => [p.id, p]));
-    tests = DEMO_TESTS.map((t, i) => ({ id: `qt-${i + 1}`, demo: true, ...t, point: points[t.point] })).filter((t) => t.point);
-  }
+  if (!tests) tests = fromSeed();
   return tests;
 }
 
-export function getTests() {
-  return ensure();
+const isOfficial = () => dataSource === 'api' && ['gp', 'officer'].includes(currentRole());
+
+/** Reload from the server (officials only). Quietly keeps the current list if the server cannot be reached. */
+export async function refreshTests() {
+  if (!isOfficial()) return;
+  try {
+    const body = await apiFetch('/water-quality?limit=300', { role: currentRole() });
+    const points = Object.fromEntries(testPoints().map((p) => [p.id, p]));
+    tests = body.tests.map((t) => ({ id: t.id, demo: t.is_mock, point: points[t.point_id], date: t.date, tester: t.tester, values: t.values, verdict: t.verdict, issues: t.issues })).filter((t) => t.point);
+    notify();
+  } catch {
+    /* keep what we have */
+  }
 }
 
-export function addTest({ pointId, date, tester, values }) {
+/** Log a test. Saved on the server when it is running (it then judges it and may raise an alert); otherwise kept in this browser session. */
+export async function addTest({ pointId, date, tester, values }) {
+  if (isOfficial() && currentRole() === 'gp') {
+    await apiFetch('/water-quality/tests', { role: 'gp', method: 'POST', json: true, body: JSON.stringify({ point_id: pointId, date, tester, values }) });
+    await refreshTests();
+    return;
+  }
   const point = testPoints().find((p) => p.id === pointId);
   tests = [{ id: `qt-${Date.now()}`, demo: false, point, date, tester, values }, ...ensure()];
-  listeners.forEach((l) => l());
+  notify();
 }
 
-/** React hook: all tests, newest first, re-rendering when one is logged. */
+let watchers = 0;
+let timer = null;
+
+/** React hook: all tests, re-rendering when one is logged. With the backend it also refreshes every 15 seconds. */
 export function useQualityTests() {
+  useEffect(() => {
+    if (!isOfficial()) return undefined;
+    watchers += 1;
+    if (watchers === 1) {
+      refreshTests();
+      timer = setInterval(refreshTests, 15000);
+    }
+    return () => {
+      watchers -= 1;
+      if (watchers === 0) clearInterval(timer);
+    };
+  }, []);
   return useSyncExternalStore(
     (l) => {
       listeners.add(l);
@@ -109,6 +143,10 @@ export function useQualityTests() {
     },
     ensure,
   );
+}
+
+export function getTests() {
+  return ensure();
 }
 
 /** Latest test per point. */

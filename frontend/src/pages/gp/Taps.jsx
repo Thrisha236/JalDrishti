@@ -5,6 +5,7 @@ import { useFhtc } from '../../data/ai';
 import { Card, Chip, EmptyState, PageHeader, SimBadge } from '../../components/ui';
 import Icon from '../../components/Icon';
 import { Donut, StackBar, TONE } from '../../components/viz';
+import { HouseholdTable, ValidationCard } from './Households';
 
 const STATUS = {
   FUNCTIONAL: ['normal', 'Working'],
@@ -12,7 +13,7 @@ const STATUS = {
   NON_FUNCTIONAL: ['problem', 'Not working'],
 };
 
-function Trend({ points }) {
+export function Trend({ points }) {
   const W = 360;
   const H = 110;
   const xs = (i) => 8 + (i / (points.length - 1)) * (W - 16);
@@ -123,6 +124,11 @@ export default function Taps() {
             </ul>
           )}
         </Card>
+      </div>
+
+      <div className="mt-5 grid gap-5 xl:grid-cols-2">
+        <ValidationCard v={f.validation} households={f.households} />
+        <HouseholdTable zones={f.zones} />
       </div>
 
       <div className="mt-5">

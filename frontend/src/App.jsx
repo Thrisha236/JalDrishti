@@ -23,6 +23,11 @@ import Sources from './pages/gp/Sources';
 import EarlyWarning from './pages/gp/EarlyWarning';
 import Taps from './pages/gp/Taps';
 import Integrations from './pages/gp/Integrations';
+import AlertCenter from './pages/gp/AlertCenter';
+import Planner from './pages/gp/Planner';
+import HouseholdDetail from './pages/gp/Households';
+import Analytics from './pages/officer/Analytics';
+import Audit from './pages/officer/Audit';
 import Overview from './pages/officer/Overview';
 import RiskRules from './pages/officer/RiskRules';
 
@@ -62,6 +67,9 @@ export default function App() {
         <Route path="sources" element={<Sources />} />
         <Route path="early-warning" element={<EarlyWarning />} />
         <Route path="taps" element={<Taps />} />
+        <Route path="taps/:household" element={<HouseholdDetail />} />
+        <Route path="alerts" element={<AlertCenter />} />
+        <Route path="planner" element={<Planner />} />
         <Route path="integrations" element={<Integrations />} />
       </Route>
 
@@ -70,8 +78,13 @@ export default function App() {
         <Route path="pipelines" element={<Pipelines villageIds={['vil-ramapuram', 'vil-kondapur', 'vil-sitarampalli']} base="/officer" />} />
         <Route path="pipelines/:assetId" element={<PipelineDetail />} />
         <Route path="risk-rules" element={<RiskRules />} />
+        <Route path="analytics" element={<Analytics />} />
+        <Route path="alerts" element={<AlertCenter />} />
+        <Route path="planner" element={<Planner />} />
+        <Route path="audit" element={<Audit />} />
         <Route path="early-warning" element={<EarlyWarning />} />
         <Route path="taps" element={<Taps />} />
+        <Route path="taps/:household" element={<HouseholdDetail />} />
         <Route path="integrations" element={<Integrations />} />
       </Route>
 

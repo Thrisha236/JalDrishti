@@ -74,6 +74,13 @@ export function buildIssues({ telemetry, predictions, fhtc, tests }) {
       const at = onAsset(q.asset_id, 0.99);
       add({ id: `quality-${q.asset_id}`, kind: 'quality', severity: q.level === 'AT_RISK' ? 'high' : 'watch', short: 'Test water', title: `Water-quality ${q.level === 'AT_RISK' ? 'risk' : 'watch'} at the tail of ${q.asset_code}`, detail: `${q.reasons.join('. ')}. ${q.action}`, at: at && [at[0] + 25, at[1] - 25], link: { to: '/gp/quality', label: 'Log a field test' } });
     });
+    const reg = predictions.regularity;
+    if (reg?.status === 'ok' && (reg.pattern === 'intermittent' || reg.pattern === 'off')) {
+      add({ id: 'ai-regularity', kind: 'alert', severity: 'high', short: reg.pattern === 'off' ? 'No water' : 'On and off', title: reg.pattern === 'off' ? 'No water at the tail end' : 'Intermittent supply', detail: reg.message, at: onAsset(reg.asset_id, 0.9), link: { to: '/gp/early-warning', label: 'AI Early Warning' } });
+    }
+    (predictions.clusters ?? []).forEach((c) => {
+      add({ id: `cluster-${c.id}`, kind: 'taps', severity: 'watch', short: `${c.size} reports`, title: `${c.size} villager reports near ${c.asset_code}`, detail: `Reports ${c.complaint_codes.map((x) => `#${x}`).join(', ')} within ${Math.max(c.radius_m, 1)} m: likely a network fault.${c.coarse ? ' (Shared at zone level.)' : ''}`, at: c.centre, link: { to: '/gp/complaints', label: 'Complaints' } });
+    });
     predictions.failures.filter((f) => f.priority === 'HIGH' && f.timing === 'overdue').forEach((f) => {
       add({ id: `failure-${f.asset_id}`, kind: 'ai', severity: 'watch', short: 'Inspect', title: `${f.asset_code} is due for inspection`, detail: f.basis, at: onAsset(f.asset_id, 0.3), link: { to: `/gp/pipelines/${f.asset_id}`, label: 'Health record' } });
     });

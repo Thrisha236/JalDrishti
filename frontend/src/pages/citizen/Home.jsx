@@ -10,17 +10,25 @@ import { LevelChip, SimBadge } from '../../components/ui';
 import Icon from '../../components/Icon';
 import { Waves, WaterLevel } from '../../components/water';
 import { latestByPoint, QUALITY, useQualityTests, zoneQuality } from '../../data/quality';
+import MyTap from './MyTap';
 
-/** Latest field-test verdict for the villager's area; a boil-water notice when it failed. */
-function QualityNote() {
-  const { t } = useTranslation();
+/** The zone's field-test result: from the server when it is running (verdict and date only), else from the bundled demo records. */
+function useZoneQuality() {
   const tests = useQualityTests();
-  const status = zoneQuality(CITIZEN_AREA, tests);
+  const { data } = usePolling(() => apiFetch('/water-quality/summary', { role: 'citizen' }), 30000, dataSource === 'api');
+  if (data) return { status: data.status, last: data.last_tested };
   const last = Object.values(latestByPoint(tests))
     .filter((x) => x.point.zone === CITIZEN_AREA)
     .map((x) => x.date)
     .sort()
     .at(-1);
+  return { status: zoneQuality(CITIZEN_AREA, tests), last };
+}
+
+/** Latest field-test result for the villager's area; a boil-water notice when it failed. A screening, never a safety certificate. */
+function QualityNote() {
+  const { t } = useTranslation();
+  const { status, last } = useZoneQuality();
   const unsafe = status === 'unsafe';
   return (
     <section className={`card animate-fade-rise-delay p-6 ${unsafe ? 'border-rose-200 bg-rose-50/80' : ''}`} aria-live="polite">
@@ -105,6 +113,8 @@ export default function CitizenHome() {
       </section>
 
       <QualityNote />
+
+      {dataSource === 'api' && <MyTap />}
 
       {/* Report actions stay together in one grid cell. */}
       <div className="flex flex-col gap-3">

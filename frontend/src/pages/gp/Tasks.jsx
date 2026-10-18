@@ -18,7 +18,7 @@ export default function Tasks() {
 
   return (
     <div>
-      <PageHeader title="Maintenance" subtitle="Tasks created from incidents" />
+      <PageHeader title="Maintenance" subtitle="Repairs from incidents, and preventive inspections from the Maintenance Planner" />
       {tasks.length === 0 ? (
         <EmptyState icon="wrench" title="No maintenance tasks yet">Open an incident from the evidence, then create its task.</EmptyState>
       ) : (
@@ -31,6 +31,8 @@ export default function Tasks() {
                   <span className="text-muted">
                     {t.incident_code} · {t.assignee_name} · due {fmtTime(t.due_at)}
                   </span>
+                  {t.origin === 'PREVENTIVE' && <Chip level="info">Preventive</Chip>}
+                  {t.overdue && <Chip level="problem">Overdue</Chip>}
                   <Chip level={t.status === 'REPAIRED' ? 'normal' : 'info'} className="ml-auto">
                     {labelOf(t.status)}
                   </Chip>

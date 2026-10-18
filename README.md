@@ -628,3 +628,56 @@ A water-themed glass UI with dark mode, a 3D terrain map with Sensors, Service, 
 - The failure outlook needs at least two recorded failures per pipe.
 - The water-quality field tests logged on the Quality page are still kept in the browser only.
 - The landing video and satellite imagery come from outside services (see the handover document).
+
+## Problem-statement coverage round
+
+We reviewed the prototype against the full SIH26255 problem statement (software only) and built what was missing. **Read `docs/Requirements_Coverage.md` first:** it lists every requirement, where it is built, whether it runs on simulated data or is mock, and what is still missing.
+
+After pulling, reload the database (new tables and columns) and reinstall nothing new; the schema changed:
+
+```powershell
+cd backend
+.\.venv\Scripts\python.exe -m app.seed_loader
+cd ..\frontend
+npm install
+```
+
+### What was added
+
+| Requirement | What you can now do |
+|---|---|
+| Household-level monitoring | Every household has a tap ID (built on its zone's Sujal Gaon ID) and a status. **Tap Connections** lists and filters household taps; each has a detail page. |
+| Village feedback and validation | The villager's home has **My tap**: a daily "did water come, was it enough, how did it look, rate the service" check. It corrects the sensor-based estimate for that home and says when a fault looks local (network fine, home dry). |
+| Geo-tagged observations | On the report form a villager can tap the village map and agree to share the spot. Only a place about 25 m wide inside their own zone is stored. |
+| Water-quality alerts | Field-test results are now stored on the server and judged against IS 10500. A failed tap test raises an alert, sends a boil-water advisory (English, Telugu, Hindi) to villagers of that zone, and goes to WQMIS (mock). Wording is "passed" and "failed": a field kit is a screening tool, never a safety certificate. |
+| Alerts of every kind | **Alert Center**: supply, equipment, AI predictions, water quality and community reports in one feed, with acknowledgement and escalation after 30 minutes. |
+| Abnormal patterns | New models: supply regularity (steady, intermittent, off) and DBSCAN clusters of villager reports. |
+| Preventive maintenance | **Maintenance Planner** ranks pipelines for inspection with the reasons, and plans an inspection (incident plus task) in one step. "No fault found" closes it without counting as a failure. Overdue tasks are now real. |
+| Multi-level analytics and GIS | Officer **Analytics**: State, District, Block, Village, Zone, with drill-down, response times, a village map and open-data exports (CSV, GeoJSON). **Audit and system** shows the audit log and deployment facts. |
+| Sync of everything | The (mock) connectors now carry alerts, incidents, monitoring, tap-level status, test results, and anonymised feedback and service validations, through a fifth connector (Meri Panchayat). |
+| Security, scalability, deployment | Security headers, rate limits, request-size limit, a production start-up guard, automatic deletion of old readings, a PostgreSQL connection pool, an idempotent `app.init_db`, Dockerfiles, `docker-compose.yml`, `.env.example`, `docs/DEPLOYMENT.md` and an exported `docs/openapi.json`. The Docker and PostgreSQL files have **not been run yet**. |
+
+### Try it (about 10 minutes)
+
+```powershell
+python simulator\sim.py --scenario leak --interval 2          # a leak
+python simulator\sim.py --scenario intermittent --interval 2  # water that stops and starts
+```
+
+1. Sign in as `villager1`. On the home screen, under **My tap**, answer "No" to "Did you get water today?" and send it.
+2. Sign in as `gp.ramapuram`. Open **Tap Connections**: that household now shows as not working, with a "likely local fault" reason on its detail page. Open **Alert Center** to see every alert kind; acknowledge one.
+3. Open **Water Quality** and log a failing tap test (for example, bacteria present). A boil-water advisory reaches the villager's **Updates**.
+4. Open **Maintenance Planner** and plan an inspection for P-21. It appears in **Maintenance** as a preventive task.
+5. Sign in as `officer.block`. Open **Analytics** and drill from the State down to a zone; export a CSV; open **Audit and system**.
+
+The new simulator scenario is `intermittent` (ten ticks of water, ten dry). New endpoints include `/service-checks`, `/households`, `/water-quality`, `/alerts/feed`, `/maintenance/priorities`, `/analytics/summary`, `/geo/villages.geojson` and `/export/{dataset}.csv`; see `docs/openapi.json`.
+
+### Tests
+
+`python -m pytest` now runs 257 tests. The new ones cover the IS 10500 verdicts, advisories, household fusion (including the local-fault logic), the Alert Center and its escalation, DBSCAN clusters and supply regularity, the planner and its "no fault found" path, multi-level analytics and scoping, exports (anonymous, formula-safe), the audit log, geo-tag validation, the community and tap-level sync, the rate limiter, the production guard and the retention job.
+
+### Known limits of this round
+
+- Everything runs on simulated data, and the platform connectors are mock. See `docs/Requirements_Coverage.md` for the full list, including what is not built (native app, SMS delivery, real integration, migrations, load tests).
+- Household status is an estimate plus the villager's own check; there are no household tap sensors.
+- Telugu and Hindi strings for the new villager screens are first drafts and need native-speaker review.

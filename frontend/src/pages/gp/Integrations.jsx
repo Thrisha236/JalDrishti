@@ -7,17 +7,18 @@ import Icon from '../../components/Icon';
 
 // Where each connector sits in the diagram (SVG units).
 const SLOT = {
-  sujal_gaon: { x: 10, y: 125, in: true },
-  imis: { x: 520, y: 24 },
-  jjm_dashboard: { x: 520, y: 125 },
-  wqmis: { x: 520, y: 226 },
+  sujal_gaon: { x: 10, y: 150, in: true },
+  imis: { x: 520, y: 10 },
+  jjm_dashboard: { x: 520, y: 100 },
+  meri_panchayat: { x: 520, y: 190 },
+  wqmis: { x: 520, y: 280 },
 };
-const CENTRE = { x: 245, y: 118, w: 170, h: 84 };
+const CENTRE = { x: 245, y: 148, w: 170, h: 84 };
 const isRecent = (iso) => iso && Date.now() - new Date(iso).getTime() < 2 * 60 * 1000;
 
 function Flow({ connectors }) {
   return (
-    <svg viewBox="0 0 740 330" className="w-full" role="img" aria-label="Data flow between JalRakshak and the national platforms (mock)">
+    <svg viewBox="0 0 740 360" className="w-full" role="img" aria-label="Data flow between JalRakshak and the national platforms (mock)">
       {connectors.map((c) => {
         const s = SLOT[c.id];
         const live = isRecent(c.last_at);
@@ -32,7 +33,7 @@ function Flow({ connectors }) {
             <path d={d} fill="none" stroke="currentColor" strokeOpacity="0.18" strokeWidth="2" />
             <path d={d} fill="none" stroke={live ? '#0EA5E9' : 'currentColor'} strokeOpacity={live ? 1 : 0.0} strokeWidth="2.5" strokeDasharray="6 8" className={live ? 'animate-flow' : ''} />
             <path d={`M${to[0] - 8} ${to[1] - 5} L${to[0]} ${to[1]} L${to[0] - 8} ${to[1] + 5}`} fill="none" stroke="currentColor" strokeOpacity="0.45" strokeWidth="2" />
-            <text x={mid} y={(from[1] + to[1]) / 2 - 8} textAnchor="middle" fontSize="10" fill="currentColor" fillOpacity="0.55">{s.in ? 'IDs, registry' : c.id === 'imis' ? 'incidents, monitoring' : c.id === 'jjm_dashboard' ? 'tap functionality' : 'sample requests'}</text>
+            <text x={mid} y={(from[1] + to[1]) / 2 - 8} textAnchor="middle" fontSize="10" fill="currentColor" fillOpacity="0.55">{s.in ? 'IDs, registry' : c.id === 'imis' ? 'incidents, alerts, monitoring' : c.id === 'jjm_dashboard' ? 'tap functionality' : c.id === 'meri_panchayat' ? 'reports, validations' : 'results, sample requests'}</text>
           </g>
         );
       })}

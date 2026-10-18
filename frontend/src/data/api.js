@@ -49,6 +49,11 @@ export async function login(username, password) {
   return user;
 }
 
+/** The role of the signed-in user (from this tab's token), or null. */
+export function currentRole() {
+  return (memory ?? readToken())?.role ?? null;
+}
+
 export function signOut() {
   try {
     sessionStorage.removeItem(TOKEN_KEY);

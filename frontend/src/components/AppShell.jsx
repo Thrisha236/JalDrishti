@@ -8,6 +8,7 @@ import Icon from './Icon';
 import DemoBar from './DemoBar';
 import { Caustics, WaterBackdrop } from './water';
 import { signOut } from '../data/api';
+import { useAlertCounts } from '../data/ai';
 
 const NAV = {
   citizen: [
@@ -18,6 +19,7 @@ const NAV = {
   ],
   gp: [
     { to: '/gp', icon: 'home', label: 'Home', end: true, tint: 'text-sky-600' },
+    { to: '/gp/alerts', icon: 'alert', label: 'Alert Center', tint: 'text-rose-600', badge: true },
     { to: '/gp/early-warning', icon: 'spark', label: 'AI Early Warning', tint: 'text-fuchsia-600' },
     { to: '/gp/taps', icon: 'tap', label: 'Tap Connections', tint: 'text-blue-600' },
     { to: '/gp/water', icon: 'sensor', label: 'Water Status', tint: 'text-cyan-600' },
@@ -26,15 +28,20 @@ const NAV = {
     { to: '/gp/complaints', icon: 'list', label: 'Complaints', tint: 'text-orange-600' },
     { to: '/gp/pipelines', icon: 'pipe', label: 'Pipeline Health', tint: 'text-amber-600' },
     { to: '/gp/map', icon: 'map', label: 'Village Map', tint: 'text-emerald-600' },
+    { to: '/gp/planner', icon: 'list', label: 'Maintenance Planner', tint: 'text-amber-600' },
     { to: '/gp/tasks', icon: 'wrench', label: 'Maintenance', tint: 'text-violet-600' },
     { to: '/gp/integrations', icon: 'link', label: 'Integrations', tint: 'text-indigo-600' },
   ],
   officer: [
     { to: '/officer', icon: 'chart', label: 'Overview', end: true, tint: 'text-sky-600' },
+    { to: '/officer/analytics', icon: 'chart', label: 'Analytics', tint: 'text-sky-600' },
+    { to: '/officer/alerts', icon: 'alert', label: 'Alert Center', tint: 'text-rose-600', badge: true },
     { to: '/officer/early-warning', icon: 'spark', label: 'AI Early Warning', tint: 'text-fuchsia-600' },
     { to: '/officer/taps', icon: 'tap', label: 'Tap Connections', tint: 'text-blue-600' },
+    { to: '/officer/planner', icon: 'wrench', label: 'Maintenance Planner', tint: 'text-violet-600' },
     { to: '/officer/pipelines', icon: 'pipe', label: 'High-risk pipelines', tint: 'text-amber-600' },
     { to: '/officer/integrations', icon: 'link', label: 'Integrations', tint: 'text-indigo-600' },
+    { to: '/officer/audit', icon: 'shield', label: 'Audit and system', tint: 'text-emerald-600' },
     { to: '/officer/risk-rules', icon: 'list', label: 'Risk rules', tint: 'text-indigo-600' },
   ],
 };
@@ -84,7 +91,7 @@ function ThemeToggle({ dark, onToggle }) {
   );
 }
 
-const ROLE_LABEL = { citizen: 'Villager', gp: 'Gram Panchayat', officer: 'Government Officer' };
+const ROLE_LABEL = { citizen: 'Villager', gp: 'Gram Panchayat / VWSC', officer: 'Government Officer' };
 
 function LanguageSwitch({ compact }) {
   const { i18n } = useTranslation();
@@ -116,6 +123,8 @@ export default function AppShell() {
   }, [pathname]);
   const items = NAV[role] ?? [];
   const label = (it) => it.label ?? t(it.key);
+  const { data: alertData } = useAlertCounts(role);
+  const alertBadge = alertData?.counts?.high ?? 0; // high-severity alerts that are open
   const context = role === 'officer' ? 'Demo block · 3 villages' : role === 'citizen' ? `${villages[HOME_VILLAGE].name} · ${areas[CITIZEN_AREA].name}` : `${villages[HOME_VILLAGE].name} Gram Panchayat`;
 
   const switchRole = () => {
@@ -154,6 +163,11 @@ export default function AppShell() {
                 <>
                   <Icon name={it.icon} className={`h-5 w-5 ${isActive ? '' : it.tint}`} />
                   {label(it)}
+                  {it.badge && alertBadge > 0 && (
+                    <span className="ml-auto rounded-full bg-rose-600 px-2 py-0.5 text-xs font-semibold text-white" aria-label={`${alertBadge} high alerts open`}>
+                      {alertBadge}
+                    </span>
+                  )}
                 </>
               )}
             </NavLink>

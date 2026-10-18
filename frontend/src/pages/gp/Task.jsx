@@ -31,7 +31,7 @@ function QualityLine() {
 
 const FLOW = ['ASSIGNED', 'INSPECTING', 'REPAIRING', 'REPAIRED'];
 const NEXT_LABEL = { INSPECTING: 'Start inspection', REPAIRING: 'Start repair', REPAIRED: 'Record repair done' };
-const FAILURE_TYPES = ['leak', 'joint_failure', 'burst', 'blockage', 'valve_fault', 'pump_fault', 'other'];
+const FAILURE_TYPES = ['leak', 'joint_failure', 'burst', 'blockage', 'valve_fault', 'pump_fault', 'other', 'no_fault_found'];
 
 function Progress({ updates }) {
   return (

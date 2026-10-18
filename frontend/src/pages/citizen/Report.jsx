@@ -7,6 +7,7 @@ import { nextOfflineCode } from '../../data/myComplaints';
 import { areasFor, HOME_VILLAGE, CITIZEN_AREA, dataSource, reloadData } from '../../data/seed';
 import { apiFetch } from '../../data/api';
 import Icon from '../../components/Icon';
+import SpotPicker from './SpotPicker';
 import { PageHeader } from '../../components/ui';
 
 const CATEGORIES = [
@@ -29,6 +30,8 @@ export default function Report() {
   const [category, setCategory] = useState(null);
   const [description, setDescription] = useState('');
   const [shareLocation, setShareLocation] = useState(true);
+  const [spot, setSpot] = useState(null); // an optional geo-tag: where on the village map the problem is
+  const [spotConsent, setSpotConsent] = useState(false);
   const [area, setArea] = useState(CITIZEN_AREA);
   const [photoFile, setPhotoFile] = useState(null);
   const [error, setError] = useState('');
@@ -78,6 +81,11 @@ export default function Report() {
       form.append('category', category);
       form.append('service_area_id', area);
       form.append('share_location', String(shareLocation));
+      if (shareLocation && spot && spotConsent) {
+        form.append('geo_x', String(spot.x));
+        form.append('geo_y', String(spot.y));
+        form.append('geotag_consent', 'true');
+      }
       if (description.trim()) form.append('description', description.trim());
       if (photoFile) form.append('photo', photoFile);
       setSending(true);
@@ -180,7 +188,7 @@ export default function Report() {
         </label>
         <label className="block">
           <span className="mb-1 block font-semibold">{t('report.area')}</span>
-          <select value={area} onChange={(e) => setArea(e.target.value)} className="min-h-12 w-full rounded-xl border border-black/15 bg-white px-3">
+          <select value={area} onChange={(e) => { setArea(e.target.value); setSpot(null); setSpotConsent(false); }} className="min-h-12 w-full rounded-xl border border-black/15 bg-white px-3">
             {areasFor(HOME_VILLAGE).map((a) => (
               <option key={a.id} value={a.id}>
                 {a.name}
@@ -188,6 +196,7 @@ export default function Report() {
             ))}
           </select>
         </label>
+        {dataSource === 'api' && shareLocation && <SpotPicker areaId={area} spot={spot} setSpot={setSpot} consent={spotConsent} setConsent={setSpotConsent} />}
       </section>
 
       {error && <p className="rounded-xl bg-red-50 p-3 font-medium text-red-800" role="alert">{error}</p>}

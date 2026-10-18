@@ -52,3 +52,21 @@ export function fmtEta(minutes) {
   if (minutes == null) return null;
   return minutes < 1 ? `about ${Math.max(5, Math.round(minutes * 60))} s` : `about ${Math.round(minutes)} min`;
 }
+
+/** The Alert Center feed: every kind of alert, with counts. status is open, cleared or all. */
+export function useAlertFeed(role = 'gp', { status = 'open', kind = null } = {}, ms = 6000) {
+  const [refreshKey, setRefreshKey] = useState(0);
+  const q = new URLSearchParams({ status, ...(kind ? { kind } : {}), limit: '150' });
+  const state = usePolling(() => apiFetch(`/alerts/feed?${q}`, { role }), ms, dataSource === 'api', `${status}-${kind}-${refreshKey}`);
+  return { ...state, reload: () => setRefreshKey((k) => k + 1) };
+}
+
+export const acknowledgeAlert = (id, role = 'gp') => apiFetch(`/alerts/${id}/acknowledge`, { role, method: 'POST' });
+
+/** Counts only (for the navigation badge). */
+export function useAlertCounts(role) {
+  return usePolling(() => apiFetch('/alerts/feed?status=open&limit=1', { role }), 15000, dataSource === 'api' && (role === 'gp' || role === 'officer'));
+}
+
+export const SEVERITY_TONE = { CRITICAL: 'problem', HIGH: 'problem', MEDIUM: 'warning', LOW: 'neutral' };
+export const KIND_ICON = { WATER_SERVICE: 'drop', EQUIPMENT_HEALTH: 'sensor', AI_PREDICTION: 'spark', WATER_QUALITY: 'flask', COMMUNITY: 'users' };

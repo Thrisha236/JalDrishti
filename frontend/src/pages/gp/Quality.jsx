@@ -1,9 +1,9 @@
 // Water quality: field test kit (FTK) results from trained village women, judged against IS 10500.
-// Supply can be restored and still be unsafe, so this sits beside the supply view, not inside it.
+// Supply can be restored and still fail a screening, so this sits beside the supply view, not inside it.
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { areasFor, fmtDate, HOME_VILLAGE } from '../../data/seed';
-import { addTest, judge, latestByPoint, PARAMS, QUALITY, testPoints, useQualityTests, verdict, zoneQuality } from '../../data/quality';
+import { areasFor, dataSource, fmtDate, HOME_VILLAGE } from '../../data/seed';
+import { addTest, judge, latestByPoint, PARAMS, QUALITY, QUALITY_DISCLAIMER, testPoints, useQualityTests, verdict, zoneQuality } from '../../data/quality';
 import { Card, PageHeader, SimBadge } from '../../components/ui';
 import { Dot } from '../../components/layers/shared';
 
@@ -17,7 +17,7 @@ const ACTIONS = {
 };
 
 const ADVISORY = {
-  en: (zone) => `JalRakshak: Water in ${zone} failed today's quality test. Please boil drinking water until we confirm it is safe again. — Gram Panchayat`,
+  en: (zone) => `JalRakshak: Water in ${zone} failed today's quality test. Please boil drinking water until a new test passes. — Gram Panchayat`,
   te: (zone) => `జలరక్షక్: ఈరోజు నాణ్యత పరీక్షలో ${zone} నీరు విఫలమైంది. మళ్లీ సురక్షితమని నిర్ధారించే వరకు త్రాగునీటిని మరిగించండి. — గ్రామ పంచాయతీ`,
   hi: (zone) => `जलरक्षक: आज की जाँच में ${zone} का पानी ठीक नहीं पाया गया। सुरक्षित घोषित होने तक पीने का पानी उबालकर पिएँ। — ग्राम पंचायत`,
 };
@@ -39,16 +39,25 @@ function LogTest() {
   const [tester, setTester] = useState(TESTERS[0]);
   const [values, setValues] = useState({ bacteria: 'absent' });
   const [saved, setSaved] = useState(null);
+  const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(false);
   const point = points.find((p) => p.id === pointId);
   const preview = verdict({ point, values });
 
   const set = (id, v) => setValues((x) => ({ ...x, [id]: v }));
-  const save = (e) => {
+  const save = async (e) => {
     e.preventDefault();
     const clean = Object.fromEntries(Object.entries(values).filter(([, v]) => v !== '' && v != null));
-    addTest({ pointId, date, tester, values: clean });
-    setSaved(`${point.label}: ${QUALITY[preview.status].label}`);
-    setValues({ bacteria: 'absent' });
+    setBusy(true);
+    setError(null);
+    try {
+      await addTest({ pointId, date, tester, values: clean });
+      setSaved(`${point.label}: ${QUALITY[preview.status].label}`);
+      setValues({ bacteria: 'absent' });
+    } catch (err) {
+      setError(err.message);
+    }
+    setBusy(false);
   };
 
   return (
@@ -116,12 +125,13 @@ function LogTest() {
             Result: <Verdict status={preview.status} />
             {preview.issues.length > 0 && <span className="text-muted"> · {preview.issues.map((i) => i.param.label).join(', ')}</span>}
           </p>
-          <button type="submit" className="btn-primary">
+          <button type="submit" disabled={busy} className="btn-primary">
             Save test
           </button>
         </div>
-        {saved && <p className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900">Saved: {saved}. The map, service score and villager app now use it.</p>}
-        <p className="text-xs text-muted">Leave a field empty if it was not measured. Tests saved here last for this browser session; storing them needs a backend endpoint.</p>
+        {saved && <p className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900">Saved: {saved}. {dataSource === 'api' ? 'It is judged by the server: a failed tap test raises an alert, sends a boil-water advisory to villagers of that zone, and goes to WQMIS (mock).' : 'It is kept in this browser session only.'}</p>}
+        {error && <p className="rounded-xl bg-rose-50 p-3 text-sm text-rose-800" role="alert">{error}</p>}
+        <p className="text-xs text-muted">Leave a field empty if it was not measured. {QUALITY_DISCLAIMER}</p>
       </form>
     </Card>
   );
@@ -146,7 +156,7 @@ export default function Quality() {
 
   return (
     <div>
-      <PageHeader title="Water Quality — field tests" subtitle="Tests by trained women of the village with field test kits, judged against IS 10500. Safe supply means enough water and safe water.">
+      <PageHeader title="Water Quality — field tests" subtitle="Screening tests by trained women of the village with field test kits, judged against IS 10500. Water can flow and still fail a screening, so quality is checked beside supply.">
         <SimBadge>Demo records</SimBadge>
       </PageHeader>
 
@@ -164,7 +174,7 @@ export default function Quality() {
 
       {unsafe.length > 0 && (
         <section className="mb-5 rounded-3xl border border-rose-200 bg-rose-50 p-5 text-rose-900">
-          <h2 className="section-title text-rose-900">Unsafe water in {unsafe.map((r) => r.zone.name).join(', ')}</h2>
+          <h2 className="section-title text-rose-900">Failed field test in {unsafe.map((r) => r.zone.name).join(', ')}</h2>
           <ul className="mt-2 list-inside list-disc text-sm">
             {ACTIONS.unsafe.map((a) => (
               <li key={a}>{a}</li>

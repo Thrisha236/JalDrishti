@@ -17,17 +17,32 @@ const en = {
   },
   quality: {
     title: 'Water quality',
-    safe: 'Safe to drink. Last tested {{date}}.',
+    safe: 'Passed the field test on {{date}}. If water looks or smells wrong, do not drink it untreated.',
     watch: 'Under watch after the last test ({{date}}). A re-test is due.',
-    unsafe: 'Not safe to drink right now. Boil water before drinking until the next test clears it.',
+    unsafe: 'Failed the field test. Boil drinking water until a new test passes.',
     untested: 'Not tested yet in your area.',
-    who: 'Tested by trained women of the village with a field test kit.',
+    who: 'Screened by trained village women with a field test kit. This is not a laboratory certificate.',
   },
   track: {
     id: 'Track ID', title: 'Track a complaint', hint: 'Enter the track ID from your SMS, call or screen, for example 2048', button: 'Track',
     notFound: 'No complaint with track ID {{code}} in your account.', another: 'Report another problem', all: 'See all',
     reported: 'Reported {{when}}', count: '{{count}} complaints', open: 'Open', closed: 'Closed', keep: 'Keep this track ID to follow your complaint.',
     via: { APP: 'in the app', MISSED_CALL: 'by missed call', WHATSAPP: 'by WhatsApp' },
+  },
+  tap: {
+    title: 'My tap', id: 'Tap ID {{id}}', status: { FUNCTIONAL: 'Working', PARTIAL: 'Low water', NON_FUNCTIONAL: 'Not working' },
+    source: { network: 'Estimated from the village network', citizen: 'From your own report' },
+    checkTitle: 'Did you get water today?', yes: 'Yes', no: 'No', qtyTitle: 'Was it enough?', enough: 'Enough', low: 'Too little',
+    lookTitle: 'How did it look?', clear: 'Clear', coloured: 'Coloured', smell: 'Bad smell', other: 'Something else',
+    rateTitle: 'How is your water service?', ratingHint: '1 = very poor, 5 = very good', comment: 'Anything to add? (optional)',
+    send: 'Send', sent: 'Thank you. Your report helps the Gram Panchayat fix problems sooner.', update: "Change today's answer",
+    today: 'You reported today', history: 'Last 14 days', none: 'No reports yet',
+    privacy: 'Only your Gram Panchayat sees this. Your name is never sent to other systems.', noHousehold: 'Your account is not linked to a household yet.',
+    gotWater: 'Water came', noWater: 'No water',
+  },
+  geo: {
+    title: 'Mark the spot (optional)', hint: 'Tap the village map where the problem is. Only a place about 25 m wide is saved, never your house.',
+    consent: 'I agree to share this spot with my Gram Panchayat', clear: 'Remove spot', chosen: 'Spot chosen',
   },
   home: { timing: "Today's water timing", next: 'Next supply', reportCta: 'Report a Problem', reportSub: 'No water, low water, dirty water, leakage', myComplaints: 'My complaints', none: 'No complaints yet' },
   report: {
@@ -46,6 +61,10 @@ const en = {
   timeline: { received: 'Received', checking: 'Being checked', repairStarted: 'Repair started', restored: 'Water restored — verified', resolvedUnverified: 'Resolved — not verified by sensors' },
   notify: {
     title: 'Updates', none: 'No updates yet.', channel: 'Shown in the app only. SMS and voice calls are not connected in this prototype.',
+    advisory: {
+      boil_water: "Boil drinking water: your area failed today's water field test. Boil water until a new test passes.",
+      cleared: 'A new field test in your area passed. You can stop boiling water if it looks and smells normal.',
+    },
     complaint: {
       being_checked: 'Your complaint #{{code}} is being checked by the Gram Panchayat.',
       repair_started: 'Repair work has started for complaint #{{code}}.',
@@ -70,17 +89,32 @@ const te = {
   },
   quality: {
     title: 'నీటి నాణ్యత',
-    safe: 'త్రాగడానికి సురక్షితం. చివరి పరీక్ష {{date}}.',
+    safe: 'క్షేత్ర పరీక్షలో ఉత్తీర్ణమైంది ({{date}}). నీరు చూడటానికి లేదా వాసనకు తేడాగా ఉంటే శుద్ధి చేయకుండా తాగకండి.',
     watch: 'చివరి పరీక్ష ({{date}}) తర్వాత పరిశీలనలో ఉంది. మళ్లీ పరీక్ష చేయాలి.',
-    unsafe: 'ప్రస్తుతం త్రాగడానికి సురక్షితం కాదు. తదుపరి పరీక్ష వరకు నీటిని మరిగించి త్రాగండి.',
+    unsafe: 'క్షేత్ర పరీక్షలో విఫలమైంది. కొత్త పరీక్ష ఉత్తీర్ణమయ్యే వరకు తాగే నీటిని మరిగించండి.',
     untested: 'మీ ప్రాంతంలో ఇంకా పరీక్షించలేదు.',
-    who: 'గ్రామంలో శిక్షణ పొందిన మహిళలు ఫీల్డ్ టెస్ట్ కిట్‌తో పరీక్షించారు.',
+    who: 'గ్రామంలో శిక్షణ పొందిన మహిళలు ఫీల్డ్ టెస్ట్ కిట్‌తో పరీక్షించారు. ఇది ప్రయోగశాల ధృవీకరణ కాదు.',
   },
   track: {
     id: 'ట్రాక్ ఐడీ', title: 'ఫిర్యాదును ట్రాక్ చేయండి', hint: 'SMS, కాల్ లేదా తెరపై వచ్చిన ట్రాక్ ఐడీని ఇవ్వండి, ఉదా. 2048', button: 'ట్రాక్ చేయండి',
     notFound: 'మీ ఖాతాలో {{code}} ట్రాక్ ఐడీతో ఫిర్యాదు లేదు.', another: 'మరో సమస్యను తెలపండి', all: 'అన్నీ చూడండి',
     reported: '{{when}}న తెలిపారు', count: '{{count}} ఫిర్యాదులు', open: 'తెరిచి ఉంది', closed: 'ముగిసింది', keep: 'మీ ఫిర్యాదును అనుసరించడానికి ఈ ట్రాక్ ఐడీని గుర్తుంచుకోండి.',
     via: { APP: 'యాప్‌లో', MISSED_CALL: 'మిస్డ్ కాల్ ద్వారా', WHATSAPP: 'వాట్సాప్ ద్వారా' },
+  },
+  tap: {
+    title: 'నా నల్లా', id: 'నల్లా ID {{id}}', status: { FUNCTIONAL: 'పనిచేస్తోంది', PARTIAL: 'తక్కువ నీరు', NON_FUNCTIONAL: 'పనిచేయడం లేదు' },
+    source: { network: 'గ్రామ నెట్‌వర్క్ ఆధారంగా అంచనా', citizen: 'మీ స్వంత నివేదిక ఆధారంగా' },
+    checkTitle: 'ఈరోజు నీరు వచ్చిందా?', yes: 'అవును', no: 'లేదు', qtyTitle: 'సరిపోయిందా?', enough: 'సరిపోయింది', low: 'చాలా తక్కువ',
+    lookTitle: 'నీరు ఎలా కనిపించింది?', clear: 'స్పష్టంగా', coloured: 'రంగుతో', smell: 'చెడు వాసన', other: 'ఇంకేదైనా',
+    rateTitle: 'మీ నీటి సేవ ఎలా ఉంది?', ratingHint: '1 = చాలా తక్కువ, 5 = చాలా బాగుంది', comment: 'ఇంకేమైనా చెప్పాలా? (ఐచ్ఛికం)',
+    send: 'పంపండి', sent: 'ధన్యవాదాలు. మీ నివేదిక గ్రామ పంచాయతీకి సమస్యలను త్వరగా పరిష్కరించడంలో సహాయపడుతుంది.', update: 'ఈరోజు సమాధానం మార్చండి',
+    today: 'మీరు ఈరోజు తెలిపారు', history: 'గత 14 రోజులు', none: 'ఇంకా నివేదికలు లేవు',
+    privacy: 'మీ గ్రామ పంచాయతీ మాత్రమే దీన్ని చూస్తుంది. మీ పేరు ఇతర వ్యవస్థలకు పంపబడదు.', noHousehold: 'మీ ఖాతా ఇంకా ఏ ఇంటికీ అనుసంధానం కాలేదు.',
+    gotWater: 'నీరు వచ్చింది', noWater: 'నీరు రాలేదు',
+  },
+  geo: {
+    title: 'ప్రదేశాన్ని గుర్తించండి (ఐచ్ఛికం)', hint: 'సమస్య ఉన్న చోట గ్రామ మ్యాప్‌ను తాకండి. సుమారు 25 మీ. ప్రాంతం మాత్రమే నిల్వ అవుతుంది, మీ ఇల్లు కాదు.',
+    consent: 'ఈ ప్రదేశాన్ని నా గ్రామ పంచాయతీతో పంచుకోవడానికి అంగీకరిస్తున్నాను', clear: 'ప్రదేశాన్ని తొలగించు', chosen: 'ప్రదేశం ఎంచుకున్నారు',
   },
   home: { timing: 'ఈరోజు నీటి సమయం', next: 'తదుపరి సరఫరా', reportCta: 'సమస్యను తెలపండి', reportSub: 'నీరు లేదు, తక్కువ నీరు, మురికి నీరు, లీకేజీ', myComplaints: 'నా ఫిర్యాదులు', none: 'ఇంకా ఫిర్యాదులు లేవు' },
   report: {
@@ -99,6 +133,10 @@ const te = {
   timeline: { received: 'అందింది', checking: 'పరిశీలనలో ఉంది', repairStarted: 'మరమ్మతు ప్రారంభమైంది', restored: 'నీరు పునరుద్ధరించబడింది — ధృవీకరించబడింది', resolvedUnverified: 'పరిష్కరించబడింది — సెన్సార్ ధృవీకరణ లేదు' },
   notify: {
     title: 'తాజా సమాచారం', none: 'ఇంకా సమాచారం లేదు.', channel: 'యాప్‌లో మాత్రమే. ఈ నమూనాలో SMS, వాయిస్ కాల్స్ లేవు.',
+    advisory: {
+      boil_water: 'తాగే నీటిని మరిగించండి: ఈరోజు మీ ప్రాంతంలో నీటి క్షేత్ర పరీక్ష విఫలమైంది. కొత్త పరీక్ష ఉత్తీర్ణమయ్యే వరకు నీటిని మరిగించండి.',
+      cleared: 'మీ ప్రాంతంలో కొత్త క్షేత్ర పరీక్ష ఉత్తీర్ణమైంది. నీరు సాధారణంగా కనిపించి వాసన లేకపోతే మరిగించడం ఆపవచ్చు.',
+    },
     complaint: {
       being_checked: 'మీ ఫిర్యాదు #{{code}} ను గ్రామ పంచాయతీ పరిశీలిస్తోంది.',
       repair_started: 'ఫిర్యాదు #{{code}} కోసం మరమ్మతు పని ప్రారంభమైంది.',
@@ -123,17 +161,32 @@ const hi = {
   },
   quality: {
     title: 'पानी की गुणवत्ता',
-    safe: 'पीने के लिए सुरक्षित। पिछली जाँच {{date}}।',
+    safe: 'फ़ील्ड जाँच में पास ({{date}})। पानी देखने या सूँघने में अजीब लगे तो बिना उपचार के न पिएँ।',
     watch: 'पिछली जाँच ({{date}}) के बाद निगरानी में। दोबारा जाँच होनी है।',
-    unsafe: 'अभी पीने के लिए सुरक्षित नहीं। अगली जाँच ठीक आने तक पानी उबालकर पिएँ।',
+    unsafe: 'फ़ील्ड जाँच में असफल। नई जाँच पास होने तक पीने का पानी उबालकर पिएँ।',
     untested: 'आपके क्षेत्र में अभी जाँच नहीं हुई।',
-    who: 'गाँव की प्रशिक्षित महिलाओं ने फ़ील्ड टेस्ट किट से जाँच की।',
+    who: 'गाँव की प्रशिक्षित महिलाओं ने फ़ील्ड टेस्ट किट से जाँच की। यह प्रयोगशाला प्रमाणपत्र नहीं है।',
   },
   track: {
     id: 'ट्रैक आईडी', title: 'शिकायत ट्रैक करें', hint: 'SMS, कॉल या स्क्रीन पर मिली ट्रैक आईडी डालें, जैसे 2048', button: 'ट्रैक करें',
     notFound: 'आपके खाते में {{code}} ट्रैक आईडी वाली कोई शिकायत नहीं है।', another: 'एक और समस्या बताएँ', all: 'सभी देखें',
     reported: '{{when}} को दर्ज', count: '{{count}} शिकायतें', open: 'खुली', closed: 'बंद', keep: 'अपनी शिकायत देखने के लिए यह ट्रैक आईडी संभालकर रखें।',
     via: { APP: 'ऐप से', MISSED_CALL: 'मिस्ड कॉल से', WHATSAPP: 'व्हाट्सऐप से' },
+  },
+  tap: {
+    title: 'मेरा नल', id: 'नल ID {{id}}', status: { FUNCTIONAL: 'चालू', PARTIAL: 'कम पानी', NON_FUNCTIONAL: 'बंद' },
+    source: { network: 'गाँव के नेटवर्क से अनुमान', citizen: 'आपकी अपनी रिपोर्ट से' },
+    checkTitle: 'क्या आज पानी आया?', yes: 'हाँ', no: 'नहीं', qtyTitle: 'क्या पर्याप्त था?', enough: 'पर्याप्त', low: 'बहुत कम',
+    lookTitle: 'पानी कैसा दिखा?', clear: 'साफ़', coloured: 'रंगीन', smell: 'बदबू', other: 'कुछ और',
+    rateTitle: 'आपकी पानी सेवा कैसी है?', ratingHint: '1 = बहुत खराब, 5 = बहुत अच्छी', comment: 'कुछ और जोड़ना है? (वैकल्पिक)',
+    send: 'भेजें', sent: 'धन्यवाद। आपकी रिपोर्ट से ग्राम पंचायत समस्याएँ जल्दी ठीक कर पाती है।', update: 'आज का जवाब बदलें',
+    today: 'आपने आज बताया', history: 'पिछले 14 दिन', none: 'अभी कोई रिपोर्ट नहीं',
+    privacy: 'इसे केवल आपकी ग्राम पंचायत देखती है। आपका नाम दूसरी प्रणालियों को नहीं भेजा जाता।', noHousehold: 'आपका खाता अभी किसी घर से जुड़ा नहीं है।',
+    gotWater: 'पानी आया', noWater: 'पानी नहीं आया',
+  },
+  geo: {
+    title: 'जगह चिह्नित करें (वैकल्पिक)', hint: 'जहाँ समस्या है, गाँव के नक्शे पर छुएँ। केवल लगभग 25 मीटर का क्षेत्र सहेजा जाता है, आपका घर नहीं।',
+    consent: 'मैं यह जगह अपनी ग्राम पंचायत से साझा करने के लिए सहमत हूँ', clear: 'जगह हटाएँ', chosen: 'जगह चुनी गई',
   },
   home: { timing: 'आज पानी का समय', next: 'अगली आपूर्ति', reportCta: 'समस्या बताएं', reportSub: 'पानी नहीं, कम पानी, गंदा पानी, रिसाव', myComplaints: 'मेरी शिकायतें', none: 'अभी कोई शिकायत नहीं' },
   report: {
@@ -152,6 +205,10 @@ const hi = {
   timeline: { received: 'प्राप्त', checking: 'जाँच हो रही है', repairStarted: 'मरम्मत शुरू', restored: 'पानी बहाल — सत्यापित', resolvedUnverified: 'हल किया गया — सेंसर से सत्यापित नहीं' },
   notify: {
     title: 'अपडेट', none: 'अभी कोई अपडेट नहीं।', channel: 'केवल ऐप में। इस प्रोटोटाइप में SMS और वॉइस कॉल जुड़े नहीं हैं।',
+    advisory: {
+      boil_water: 'पीने का पानी उबालें: आज आपके क्षेत्र की पानी की फ़ील्ड जाँच असफल रही। नई जाँच पास होने तक पानी उबालें।',
+      cleared: 'आपके क्षेत्र की नई फ़ील्ड जाँच पास हुई। पानी सामान्य दिखे और बदबू न हो तो उबालना बंद कर सकते हैं।',
+    },
     complaint: {
       being_checked: 'आपकी शिकायत #{{code}} की ग्राम पंचायत जाँच कर रही है।',
       repair_started: 'शिकायत #{{code}} के लिए मरम्मत शुरू हो गई है।',
