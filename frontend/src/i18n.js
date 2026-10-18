@@ -15,6 +15,14 @@ const en = {
     repairing: 'Repair in progress in your area',
     restored: 'Water supply restored (verified)',
   },
+  quality: {
+    title: 'Water quality',
+    safe: 'Safe to drink. Last tested {{date}}.',
+    watch: 'Under watch after the last test ({{date}}). A re-test is due.',
+    unsafe: 'Not safe to drink right now. Boil water before drinking until the next test clears it.',
+    untested: 'Not tested yet in your area.',
+    who: 'Tested by trained women of the village with a field test kit.',
+  },
   home: { timing: "Today's water timing", next: 'Next supply', reportCta: 'Report a Problem', reportSub: 'No water, low water, dirty water, leakage', myComplaints: 'My complaints', none: 'No complaints yet' },
   report: {
     title: 'What is the problem?', byPhone: 'No smartphone? Report by missed call or WhatsApp', addPhoto: 'Add a photo', replace: 'Replace', remove: 'Remove', more: 'Tell us more (optional)',
@@ -54,6 +62,14 @@ const te = {
     repairing: 'మీ ప్రాంతంలో మరమ్మతు జరుగుతోంది',
     restored: 'నీటి సరఫరా పునరుద్ధరించబడింది (ధృవీకరించబడింది)',
   },
+  quality: {
+    title: 'నీటి నాణ్యత',
+    safe: 'త్రాగడానికి సురక్షితం. చివరి పరీక్ష {{date}}.',
+    watch: 'చివరి పరీక్ష ({{date}}) తర్వాత పరిశీలనలో ఉంది. మళ్లీ పరీక్ష చేయాలి.',
+    unsafe: 'ప్రస్తుతం త్రాగడానికి సురక్షితం కాదు. తదుపరి పరీక్ష వరకు నీటిని మరిగించి త్రాగండి.',
+    untested: 'మీ ప్రాంతంలో ఇంకా పరీక్షించలేదు.',
+    who: 'గ్రామంలో శిక్షణ పొందిన మహిళలు ఫీల్డ్ టెస్ట్ కిట్‌తో పరీక్షించారు.',
+  },
   home: { timing: 'ఈరోజు నీటి సమయం', next: 'తదుపరి సరఫరా', reportCta: 'సమస్యను తెలపండి', reportSub: 'నీరు లేదు, తక్కువ నీరు, మురికి నీరు, లీకేజీ', myComplaints: 'నా ఫిర్యాదులు', none: 'ఇంకా ఫిర్యాదులు లేవు' },
   report: {
     title: 'సమస్య ఏమిటి?', byPhone: 'స్మార్ట్‌ఫోన్ లేదా? మిస్డ్ కాల్ లేదా వాట్సాప్ ద్వారా తెలపండి', addPhoto: 'ఫోటో జోడించండి', replace: 'మార్చు', remove: 'తీసివేయి', more: 'మరింత చెప్పండి (ఐచ్ఛికం)',
@@ -92,6 +108,14 @@ const hi = {
     lowSupply: 'आपके क्षेत्र में पानी की आपूर्ति कम है। अधिकारी जाँच कर रहे हैं।',
     repairing: 'आपके क्षेत्र में मरम्मत चल रही है',
     restored: 'पानी की आपूर्ति बहाल हो गई (सत्यापित)',
+  },
+  quality: {
+    title: 'पानी की गुणवत्ता',
+    safe: 'पीने के लिए सुरक्षित। पिछली जाँच {{date}}।',
+    watch: 'पिछली जाँच ({{date}}) के बाद निगरानी में। दोबारा जाँच होनी है।',
+    unsafe: 'अभी पीने के लिए सुरक्षित नहीं। अगली जाँच ठीक आने तक पानी उबालकर पिएँ।',
+    untested: 'आपके क्षेत्र में अभी जाँच नहीं हुई।',
+    who: 'गाँव की प्रशिक्षित महिलाओं ने फ़ील्ड टेस्ट किट से जाँच की।',
   },
   home: { timing: 'आज पानी का समय', next: 'अगली आपूर्ति', reportCta: 'समस्या बताएं', reportSub: 'पानी नहीं, कम पानी, गंदा पानी, रिसाव', myComplaints: 'मेरी शिकायतें', none: 'अभी कोई शिकायत नहीं' },
   report: {
