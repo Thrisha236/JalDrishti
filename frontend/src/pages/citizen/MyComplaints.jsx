@@ -4,6 +4,7 @@ import { useDemo } from '../../demo/DemoContext';
 import { S, storyCode } from '../../demo/steps';
 import { story, fmtTime } from '../../data/seed';
 import Icon from '../../components/Icon';
+import { EmptyState, PageHeader } from '../../components/ui';
 
 export default function MyComplaints() {
   const { t } = useTranslation();
@@ -12,12 +13,14 @@ export default function MyComplaints() {
   const mine = step >= S.REPORTED ? story.complaints.filter((c) => c.public_code === code) : [];
 
   return (
-    <div className="mx-auto max-w-xl">
-      <h1 className="page-title mb-4">{t('nav.complaints')}</h1>
-      {mine.length === 0 && <p className="card p-5 text-muted">{t('home.none')}</p>}
+    <div className="mx-auto max-w-4xl">
+      <PageHeader title={t('nav.complaints')} />
+      {mine.length === 0 && <EmptyState title={t('home.none')} />}
       {mine.map((c) => (
-        <Link key={c.public_code} to={`/citizen/complaints/${c.public_code}`} className="card flex items-center gap-3 p-4 hover:bg-slate-50">
-          <Icon name="drop" className="h-7 w-7 text-brand-600" />
+        <Link key={c.public_code} to={`/citizen/complaints/${c.public_code}`} className="card flex items-center gap-4 p-4 transition hover:border-water-300">
+          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-water-50 text-water-600">
+            <Icon name="drop" className="h-5 w-5" />
+          </span>
           <span className="flex-1">
             <span className="block font-semibold">
               #{c.public_code} · {t(`category.${c.category}`)}

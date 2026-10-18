@@ -34,7 +34,7 @@ export default function Pipelines({ villageIds, base }) {
             </thead>
             <tbody>
               {rows.map((r) => (
-                <tr key={r.asset.id} className="border-t border-slate-100">
+                <tr key={r.asset.id} className="border-t border-black/[0.06]">
                   <td className="py-3">
                     <Link to={`${base}/pipelines/${r.asset.id}`} className="font-semibold text-brand-600 hover:underline">
                       {r.asset.code}

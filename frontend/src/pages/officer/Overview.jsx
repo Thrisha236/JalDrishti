@@ -4,6 +4,7 @@ import { openIncidentCount, visibleComplaints } from '../../demo/steps';
 import { currentIncidentCode, HOME_VILLAGE, pipelinesFor, seed } from '../../data/seed';
 import { monthsBetween } from '@shared/risk.mjs';
 import { Card, Chip, Kpi, PageHeader, RiskChip, SimBadge } from '../../components/ui';
+import { WaterLevel } from '../../components/water';
 
 export default function Overview() {
   const { step } = useDemo();
@@ -44,7 +45,7 @@ export default function Overview() {
                 const isHome = v.id === HOME_VILLAGE;
                 const incident = isHome && open > 0;
                 return (
-                  <tr key={v.id} className="border-t border-slate-100">
+                  <tr key={v.id} className="border-t border-black/[0.06]">
                     <td className="py-3 font-semibold">{v.name}</td>
                     <td className="py-3">{incident ? <Chip level="problem">Incident {currentIncidentCode()}</Chip> : <Chip level="normal">Normal</Chip>}</td>
                     <td className="py-3">{isHome ? visibleComplaints(step).length : 0}</td>
@@ -56,6 +57,10 @@ export default function Overview() {
         </Card>
 
         <Card title="Pipelines needing inspection" action={<Link to="/officer/pipelines" className="text-sm font-semibold text-brand-600">All</Link>}>
+          <div className="mb-4 flex items-center gap-4">
+            <WaterLevel value={(pipes.length - flagged.length) / pipes.length} label={`${pipes.length - flagged.length}/${pipes.length}`} sublabel="low risk" size={96} tone={flagged.length ? 'warning' : 'water'} />
+            <p className="text-sm text-muted">Pipelines across the block in the low-risk band. The rest are ranked below for inspection.</p>
+          </div>
           <ul className="flex flex-col gap-2">
             {flagged.map((p) => (
               <li key={p.asset.id} className="flex items-center justify-between gap-2">
@@ -75,8 +80,8 @@ export default function Overview() {
                 <span className="w-32 shrink-0">
                   {p.asset.code} · {p.village.name}
                 </span>
-                <span className="h-3 flex-1 rounded bg-slate-100">
-                  <span className="block h-3 rounded bg-brand-600" style={{ width: `${(p.count / maxCount) * 100}%` }} />
+                <span className="h-3 flex-1 overflow-hidden rounded-full bg-water-50">
+                  <span className="block h-3 rounded-full bg-gradient-to-r from-water-300 to-water-600" style={{ width: `${(p.count / maxCount) * 100}%` }} />
                 </span>
                 <span className="w-16 text-right tabular-nums">{p.count} repairs</span>
               </li>

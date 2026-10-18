@@ -7,6 +7,7 @@ import { apiFetch, publicGet } from '../../data/api';
 import { usePolling } from '../../data/telemetry';
 import { tailBand, verificationSeries, complaintDaySeries } from '../../data/series';
 import { Card, Chip, EmptyState, PageHeader, SimBadge } from '../../components/ui';
+import { Ripple, WaterLevel } from '../../components/water';
 import Icon from '../../components/Icon';
 import LineChart from '../../components/LineChart';
 
@@ -64,10 +65,10 @@ function RestorationCheck({ repaired }) {
                   </li>
                 ))}
               </ul>
-              <div className="mt-4 flex items-center gap-3 rounded-2xl border border-green-300 bg-gradient-to-b from-green-50 to-white p-4">
-                <Icon name="shield" className="h-10 w-10 text-green-700" />
+              <div className="mt-4 flex items-center gap-3 rounded-3xl border border-water-200 bg-gradient-to-b from-water-50 to-white p-5">
+                <Ripple icon="shield" />
                 <div>
-                  <p className="text-xl font-bold text-green-800">Verified Restored</p>
+                  <p className="font-display text-3xl tracking-tight">Verified Restored</p>
                   <p className="text-sm text-muted">
                     {fmtTime(ver.verified_at)} · complaint #{storyCode(report)} closed and villager notified
                   </p>
@@ -92,7 +93,7 @@ function RestorationCheck({ repaired }) {
 const WINDOW_LOOK = {
   PASSED: { cls: 'border-green-200 bg-green-50', label: 'passed' },
   FAILED: { cls: 'border-red-200 bg-red-50', label: 'failed' },
-  INCONCLUSIVE: { cls: 'border-slate-200 bg-slate-50', label: 'inconclusive' },
+  INCONCLUSIVE: { cls: 'border-black/[0.08] bg-water-50', label: 'inconclusive' },
 };
 const CLOSED = ['VERIFIED_RESTORED', 'RESOLVED_UNVERIFIED'];
 
@@ -166,10 +167,10 @@ function LiveRestoration({ incidentCode, repaired }) {
           )}
 
           {result === 'VERIFIED_RESTORED' && (
-            <div className="mt-4 flex items-center gap-3 rounded-2xl border border-green-300 bg-gradient-to-b from-green-50 to-white p-4">
-              <Icon name="shield" className="h-10 w-10 text-green-700" />
+            <div className="mt-4 flex items-center gap-3 rounded-3xl border border-water-200 bg-gradient-to-b from-water-50 to-white p-5">
+              <Ripple icon="shield" />
               <div>
-                <p className="text-xl font-bold text-green-800">Verified Restored</p>
+                <p className="font-display text-3xl tracking-tight">Verified Restored</p>
                 <p className="text-sm text-muted">
                   {fmtTime(ver.verified_at)} · incident {incidentCode} closed · villager #{storyCode(report)} notified in the app
                 </p>
@@ -194,7 +195,8 @@ function LiveRestoration({ incidentCode, repaired }) {
           {!CLOSED.includes(result) && (
             <>
               {sensorBased ? (
-                <div className="mt-4 flex flex-wrap items-center gap-3">
+                <div className="mt-4 flex flex-wrap items-center gap-4">
+                  <WaterLevel value={ver.passed_in_row / ver.required_windows} label={`${ver.passed_in_row}/${ver.required_windows}`} sublabel="windows" size={96} />
                   <Chip level="info">
                     Verifying · {ver.passed_in_row} of {ver.required_windows} windows passed in a row
                   </Chip>
@@ -208,10 +210,10 @@ function LiveRestoration({ incidentCode, repaired }) {
                   Demo: supply is treated as always on, so each window is a {ver.window_seconds} s slot. Send normal readings with <code>python simulator\sim.py --scenario normal --interval 2</code>.
                 </p>
               )}
-              <details className="mt-4 rounded-xl border border-slate-200 p-3" open={!sensorBased}>
+              <details className="mt-4 rounded-2xl border border-black/[0.08] p-3" open={!sensorBased}>
                 <summary className="cursor-pointer text-sm font-semibold">Close without sensor proof</summary>
                 <p className="mt-2 text-xs text-muted">Recorded as “Resolved — not sensor-verified”, never as verified. Give the reason (for example, villagers confirmed supply).</p>
-                <textarea value={note} onChange={(e) => setNote(e.target.value.slice(0, 300))} rows={2} className="mt-2 w-full rounded-lg border border-slate-300 p-2 text-sm" />
+                <textarea value={note} onChange={(e) => setNote(e.target.value.slice(0, 300))} rows={2} className="mt-2 w-full rounded-lg border border-black/15 p-2 text-sm" />
                 <button type="button" onClick={resolve} disabled={busy || note.trim().length < 5} className="btn-outline mt-2 w-full">
                   Close as not sensor-verified
                 </button>
@@ -276,15 +278,15 @@ function LiveTask({ code }) {
           <Card title="Progress">
             <Progress updates={task.updates} />
             {next && (
-              <div className="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-4">
+              <div className="mt-4 flex flex-col gap-3 border-t border-black/[0.06] pt-4">
                 <label className="block text-sm">
                   <span className="font-medium">Note (optional)</span>
-                  <input value={note} onChange={(e) => setNote(e.target.value.slice(0, 300))} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3" />
+                  <input value={note} onChange={(e) => setNote(e.target.value.slice(0, 300))} className="mt-1 min-h-11 w-full rounded-lg border border-black/15 px-3" />
                 </label>
                 {next === 'REPAIRED' && (
                   <label className="block text-sm">
                     <span className="font-medium">What was repaired</span>
-                    <select value={failure} onChange={(e) => setFailure(e.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3">
+                    <select value={failure} onChange={(e) => setFailure(e.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-black/15 bg-white px-3">
                       {FAILURE_TYPES.map((f) => (
                         <option key={f} value={f}>
                           {labelOf(f)}
@@ -298,7 +300,7 @@ function LiveTask({ code }) {
                 </button>
               </div>
             )}
-            {message && <p className="mt-3 rounded-lg bg-slate-50 p-3 text-sm">{message}</p>}
+            {message && <p className="mt-3 rounded-lg bg-water-50 p-3 text-sm">{message}</p>}
           </Card>
         </div>
         <LiveRestoration incidentCode={task.incident_code} repaired={task.status === 'REPAIRED'} />

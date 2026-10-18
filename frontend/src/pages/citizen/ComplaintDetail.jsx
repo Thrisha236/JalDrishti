@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { useDemo } from '../../demo/DemoContext';
 import { S, storyCode } from '../../demo/steps';
 import { areas, story } from '../../data/seed';
-import Icon from '../../components/Icon';
+import { PageHeader } from '../../components/ui';
+import { Ripple } from '../../components/water';
 import Timeline from './Timeline';
 
 export default function ComplaintDetail() {
@@ -14,20 +15,17 @@ export default function ComplaintDetail() {
   if (!c || code !== storyCode(report) || step < S.REPORTED) return <Navigate to="/citizen/complaints" replace />;
 
   return (
-    <div className="mx-auto flex max-w-xl flex-col gap-4">
-      <h1 className="page-title">
-        #{c.public_code} · {t(`category.${c.category}`)}
-      </h1>
-      <p className="-mt-3 text-muted">{areas[c.service_area_id].name}</p>
+    <div className="mx-auto flex max-w-4xl flex-col gap-5">
+      <PageHeader title={`#${c.public_code} — ${t(`category.${c.category}`)}`} subtitle={areas[c.service_area_id].name} />
 
-      <section className="card p-5">
+      <section className="card p-6">
         <Timeline step={step} />
       </section>
 
       {step >= S.VERIFIED && (
-        <section className="flex items-start gap-3 rounded-2xl border border-green-200 bg-green-50 p-5 text-green-900" aria-live="polite">
-          <Icon name="checkCircle" className="h-7 w-7 shrink-0" />
-          <p className="font-semibold">{t('detail.restoredMsg')}</p>
+        <section className="card flex items-center gap-4 p-5" aria-live="polite">
+          <Ripple icon="checkCircle" />
+          <p className="font-medium">{t('detail.restoredMsg')}</p>
         </section>
       )}
 

@@ -25,10 +25,12 @@ const PATHS = {
   arrow: 'M5 12h14M13 6l6 6-6 6',
   back: 'M19 12H5M11 18l-6-6 6-6',
   sensor: 'M12 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2zM8.5 8.5a5 5 0 0 0 0 7M15.5 8.5a5 5 0 0 1 0 7M5.6 5.6a9 9 0 0 0 0 12.8M18.4 5.6a9 9 0 0 1 0 12.8',
+  sun: 'M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4',
+  moon: 'M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z',
   logout: 'M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4M10 16l4-4-4-4M14 12H4',
 };
 
-export default function Icon({ name, className = 'h-5 w-5', title }) {
+export default function Icon({ name, className = 'h-5 w-5', title = undefined }) {
   return (
     <svg
       viewBox="0 0 24 24"
