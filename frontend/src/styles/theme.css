@@ -236,10 +236,10 @@
   }
 }
 
-/* Sensor view: health markers, and the network labels it hides. */
-.is-sensor-view .map-chip--pipe,
-.is-sensor-view .map-pin,
-.is-sensor-view .map-sensor {
+/* Analysis layers: coloured markers (colour in --health), and the network labels they hide. */
+.is-overlay-view .map-chip--pipe,
+.is-overlay-view .map-pin,
+.is-overlay-view .map-sensor {
   display: none;
 }
 
@@ -270,18 +270,6 @@
   box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.85);
 }
 
-.map-health[data-status='service'] {
-  --health: #f59e0b;
-}
-
-.map-health[data-status='damaged'] {
-  --health: #ef4444;
-}
-
-.map-health[data-status='offline'] {
-  --health: #94a3b8;
-}
-
 .map-health__dot {
   position: relative;
   height: 12px;
@@ -299,12 +287,12 @@
   animation: ripple 2.4s ease-out infinite;
 }
 
-.map-health[data-status='offline'] .map-health__dot::after {
+.map-health[data-pulse='none'] .map-health__dot::after {
   animation: none;
   border-color: transparent;
 }
 
-.map-health[data-status='damaged'] .map-health__dot::after {
+.map-health[data-pulse='fast'] .map-health__dot::after {
   animation-duration: 1.2s;
 }
 

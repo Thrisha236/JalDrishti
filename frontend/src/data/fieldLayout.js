@@ -41,18 +41,49 @@ function inside([x, y], polygon) {
   return hit;
 }
 
-/** Points every `step` metres along a polyline, with the direction of travel. */
+/** Points every `step` metres along a polyline, with the direction of travel and distance from the start. */
 function stations(line, step) {
   const out = [];
+  let before = 0;
   for (let i = 0; i < line.length - 1; i++) {
     const [x0, y0] = line[i];
     const [x1, y1] = line[i + 1];
     const len = Math.hypot(x1 - x0, y1 - y0);
     const ux = (x1 - x0) / len;
     const uy = (y1 - y0) / len;
-    for (let d = step / 2; d < len; d += step) out.push({ x: x0 + ux * d, y: y0 + uy * d, ux, uy });
+    for (let d = step / 2; d < len; d += step) out.push({ x: x0 + ux * d, y: y0 + uy * d, ux, uy, chainage: before + d });
+    before += len;
   }
   return out;
+}
+
+/** The point `chainage` metres along a polyline. */
+export function pointAlong(line, chainage) {
+  let left = chainage;
+  for (let i = 0; i < line.length - 1; i++) {
+    const [x0, y0] = line[i];
+    const [x1, y1] = line[i + 1];
+    const len = Math.hypot(x1 - x0, y1 - y0);
+    if (left <= len) return [x0 + ((x1 - x0) * left) / len, y0 + ((y1 - y0) * left) / len];
+    left -= len;
+  }
+  return line.at(-1);
+}
+
+/** Distance along a polyline to the point on it nearest `p`. */
+function chainageOf(line, [px, py]) {
+  let best = { dist: Infinity, chainage: 0 };
+  let before = 0;
+  for (let i = 0; i < line.length - 1; i++) {
+    const [x0, y0] = line[i];
+    const [x1, y1] = line[i + 1];
+    const len = Math.hypot(x1 - x0, y1 - y0);
+    const t = Math.max(0, Math.min(1, ((px - x0) * (x1 - x0) + (py - y0) * (y1 - y0)) / (len * len)));
+    const dist = Math.hypot(x0 + t * (x1 - x0) - px, y0 + t * (y1 - y0) - py);
+    if (dist < best.dist) best = { dist, chainage: before + t * len };
+    before += len;
+  }
+  return best.chainage;
 }
 
 function footprint(cx, cy, ux, uy, w, d) {
@@ -100,16 +131,16 @@ export function fieldLayout() {
     const prefix = zone.name[0].toUpperCase();
     const lines = seed.assets.filter((a) => a.service_area_id === zone.id && a.geometry.line && !/rising main/i.test(a.name));
 
-    // Candidate plots: two rows on each side of every lane, kept only inside the zone.
+    // Candidate plots: up to three rows on each side of every lane, kept only inside the zone.
     const plots = [];
     lines.forEach((pipe) => {
       stations(pipe.geometry.line, 16).forEach((s) => {
         [-1, 1].forEach((side) => {
-          [24, 48].forEach((offset) => {
+          [24, 48, 72].forEach((offset) => {
             const jitter = (rand() - 0.5) * 6;
             const cx = s.x - s.uy * side * (offset + jitter);
             const cy = s.y + s.ux * side * (offset + jitter);
-            if (inside([cx, cy], zone.polygon)) plots.push({ cx, cy, ux: s.ux, uy: s.uy });
+            if (inside([cx, cy], zone.polygon)) plots.push({ cx, cy, ux: s.ux, uy: s.uy, pipe: pipe.id, chainage: s.chainage });
           });
         });
       });
@@ -122,7 +153,15 @@ export function fieldLayout() {
       const p = plots[Math.floor((i * plots.length) / count)];
       const w = 9 + rand() * 5;
       const d = 7 + rand() * 3;
-      const house = { id: `${zone.id}-h${i + 1}`, zone: zone.id, polygon: footprint(p.cx, p.cy, p.ux, p.uy, w, d), height: 3.5 + rand() * 3, centre: [p.cx, p.cy] };
+      const house = {
+        id: `${zone.id}-h${i + 1}`,
+        zone: zone.id,
+        pipe: p.pipe,
+        chainage: p.chainage,
+        polygon: footprint(p.cx, p.cy, p.ux, p.uy, w, d),
+        height: 3.5 + rand() * 3,
+        centre: [p.cx, p.cy],
+      };
       houses.push(house);
       zoneHouses.push(house);
     }
@@ -181,7 +220,23 @@ export function fieldLayout() {
   head('C-TK', 'tank', tank);
   head('C-PU', 'pump', pump);
 
-  cached = { houses, sensors: sensorList };
+  // Isolation valves. V-04 is in the seed; the others are fictional, added so the what-if planner
+  // has a valve at the start of every lane and one part-way along the long South line.
+  const pipeByCode = Object.fromEntries(seed.assets.filter((a) => a.geometry.line).map((a) => [a.code, a]));
+  const valves = [];
+  const addValve = (code, pipeCode, chainage, fictional) => {
+    const pipe = pipeByCode[pipeCode];
+    if (pipe) valves.push({ code, pipe: pipe.id, pipeCode, chainage, at: pointAlong(pipe.geometry.line, chainage), fictional });
+  };
+  const v04 = seed.assets.find((a) => a.type === 'valve' && a.code === 'V-04');
+  if (v04 && pipeByCode['P-21']) addValve('V-04', 'P-21', chainageOf(pipeByCode['P-21'].geometry.line, v04.geometry.point), false);
+  addValve('V-N1', 'P-21', 45, true);
+  addValve('V-C1', 'P-14', 45, true);
+  addValve('V-S1', 'P-09', 45, true);
+  addValve('V-S2', 'P-09', 262, true);
+  valves.sort((a, b) => a.code.localeCompare(b.code));
+
+  cached = { houses, sensors: sensorList, valves, tank: tank?.geometry.point };
   return cached;
 }
 
