@@ -8,6 +8,7 @@ import ReportDone from './pages/citizen/ReportDone';
 import MyComplaints from './pages/citizen/MyComplaints';
 import ComplaintDetail from './pages/citizen/ComplaintDetail';
 import CitizenMap from './pages/citizen/CitizenMap';
+import PhoneReport from './pages/citizen/PhoneReport';
 import Dashboard from './pages/gp/Dashboard';
 import Complaints from './pages/gp/Complaints';
 import WaterStatus from './pages/gp/WaterStatus';
@@ -39,6 +40,7 @@ export default function App() {
         <Route path="complaints" element={<MyComplaints />} />
         <Route path="complaints/:code" element={<ComplaintDetail />} />
         <Route path="map" element={<CitizenMap />} />
+        <Route path="phone" element={<PhoneReport />} />
       </Route>
 
       <Route path="/gp" element={<RequireRole role="gp"><AppShell /></RequireRole>}>

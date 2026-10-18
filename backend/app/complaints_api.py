@@ -33,6 +33,14 @@ class Category(str, Enum):
     OTHER = "OTHER"
 
 
+class Channel(str, Enum):
+    """How the villager reported. Missed-call (IVR) and WhatsApp let people without a smartphone app report;
+    in the prototype those channels are simulated in the app and post here as the signed-in villager."""
+    APP = "APP"
+    MISSED_CALL = "MISSED_CALL"
+    WHATSAPP = "WHATSAPP"
+
+
 def _now() -> str:
     return datetime.now(IST).isoformat(timespec="seconds")
 
@@ -77,6 +85,7 @@ async def create_complaint(
     description: Annotated[str | None, Form(max_length=200)] = None,
     share_location: Annotated[bool, Form()] = True,
     photo: Annotated[UploadFile | None, File()] = None,
+    channel: Annotated[Channel, Form()] = Channel.APP,
 ):
     require_roles(user, "citizen")
     area = session.get(m.ServiceArea, service_area_id)
@@ -106,7 +115,7 @@ async def create_complaint(
         m.Complaint(
             public_code=code, ord=order, citizen_id=user.id, service_area_id=service_area_id, category=category.value,
             description=(description or "").strip() or None, created_at=_now(), location=location,
-            linked_asset_id=None, is_simulated=False,
+            linked_asset_id=None, is_simulated=False, channel=channel.value,
         )
     )
     session.flush()
@@ -121,7 +130,7 @@ async def create_complaint(
                 observation_code=obs_code, message=message, disclaimer=photos.DISCLAIMER,
             )
         )
-    _audit(session, user, "create", "complaint", code, {"category": category.value, "service_area_id": service_area_id, "has_photo": bool(storage_key)})
+    _audit(session, user, "create", "complaint", code, {"category": category.value, "service_area_id": service_area_id, "has_photo": bool(storage_key), "channel": channel.value})
     session.commit()
     return rm.complaint_with_analysis(session, session.get(m.Complaint, code))
 
