@@ -42,7 +42,7 @@ export default function PipelineDetail() {
           <Card title="Profile">
             <dl className="flex flex-col gap-2 text-sm">
               {rows.map(([k, v, src]) => (
-                <div key={k} className="flex justify-between gap-3 border-b border-slate-100 pb-2">
+                <div key={k} className="flex justify-between gap-3 border-b border-black/[0.06] pb-2">
                   <dt className="text-muted">{k}</dt>
                   <dd className="text-right">
                     <span className="font-semibold">{v}</span>
@@ -57,7 +57,7 @@ export default function PipelineDetail() {
               {[...repairsFor(assetId).map((r) => ({ d: r.date, t: `Repair: ${labelOf(r.failure_type)}`, n: r.notes })), ...inspectionsFor(assetId).map((i) => ({ d: i.date, t: `Inspection (${i.method}): corrosion ${i.corrosion_grade}/100`, n: i.notes }))]
                 .sort((a, b) => b.d.localeCompare(a.d))
                 .map((h) => (
-                  <li key={h.d + h.t} className="border-b border-slate-100 pb-2">
+                  <li key={h.d + h.t} className="border-b border-black/[0.06] pb-2">
                     <span className="font-semibold">{fmtDate(h.d)}</span> · {h.t}
                     <span className="block text-muted">{h.n}</span>
                   </li>

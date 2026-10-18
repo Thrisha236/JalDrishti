@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useDemo } from '../../demo/DemoContext';
 import { openIncidentCount } from '../../demo/steps';
 import { areas, assets, currentIncidentCode, riskFor, STORY_ASSET } from '../../data/seed';
 import { Card, PageHeader, RiskChip } from '../../components/ui';
-import VillageMap from '../../components/VillageMap';
+import NetworkMap from '../../components/NetworkMap';
+import { useLiveTelemetry } from '../../data/telemetry';
 
 export default function GpMap() {
   const { step } = useDemo();
@@ -12,13 +13,16 @@ export default function GpMap() {
   const asset = assets[selected];
   const risk = riskFor(selected);
   const isStory = selected === STORY_ASSET;
+  const { data: telemetry } = useLiveTelemetry({ withSeries: false });
+  // Other pages link straight to a layer, e.g. /gp/map?layer=service.
+  const [params] = useSearchParams();
 
   return (
     <div>
-      <PageHeader title="Village Map — Ramapuram" subtitle="Tap a pipeline to see its record" />
+      <PageHeader title="Village Map — Ramapuram" subtitle="Tap a pipeline to see its record, or switch to Sensors to see which field sensors are healthy, faulty or due for servicing." />
       <div className="grid gap-5 lg:grid-cols-3">
         <Card className="lg:col-span-2">
-          <VillageMap step={step} selected={selected} onSelect={setSelected} />
+          <NetworkMap step={step} selected={selected} onSelect={setSelected} telemetry={telemetry} initialLayer={params.get('layer') ?? 'network'} />
         </Card>
         <Card title={`Pipeline ${asset.code}`}>
           <p className="mb-2 text-muted">

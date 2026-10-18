@@ -3,6 +3,7 @@ import { CHART_SENSORS, POLL_MS, useLiveTelemetry } from '../../data/telemetry';
 import { Card, Chip, EmptyState, PageHeader, SimBadge } from '../../components/ui';
 import LineChart from '../../components/LineChart';
 import LiveAlerts from '../../components/LiveAlerts';
+import { WaterLevel } from '../../components/water';
 
 const NAMES = {
   'sen-tail-pressure': 'Tail pressure · P-21 end',
@@ -34,14 +35,21 @@ function SensorCard({ sensor, readings }) {
       title={NAMES[sensor.id] ?? sensor.id}
       action={<Chip level={level}>{label}</Chip>}
     >
-      <p className={`text-3xl font-bold ${offline ? 'text-slate-400' : ''}`}>{value(latest?.value, sensor.unit)}</p>
-      <p className="mb-2 text-xs text-muted">
-        {latest ? `last reading ${fmtTime(latest.ts)}` : 'no readings yet'} · normal {lo}–{hi} {sensor.unit}
-      </p>
+      <div className="mb-3 flex items-center gap-4">
+        {sensor.id === 'sen-tank-level' && latest && !offline && (
+          <WaterLevel value={latest.value / hi} label={latest.value.toFixed(1)} sublabel={`m · of ${hi} m`} size={88} tone={outOfBand ? 'problem' : 'water'} />
+        )}
+        <div>
+          <p className={`font-display text-5xl leading-none tracking-tight ${offline ? 'text-muted/60' : ''}`}>{value(latest?.value, sensor.unit)}</p>
+          <p className="mt-2 text-xs text-muted">
+            {latest ? `last reading ${fmtTime(latest.ts)}` : 'no readings yet'} · normal {lo}–{hi} {sensor.unit}
+          </p>
+        </div>
+      </div>
       {values.length >= 2 ? (
-        <LineChart segments={[{ label: `last 10 min · ${values.length} readings`, values, color: outOfBand && !offline ? '#B91C1C' : '#0F766E' }]} band={sensor.normal_band} unit={sensor.unit} height={140} />
+        <LineChart segments={[{ label: `last 10 min · ${values.length} readings`, values, color: outOfBand && !offline ? '#B91C1C' : 'rgb(var(--ink))' }]} band={sensor.normal_band} unit={sensor.unit} height={140} />
       ) : (
-        <p className="rounded-lg bg-slate-50 p-4 text-center text-sm text-muted">Waiting for readings…</p>
+        <p className="rounded-2xl bg-water-50 p-4 text-center text-sm text-muted">Waiting for readings…</p>
       )}
     </Card>
   );
@@ -55,7 +63,7 @@ export default function WaterStatus() {
       <div>
         <PageHeader title="Water Status" />
         <EmptyState icon="sensor" title="Live sensor data needs the backend">
-          Start the API, then the simulator: <code className="rounded bg-slate-100 px-1">python simulator/sim.py</code>
+          Start the API, then the simulator: <code className="rounded bg-water-50 px-1">python simulator/sim.py</code>
         </EmptyState>
       </div>
     );
@@ -101,7 +109,7 @@ export default function WaterStatus() {
         </div>
       )}
       {live?.nodes.some((n) => n.status === 'offline') && (
-        <p className="mb-5 rounded-xl border border-slate-300 bg-slate-50 p-3 text-sm">
+        <p className="mb-5 rounded-xl border border-black/15 bg-water-50 p-3 text-sm">
           <span className="font-semibold">Equipment issue, not a water fault:</span> a node stopped reporting (after {live.offline_after_seconds} s of silence). Its last values are greyed out
           and are not used as evidence of a supply problem.
         </p>
@@ -109,7 +117,7 @@ export default function WaterStatus() {
 
       {noData ? (
         <EmptyState icon="sensor" title="No sensor readings yet">
-          Start the simulator from the repository folder: <code className="rounded bg-slate-100 px-1">python simulator/sim.py</code>
+          Start the simulator from the repository folder: <code className="rounded bg-water-50 px-1">python simulator/sim.py</code>
         </EmptyState>
       ) : (
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">

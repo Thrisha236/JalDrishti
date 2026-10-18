@@ -1,13 +1,14 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useDemo } from './demo/DemoContext';
 import AppShell from './components/AppShell';
-import Login from './pages/Login';
+import Landing from './pages/Landing';
 import CitizenHome from './pages/citizen/Home';
 import Report from './pages/citizen/Report';
 import ReportDone from './pages/citizen/ReportDone';
 import MyComplaints from './pages/citizen/MyComplaints';
 import ComplaintDetail from './pages/citizen/ComplaintDetail';
 import CitizenMap from './pages/citizen/CitizenMap';
+import PhoneReport from './pages/citizen/PhoneReport';
 import Dashboard from './pages/gp/Dashboard';
 import Complaints from './pages/gp/Complaints';
 import WaterStatus from './pages/gp/WaterStatus';
@@ -17,19 +18,22 @@ import PipelineDetail from './pages/gp/PipelineDetail';
 import GpMap from './pages/gp/GpMap';
 import Task from './pages/gp/Task';
 import Tasks from './pages/gp/Tasks';
+import Quality from './pages/gp/Quality';
+import Sources from './pages/gp/Sources';
 import Overview from './pages/officer/Overview';
 import RiskRules from './pages/officer/RiskRules';
 
 function RequireRole({ role, children }) {
   const demo = useDemo();
-  if (demo.role !== role) return <Navigate to="/" replace />;
+  if (demo.role !== role) return <Navigate to="/login" replace />;
   return children;
 }
 
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<Login />} />
+      <Route path="/" element={<Landing />} />
+      <Route path="/login" element={<Landing />} />
 
       <Route path="/citizen" element={<RequireRole role="citizen"><AppShell /></RequireRole>}>
         <Route index element={<CitizenHome />} />
@@ -38,6 +42,7 @@ export default function App() {
         <Route path="complaints" element={<MyComplaints />} />
         <Route path="complaints/:code" element={<ComplaintDetail />} />
         <Route path="map" element={<CitizenMap />} />
+        <Route path="phone" element={<PhoneReport />} />
       </Route>
 
       <Route path="/gp" element={<RequireRole role="gp"><AppShell /></RequireRole>}>
@@ -50,6 +55,8 @@ export default function App() {
         <Route path="map" element={<GpMap />} />
         <Route path="tasks" element={<Tasks />} />
         <Route path="tasks/:code" element={<Task />} />
+        <Route path="quality" element={<Quality />} />
+        <Route path="sources" element={<Sources />} />
       </Route>
 
       <Route path="/officer" element={<RequireRole role="officer"><AppShell /></RequireRole>}>

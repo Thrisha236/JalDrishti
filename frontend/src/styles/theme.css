@@ -1,0 +1,303 @@
+/* Entrance animations */
+@keyframes fade-rise {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-rise {
+  animation: fade-rise 0.8s ease-out both;
+}
+
+.animate-fade-rise-delay {
+  animation: fade-rise 0.8s ease-out 0.2s both;
+}
+
+.animate-fade-rise-delay-2 {
+  animation: fade-rise 0.8s ease-out 0.4s both;
+}
+
+/* Water motion: drifting wave layers, ripples, flowing pipes, rising level */
+@keyframes wave-drift {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes ripple {
+  from {
+    transform: scale(0.6);
+    opacity: 0.55;
+  }
+  to {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+
+@keyframes flow {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+
+@keyframes fill-rise {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+.animate-wave-drift {
+  animation: wave-drift 14s linear infinite;
+}
+
+.animate-wave-drift-slow {
+  animation: wave-drift 22s linear infinite reverse;
+}
+
+.animate-ripple {
+  animation: ripple 2.8s ease-out infinite;
+}
+
+.animate-flow {
+  animation: flow 1.2s linear infinite;
+}
+
+.animate-fill-rise {
+  animation: fill-rise 1.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Caustics: light patterns drifting across the app background.
+   Each layer moves exactly one tile of its repeating texture, so the loop is seamless. */
+@keyframes caustic-a {
+  to {
+    transform: translate3d(520px, 520px, 0);
+  }
+}
+
+@keyframes caustic-b {
+  to {
+    transform: translate3d(-760px, 760px, 0);
+  }
+}
+
+@keyframes blob-drift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(6vw, -4vh, 0) scale(1.12);
+  }
+  100% {
+    transform: translate3d(-4vw, 5vh, 0) scale(0.95);
+  }
+}
+
+.animate-caustic-a {
+  animation: caustic-a 48s linear infinite;
+}
+
+.animate-caustic-b {
+  animation: caustic-b 70s linear infinite;
+}
+
+.animate-blob-drift {
+  animation: blob-drift 28s ease-in-out infinite alternate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-caustic-a,
+  .animate-caustic-b,
+  .animate-blob-drift,
+  .animate-fade-rise,
+  .animate-fade-rise-delay,
+  .animate-fade-rise-delay-2,
+  .animate-wave-drift,
+  .animate-wave-drift-slow,
+  .animate-ripple,
+  .animate-flow,
+  .animate-fill-rise {
+    animation: none;
+  }
+}
+
+/* 3D map markers (TerrainMap). Glass chips that stay readable over satellite imagery. */
+.map-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  border: 1.5px solid rgba(255, 255, 255, 0.55);
+  background: rgba(11, 17, 24, 0.62);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  font: 500 12px/1.2 Inter, system-ui, sans-serif;
+  white-space: nowrap;
+  box-shadow: 0 6px 18px -8px rgba(0, 0, 0, 0.6);
+}
+
+.map-chip--zone {
+  font-size: 13px;
+}
+
+.map-chip--pipe {
+  cursor: pointer;
+  border-width: 2px;
+  font-weight: 600;
+}
+
+.map-chip--pipe.is-selected {
+  background: #fff;
+  color: #000;
+}
+
+.map-chip--alert {
+  border-color: #ef4444;
+  background: rgba(127, 29, 29, 0.75);
+}
+
+.map-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+}
+
+.map-pin {
+  display: flex;
+  height: 28px;
+  width: 28px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: 2px solid #fff;
+  background: #000;
+  color: #fff;
+  font: 700 12px/1 Inter, system-ui, sans-serif;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.map-sensor {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.map-sensor__pulse {
+  position: relative;
+  height: 12px;
+  width: 12px;
+  border-radius: 9999px;
+  background: #22d3ee;
+  box-shadow: 0 0 0 2px #fff;
+}
+
+.map-sensor__pulse::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 2px solid #22d3ee;
+  animation: ripple 2.2s ease-out infinite;
+}
+
+.map-sensor[data-status='offline'] .map-sensor__pulse,
+.map-sensor[data-status='never_reported'] .map-sensor__pulse {
+  background: #94a3b8;
+}
+
+.map-sensor[data-status='offline'] .map-sensor__pulse::after,
+.map-sensor[data-status='never_reported'] .map-sensor__pulse::after {
+  animation: none;
+  border-color: transparent;
+}
+
+.map-sensor__label {
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: rgba(11, 17, 24, 0.7);
+  color: #fff;
+  font: 500 11px/1.4 Inter, system-ui, sans-serif;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-sensor__pulse::after {
+    animation: none;
+  }
+}
+
+/* Analysis layers: coloured markers (colour in --health), and the network labels they hide. */
+.is-overlay-view .map-chip--pipe,
+.is-overlay-view .map-pin,
+.is-overlay-view .map-sensor {
+  display: none;
+}
+
+.map-health {
+  --health: #10b981;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px 3px 4px;
+  border-radius: 9999px;
+  border: 1.5px solid rgba(255, 255, 255, 0.7);
+  background: rgba(11, 17, 24, 0.7);
+  backdrop-filter: blur(6px);
+  color: #fff;
+  font: 600 11px/1.2 Inter, system-ui, sans-serif;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.map-health:hover,
+.map-health.is-selected {
+  transform: scale(1.15);
+  z-index: 2;
+}
+
+.map-health.is-selected {
+  border-color: var(--health);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.85);
+}
+
+.map-health__dot {
+  position: relative;
+  height: 12px;
+  width: 12px;
+  border-radius: 9999px;
+  background: var(--health);
+}
+
+.map-health__dot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 2px solid var(--health);
+  animation: ripple 2.4s ease-out infinite;
+}
+
+.map-health[data-pulse='none'] .map-health__dot::after {
+  animation: none;
+  border-color: transparent;
+}
+
+.map-health[data-pulse='fast'] .map-health__dot::after {
+  animation-duration: 1.2s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-health__dot::after {
+    animation: none;
+  }
+}

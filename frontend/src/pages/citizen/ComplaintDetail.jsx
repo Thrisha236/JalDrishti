@@ -1,39 +1,65 @@
-import { Link, Navigate, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useDemo } from '../../demo/DemoContext';
-import { S, storyCode } from '../../demo/steps';
-import { areas, story } from '../../data/seed';
-import Icon from '../../components/Icon';
+import { areas, fmtTime } from '../../data/seed';
+import { useMyComplaints } from '../../data/myComplaints';
+import { EmptyState, PageHeader } from '../../components/ui';
+import { Ripple } from '../../components/water';
+import { StatusPill } from './MyComplaints';
 import Timeline from './Timeline';
 
+/** Tracking page for one complaint, found by its track ID among the villager's own complaints. */
 export default function ComplaintDetail() {
   const { code } = useParams();
   const { t } = useTranslation();
-  const { step, report } = useDemo();
-  const c = story.complaints.find((x) => x.public_code === code);
-  if (!c || code !== storyCode(report) || step < S.REPORTED) return <Navigate to="/citizen/complaints" replace />;
+  const { list, loading } = useMyComplaints();
+  const c = list.find((x) => x.code === code);
+
+  if (!c) {
+    return (
+      <div className="mx-auto flex max-w-4xl flex-col gap-5">
+        <PageHeader title={t('track.title')} />
+        {!loading && (
+          <EmptyState icon="list" title={t('track.notFound', { code })}>
+            <Link to="/citizen/complaints" className="btn-outline mt-3">
+              {t('nav.complaints')}
+            </Link>
+          </EmptyState>
+        )}
+      </div>
+    );
+  }
 
   return (
-    <div className="mx-auto flex max-w-xl flex-col gap-4">
-      <h1 className="page-title">
-        #{c.public_code} · {t(`category.${c.category}`)}
-      </h1>
-      <p className="-mt-3 text-muted">{areas[c.service_area_id].name}</p>
+    <div className="mx-auto flex max-w-4xl flex-col gap-5">
+      <PageHeader
+        title={`#${c.code} — ${t(`category.${c.category}`)}`}
+        subtitle={`${areas[c.area]?.name ?? ''}${c.createdAt ? ` · ${t('track.reported', { when: fmtTime(c.createdAt) })}` : ''} · ${t(`track.via.${c.channel}`)}`}
+      >
+        <StatusPill c={c} />
+      </PageHeader>
 
-      <section className="card p-5">
-        <Timeline step={step} />
+      <section className="card p-6">
+        <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-4 py-1.5 text-sm">
+          {t('track.id')}: <span className="font-display text-2xl leading-none">{c.code}</span>
+        </p>
+        <Timeline events={c.events} />
       </section>
 
-      {step >= S.VERIFIED && (
-        <section className="flex items-start gap-3 rounded-2xl border border-green-200 bg-green-50 p-5 text-green-900" aria-live="polite">
-          <Icon name="checkCircle" className="h-7 w-7 shrink-0" />
-          <p className="font-semibold">{t('detail.restoredMsg')}</p>
+      {c.closed && (
+        <section className="card flex items-center gap-4 p-5" aria-live="polite">
+          <Ripple icon="checkCircle" />
+          <p className="font-medium">{t('detail.restoredMsg')}</p>
         </section>
       )}
 
-      <Link to="/citizen" className="btn-outline">
-        {t('detail.stillProblem')}
-      </Link>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Link to="/citizen/report" className="btn-outline">
+          {c.closed ? t('detail.stillProblem') : t('track.another')}
+        </Link>
+        <Link to="/citizen/complaints" className="btn-outline">
+          {t('nav.complaints')}
+        </Link>
+      </div>
     </div>
   );
 }

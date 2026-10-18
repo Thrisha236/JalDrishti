@@ -23,10 +23,10 @@ export default function Tasks() {
         <EmptyState icon="wrench" title="No maintenance tasks yet">Open an incident from the evidence, then create its task.</EmptyState>
       ) : (
         <Card>
-          <ul className="flex flex-col divide-y divide-slate-100">
+          <ul className="flex flex-col divide-y divide-black/[0.06]">
             {tasks.map((t) => (
               <li key={t.code}>
-                <Link to={`/gp/tasks/${t.code}`} className="flex flex-wrap items-center gap-3 p-3 hover:bg-slate-50">
+                <Link to={`/gp/tasks/${t.code}`} className="flex flex-wrap items-center gap-3 p-3 hover:bg-water-50">
                   <span className="font-semibold text-brand-600">{t.code}</span>
                   <span className="text-muted">
                     {t.incident_code} · {t.assignee_name} · due {fmtTime(t.due_at)}

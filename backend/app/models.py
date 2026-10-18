@@ -218,6 +218,7 @@ class Complaint(Base):
     linked_asset_id: Mapped[str | None] = mapped_column(ForeignKey("assets.id"))
     incident_code: Mapped[str | None] = mapped_column(ForeignKey("incidents.code"), default=None)  # set when grouped into an incident
     is_simulated: Mapped[bool] = mapped_column(Boolean)
+    channel: Mapped[str] = mapped_column(String, default="APP")  # APP, MISSED_CALL or WHATSAPP
 
 
 class ComplaintMedia(Base):

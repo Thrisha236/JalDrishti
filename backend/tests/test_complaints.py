@@ -164,3 +164,19 @@ def test_demo_reset_restores_the_seed(client, as_citizen):
     assert codes == ["2049", "2051"]
     assert not list(config.UPLOAD_DIR.glob("*.jpg"))
 
+
+
+def test_missed_call_and_whatsapp_reports_record_their_channel(client, as_citizen):
+    r = submit(client, as_citizen, channel="MISSED_CALL")
+    assert r.status_code == 201, r.text
+    assert r.json()["channel"] == "MISSED_CALL"
+    r = submit(client, as_citizen, channel="WHATSAPP", category="LEAKAGE")
+    assert r.status_code == 201, r.text
+    assert r.json()["channel"] == "WHATSAPP"
+
+
+def test_app_reports_do_not_list_a_channel_and_unknown_channels_are_rejected(client, as_citizen):
+    r = submit(client, as_citizen)
+    assert r.status_code == 201
+    assert "channel" not in r.json()
+    assert submit(client, as_citizen, channel="CARRIER_PIGEON", category="LEAKAGE").status_code == 422

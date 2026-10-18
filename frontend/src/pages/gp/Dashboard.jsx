@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useDemo } from '../../demo/DemoContext';
 import { activeAlerts, areaStatus, openIncidentCount, S, visibleComplaints } from '../../demo/steps';
@@ -9,6 +10,10 @@ import { complaintDaySeries, tailBand } from '../../data/series';
 import { Card, Chip, Kpi, PageHeader, SimBadge } from '../../components/ui';
 import LineChart from '../../components/LineChart';
 import VillageMap from '../../components/VillageMap';
+import { WaterLevel } from '../../components/water';
+import { LPCD_TARGET, serviceScores, serviceSummary } from '../../data/service';
+import { useQualityTests } from '../../data/quality';
+import { projectBorewell } from '../../data/sources';
 
 export default function Dashboard() {
   const { step } = useDemo();
@@ -20,6 +25,9 @@ export default function Dashboard() {
   const series = complaintDaySeries();
   const { data: telemetry } = useLiveTelemetry({ withSeries: false });
   const liveNodes = telemetry?.live.nodes;
+  const qualityTests = useQualityTests();
+  const outlook = useMemo(() => projectBorewell(), []);
+  const service = useMemo(() => serviceSummary(serviceScores(step, qualityTests)), [step, qualityTests]);
   const { data: suggestions } = usePolling(() => apiFetch('/incidents/suggestions', { role: 'gp' }), 10000, dataSource === 'api');
 
   return (
@@ -41,7 +49,7 @@ export default function Dashboard() {
             <Card title="Suggested incidents" action={<SimBadge>Evidence fusion</SimBadge>}>
               <ul className="flex flex-col gap-3">
                 {suggestions.map((s) => (
-                  <li key={s.asset_id} className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 p-3">
+                  <li key={s.asset_id} className="flex flex-wrap items-center gap-3 rounded-2xl border border-black/[0.08] p-3">
                     <Chip level={s.priority === 'HIGH' ? 'problem' : 'warning'}>{s.priority}</Chip>
                     <div className="min-w-0 flex-1">
                       <p className="font-semibold">
@@ -67,7 +75,7 @@ export default function Dashboard() {
             {alerts.length === 0 && <p className="text-muted">No active alerts. North Area was verified restored on {fmtTime(scripted.verification.verified_at)}.</p>}
             <ul className="flex flex-col gap-3">
               {alerts.map((a) => (
-                <li key={a.id} className="flex flex-wrap items-start gap-3 rounded-xl border border-slate-200 p-3">
+                <li key={a.id} className="flex flex-wrap items-start gap-3 rounded-2xl border border-black/[0.08] p-3">
                   <Chip level={a.severity === 'HIGH' ? 'problem' : 'warning'}>{a.severity}</Chip>
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold">{a.text}</p>
@@ -106,6 +114,40 @@ export default function Dashboard() {
         </div>
 
         <div className="flex flex-col gap-5">
+          <Card title="Water Service Score" accent="water" action={<Link to="/gp/map?layer=service" className="text-sm font-semibold text-brand-600">See homes</Link>}>
+            <div className="flex items-end gap-4">
+              <p className="font-display text-6xl leading-none tracking-tight">{service.score}</p>
+              <p className="pb-1 text-sm text-muted">out of 100 · quantity, regularity and quality, home by home</p>
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+              <p>
+                <span className="block font-display text-3xl leading-none">
+                  {service.meeting}/{service.homes}
+                </span>
+                <span className="text-muted">homes at {LPCD_TARGET}+ L/person/day</span>
+              </p>
+              <p>
+                <span className="block font-display text-3xl leading-none">{service.equity}</span>
+                <span className="text-muted">equity index</span>
+              </p>
+            </div>
+          </Card>
+          <Card title="Source outlook" accent="water" action={<Link to="/gp/sources" className="text-sm font-semibold text-brand-600">Plan</Link>}>
+            <div className="flex items-end gap-4">
+              <p className="font-display text-6xl leading-none tracking-tight">{outlook.daysLeft}</p>
+              <p className="pb-1 text-sm text-muted">
+                {outlook.lastsToMonsoon ? 'days: borewell lasts until the monsoon' : `days of reliable supply, then a ${outlook.shortfallDays}-day gap before the monsoon`}
+              </p>
+            </div>
+          </Card>
+          <Card title="Supply across zones">
+            <div className="flex items-center gap-5">
+              <WaterLevel value={(zones.length - affected) / zones.length} label={`${zones.length - affected}/${zones.length}`} sublabel="zones normal" tone={affected ? 'warning' : 'water'} />
+              <p className="text-sm text-muted">
+                {affected ? `${affected} zone${affected > 1 ? 's have' : ' has'} a supply problem right now.` : 'Every zone has normal supply.'}
+              </p>
+            </div>
+          </Card>
           <Card title="Network map" action={<Link to="/gp/map" className="text-sm font-semibold text-brand-600">Open</Link>}>
             <VillageMap step={step} />
           </Card>

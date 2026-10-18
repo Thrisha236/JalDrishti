@@ -1,3 +1,4 @@
+// Colours use the theme variables, so the chart follows light and dark mode.
 // Minimal SVG line chart with a shaded normal band and labelled segments (e.g. before / after repair).
 export default function LineChart({ segments, band, unit, height = 180, highlight }) {
   const all = segments.flatMap((s) => s.values);
@@ -28,14 +29,14 @@ export default function LineChart({ segments, band, unit, height = 180, highligh
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label={`Line chart in ${unit}`}>
       {band && (
         <>
-          <rect x={left} y={y(band[1])} width={W - left} height={y(band[0]) - y(band[1])} fill="#DCFCE7" />
-          <text x={W - 4} y={y(band[1]) - 4} textAnchor="end" fontSize="11" fill="#15803D">
+          <rect x={left} y={y(band[1])} width={W - left} height={y(band[0]) - y(band[1])} fill="rgb(var(--water-100))" />
+          <text x={W - 4} y={y(band[1]) - 4} textAnchor="end" fontSize="11" fill="rgb(var(--water-600))">
             normal band {band[0]}–{band[1]} {unit}
           </text>
         </>
       )}
       {[yMin + pad, (yMin + yMax) / 2, yMax - pad].map((v) => (
-        <text key={v} x={left - 6} y={y(v) + 4} textAnchor="end" fontSize="11" fill="#64748B">
+        <text key={v} x={left - 6} y={y(v) + 4} textAnchor="end" fontSize="11" fill="rgb(var(--muted))">
           {v.toFixed(2)}
         </text>
       ))}
@@ -44,11 +45,11 @@ export default function LineChart({ segments, band, unit, height = 180, highligh
           <polyline
             points={s.pts.map((p) => p.join(',')).join(' ')}
             fill="none"
-            stroke={s.color ?? '#0F766E'}
+            stroke={s.color ?? 'rgb(var(--ink))'}
             strokeWidth="2.5"
             strokeLinejoin="round"
           />
-          <text x={(s.x0 + s.x1) / 2} y={H - 6} textAnchor="middle" fontSize="11" fill="#475569">
+          <text x={(s.x0 + s.x1) / 2} y={H - 6} textAnchor="middle" fontSize="11" fill="rgb(var(--muted))">
             {s.label}
           </text>
         </g>

@@ -45,7 +45,7 @@ function NumberField({ label, value, onChange, min, max, hint }) {
   return (
     <label className="block text-sm">
       <span className="font-medium">{label}</span>
-      <input type="number" value={value} min={min} max={max} onChange={(e) => onChange(Number(e.target.value))} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3" />
+      <input type="number" value={value} min={min} max={max} onChange={(e) => onChange(Number(e.target.value))} className="mt-1 min-h-11 w-full rounded-lg border border-black/15 px-3" />
       {hint && <span className="text-xs text-muted">{hint}</span>}
     </label>
   );
@@ -138,9 +138,9 @@ export default function RiskRules() {
             </fieldset>
             <label className="block text-sm">
               <span className="font-medium">Reason for the change (kept in the audit log)</span>
-              <input value={note} onChange={(e) => setNote(e.target.value)} minLength={5} maxLength={300} required className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3" />
+              <input value={note} onChange={(e) => setNote(e.target.value)} minLength={5} maxLength={300} required className="mt-1 min-h-11 w-full rounded-lg border border-black/15 px-3" />
             </label>
-            <p className="rounded-lg bg-slate-50 p-3 text-sm">
+            <p className="rounded-lg bg-water-50 p-3 text-sm">
               <span className="font-semibold">This change: </span>
               {changes(active.config, applyKnobs(active.config, knobs)).join(' · ')}
             </p>
@@ -153,7 +153,7 @@ export default function RiskRules() {
         <Card title="Versions" className="lg:col-span-2">
           <ol className="flex flex-col gap-3">
             {versions.map((v, i) => (
-              <li key={v.version} className="rounded-xl border border-slate-200 p-3 text-sm">
+              <li key={v.version} className="rounded-2xl border border-black/[0.08] p-3 text-sm">
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-semibold">{v.version}</span>
                   {v.is_active ? (

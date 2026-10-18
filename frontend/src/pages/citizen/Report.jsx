@@ -1,11 +1,13 @@
-import { useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useDemo } from '../../demo/DemoContext';
-import { S, storyCode } from '../../demo/steps';
+import { S } from '../../demo/steps';
+import { nextOfflineCode } from '../../data/myComplaints';
 import { areasFor, HOME_VILLAGE, CITIZEN_AREA, dataSource, reloadData } from '../../data/seed';
 import { apiFetch } from '../../data/api';
 import Icon from '../../components/Icon';
+import { PageHeader } from '../../components/ui';
 
 const CATEGORIES = [
   { id: 'NO_WATER', icon: 'x' },
@@ -22,7 +24,7 @@ const MAX_PHOTO_MB = 8;
 export default function Report() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { step, advanceTo, report, setReport, photoUrl, setPhotoUrl } = useDemo();
+  const { step, advanceTo, report, setReport, reports, addReport, photoUrl, setPhotoUrl } = useDemo();
   const fileRef = useRef(null);
   const [category, setCategory] = useState(null);
   const [description, setDescription] = useState('');
@@ -31,6 +33,14 @@ export default function Report() {
   const [photoFile, setPhotoFile] = useState(null);
   const [error, setError] = useState('');
   const [sending, setSending] = useState(false);
+
+  // A new report starts without the previous report's photo.
+  useEffect(() => {
+    setPhotoUrl((url) => {
+      if (url) URL.revokeObjectURL(url);
+      return null;
+    });
+  }, [setPhotoUrl]);
 
   const onPhoto = (e) => {
     const file = e.target.files?.[0];
@@ -54,9 +64,15 @@ export default function Report() {
     e.preventDefault();
     if (!category) return setError(t('report.pick'));
     setError('');
+    // Each complaint gets its own track ID. The first one is also the demo story's complaint.
+    const firstOfStory = !report && step < S.REPORTED;
+    let submitted;
     if (dataSource !== 'api') {
       // Offline demo: nothing leaves the browser.
-      setReport({ category, area, hasPhoto: Boolean(photoFile) });
+      const code = nextOfflineCode(reports);
+      submitted = { public_code: code, category, area, hasPhoto: Boolean(photoFile), createdAt: new Date().toISOString(), channel: 'APP' };
+      addReport(submitted);
+      if (firstOfStory) setReport(submitted);
     } else {
       const form = new FormData();
       form.append('category', category);
@@ -68,14 +84,15 @@ export default function Report() {
       try {
         const saved = await apiFetch('/complaints', { role: 'citizen', method: 'POST', body: form });
         const analysis = saved.image_analysis?.[0];
-        setReport({
+        submitted = {
           public_code: saved.public_code,
           category: saved.category,
           area: saved.service_area_id,
           hasPhoto: saved.media.length > 0,
           observation_code: analysis?.observation_code ?? null,
           observation: analysis?.message ?? null,
-        });
+        };
+        if (firstOfStory) setReport(submitted);
         await reloadData();
       } catch (err) {
         setSending(false);
@@ -85,26 +102,19 @@ export default function Report() {
       setSending(false);
     }
     advanceTo(S.REPORTED);
-    navigate('/citizen/report/done');
+    navigate('/citizen/report/done', { state: { submitted } });
   };
 
-  if (step >= S.REPORTED) {
-    const code = storyCode(report);
-    return (
-      <div className="mx-auto max-w-xl">
-        <div className="card p-5">
-          <p className="mb-4">{t('report.already', { code })}</p>
-          <button type="button" onClick={() => navigate(`/citizen/complaints/${code}`)} className="btn-primary w-full">
-            {t('done.track')}
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <form onSubmit={submit} className="mx-auto flex max-w-xl flex-col gap-4">
-      <h1 className="page-title">{t('report.title')}</h1>
+    <form onSubmit={submit} className="mx-auto flex max-w-4xl flex-col gap-5">
+      <PageHeader title={t('report.title')} />
+      <Link to="/citizen/phone" className="card flex items-center gap-3 p-4 transition hover:border-water-300">
+        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">
+          <Icon name="phone" className="h-5 w-5" />
+        </span>
+        <span className="flex-1 text-sm">{t('report.byPhone')}</span>
+        <Icon name="arrow" />
+      </Link>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3" role="radiogroup" aria-label={t('report.title')}>
         {CATEGORIES.map((c) => (
@@ -114,7 +124,7 @@ export default function Report() {
             role="radio"
             aria-checked={category === c.id}
             onClick={() => setCategory(c.id)}
-            className={`flex min-h-24 flex-col items-center justify-center gap-2 rounded-2xl border-2 p-3 text-center font-semibold shadow-card transition ${category === c.id ? 'border-brand-600 bg-brand-50' : 'border-transparent bg-white hover:border-slate-200'}`}
+            className={`flex min-h-24 flex-col items-center justify-center gap-2 rounded-2xl border-2 p-3 text-center font-semibold shadow-card transition ${category === c.id ? 'border-brand-600 bg-brand-50' : 'border-transparent bg-white hover:border-black/[0.08]'}`}
           >
             <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-b from-brand-50 to-brand-100 text-brand-600">
               <Icon name={c.icon} className="h-6 w-6" />
@@ -142,7 +152,7 @@ export default function Report() {
             </div>
           </div>
         ) : (
-          <button type="button" onClick={() => fileRef.current?.click()} className="flex min-h-24 w-full flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-slate-300 text-muted hover:bg-slate-50">
+          <button type="button" onClick={() => fileRef.current?.click()} className="flex min-h-24 w-full flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-black/15 text-muted hover:bg-water-50">
             <Icon name="camera" className="h-7 w-7" />
             {t('report.addPhoto')}
           </button>
@@ -151,7 +161,7 @@ export default function Report() {
 
       <label className="card block p-4">
         <span className="mb-2 block font-semibold">{t('report.more')}</span>
-        <textarea value={description} onChange={(e) => setDescription(e.target.value.slice(0, 200))} rows={3} className="w-full rounded-xl border border-slate-300 p-3 text-base" />
+        <textarea value={description} onChange={(e) => setDescription(e.target.value.slice(0, 200))} rows={3} className="w-full rounded-xl border border-black/15 p-3 text-base" />
         <span className="mt-1 block text-right text-xs text-muted">{description.length} / 200</span>
       </label>
 
@@ -170,7 +180,7 @@ export default function Report() {
         </label>
         <label className="block">
           <span className="mb-1 block font-semibold">{t('report.area')}</span>
-          <select value={area} onChange={(e) => setArea(e.target.value)} className="min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3">
+          <select value={area} onChange={(e) => setArea(e.target.value)} className="min-h-12 w-full rounded-xl border border-black/15 bg-white px-3">
             {areasFor(HOME_VILLAGE).map((a) => (
               <option key={a.id} value={a.id}>
                 {a.name}
