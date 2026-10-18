@@ -19,6 +19,7 @@ import GpMap from './pages/gp/GpMap';
 import Task from './pages/gp/Task';
 import Tasks from './pages/gp/Tasks';
 import Quality from './pages/gp/Quality';
+import Sources from './pages/gp/Sources';
 import Overview from './pages/officer/Overview';
 import RiskRules from './pages/officer/RiskRules';
 
@@ -55,6 +56,7 @@ export default function App() {
         <Route path="tasks" element={<Tasks />} />
         <Route path="tasks/:code" element={<Task />} />
         <Route path="quality" element={<Quality />} />
+        <Route path="sources" element={<Sources />} />
       </Route>
 
       <Route path="/officer" element={<RequireRole role="officer"><AppShell /></RequireRole>}>

@@ -13,6 +13,7 @@ import VillageMap from '../../components/VillageMap';
 import { WaterLevel } from '../../components/water';
 import { LPCD_TARGET, serviceScores, serviceSummary } from '../../data/service';
 import { useQualityTests } from '../../data/quality';
+import { projectBorewell } from '../../data/sources';
 
 export default function Dashboard() {
   const { step } = useDemo();
@@ -25,6 +26,7 @@ export default function Dashboard() {
   const { data: telemetry } = useLiveTelemetry({ withSeries: false });
   const liveNodes = telemetry?.live.nodes;
   const qualityTests = useQualityTests();
+  const outlook = useMemo(() => projectBorewell(), []);
   const service = useMemo(() => serviceSummary(serviceScores(step, qualityTests)), [step, qualityTests]);
   const { data: suggestions } = usePolling(() => apiFetch('/incidents/suggestions', { role: 'gp' }), 10000, dataSource === 'api');
 
@@ -127,6 +129,14 @@ export default function Dashboard() {
               <p>
                 <span className="block font-display text-3xl leading-none">{service.equity}</span>
                 <span className="text-muted">equity index</span>
+              </p>
+            </div>
+          </Card>
+          <Card title="Source outlook" accent="water" action={<Link to="/gp/sources" className="text-sm font-semibold text-brand-600">Plan</Link>}>
+            <div className="flex items-end gap-4">
+              <p className="font-display text-6xl leading-none tracking-tight">{outlook.daysLeft}</p>
+              <p className="pb-1 text-sm text-muted">
+                {outlook.lastsToMonsoon ? 'days: borewell lasts until the monsoon' : `days of reliable supply, then a ${outlook.shortfallDays}-day gap before the monsoon`}
               </p>
             </div>
           </Card>
