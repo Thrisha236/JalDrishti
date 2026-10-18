@@ -20,6 +20,7 @@ const NAV = {
     { to: '/gp', icon: 'home', label: 'Home', end: true, tint: 'text-sky-600' },
     { to: '/gp/water', icon: 'sensor', label: 'Water Status', tint: 'text-cyan-600' },
     { to: '/gp/quality', icon: 'flask', label: 'Water Quality', tint: 'text-teal-600' },
+    { to: '/gp/sources', icon: 'gauge', label: 'Water Sources', tint: 'text-sky-600' },
     { to: '/gp/complaints', icon: 'list', label: 'Complaints', tint: 'text-orange-600' },
     { to: '/gp/pipelines', icon: 'pipe', label: 'Pipeline Health', tint: 'text-amber-600' },
     { to: '/gp/map', icon: 'map', label: 'Village Map', tint: 'text-emerald-600' },
