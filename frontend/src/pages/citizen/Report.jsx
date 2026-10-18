@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useDemo } from '../../demo/DemoContext';
 import { S, storyCode } from '../../demo/steps';
@@ -106,6 +106,13 @@ export default function Report() {
   return (
     <form onSubmit={submit} className="mx-auto flex max-w-4xl flex-col gap-5">
       <PageHeader title={t('report.title')} />
+      <Link to="/citizen/phone" className="card flex items-center gap-3 p-4 transition hover:border-water-300">
+        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">
+          <Icon name="phone" className="h-5 w-5" />
+        </span>
+        <span className="flex-1 text-sm">{t('report.byPhone')}</span>
+        <Icon name="arrow" />
+      </Link>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3" role="radiogroup" aria-label={t('report.title')}>
         {CATEGORIES.map((c) => (

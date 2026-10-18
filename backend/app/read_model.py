@@ -133,6 +133,8 @@ def complaint(session: Session, c: m.Complaint, public: bool = False) -> dict:
         "media": [{"id": x.id, "file": None, "note": x.note, "exif_stripped": x.exif_stripped} for x in media],
         "linked_asset_id": c.linked_asset_id, "is_simulated": c.is_simulated,
         **({"incident_code": c.incident_code} if c.incident_code else {}),
+        # Only non-app channels are listed, so seed complaints round-trip unchanged.
+        **({"channel": c.channel} if c.channel and c.channel != "APP" else {}),
     }
 
 

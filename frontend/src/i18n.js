@@ -17,7 +17,7 @@ const en = {
   },
   home: { timing: "Today's water timing", next: 'Next supply', reportCta: 'Report a Problem', reportSub: 'No water, low water, dirty water, leakage', myComplaints: 'My complaints', none: 'No complaints yet' },
   report: {
-    title: 'What is the problem?', addPhoto: 'Add a photo', replace: 'Replace', remove: 'Remove', more: 'Tell us more (optional)',
+    title: 'What is the problem?', byPhone: 'No smartphone? Report by missed call or WhatsApp', addPhoto: 'Add a photo', replace: 'Replace', remove: 'Remove', more: 'Tell us more (optional)',
     voice: 'Voice note (coming later)', location: 'Share approximate location', locationHint: 'Village area only, about 1 km', area: 'Area', submit: 'Submit',
     already: 'You have already reported complaint #{{code}} in this demo.', pick: 'Choose a problem first',
     errorType: 'Please choose a photo (JPEG, PNG or WebP).', errorTooLarge: 'The photo is too large. Please use one under 8 MB.',
@@ -56,7 +56,7 @@ const te = {
   },
   home: { timing: 'ఈరోజు నీటి సమయం', next: 'తదుపరి సరఫరా', reportCta: 'సమస్యను తెలపండి', reportSub: 'నీరు లేదు, తక్కువ నీరు, మురికి నీరు, లీకేజీ', myComplaints: 'నా ఫిర్యాదులు', none: 'ఇంకా ఫిర్యాదులు లేవు' },
   report: {
-    title: 'సమస్య ఏమిటి?', addPhoto: 'ఫోటో జోడించండి', replace: 'మార్చు', remove: 'తీసివేయి', more: 'మరింత చెప్పండి (ఐచ్ఛికం)',
+    title: 'సమస్య ఏమిటి?', byPhone: 'స్మార్ట్‌ఫోన్ లేదా? మిస్డ్ కాల్ లేదా వాట్సాప్ ద్వారా తెలపండి', addPhoto: 'ఫోటో జోడించండి', replace: 'మార్చు', remove: 'తీసివేయి', more: 'మరింత చెప్పండి (ఐచ్ఛికం)',
     voice: 'వాయిస్ సందేశం (త్వరలో)', location: 'సుమారు స్థానాన్ని పంచుకోండి', locationHint: 'గ్రామ ప్రాంతం మాత్రమే, సుమారు 1 కి.మీ.', area: 'ప్రాంతం', submit: 'సమర్పించు',
     already: 'మీరు ఈ డెమోలో ఇప్పటికే #{{code}} ఫిర్యాదు చేశారు.', pick: 'ముందుగా సమస్యను ఎంచుకోండి',
     errorType: 'దయచేసి ఫోటోను ఎంచుకోండి (JPEG, PNG లేదా WebP).', errorTooLarge: 'ఫోటో చాలా పెద్దది. 8 MB కంటే చిన్నది ఉపయోగించండి.',
@@ -95,7 +95,7 @@ const hi = {
   },
   home: { timing: 'आज पानी का समय', next: 'अगली आपूर्ति', reportCta: 'समस्या बताएं', reportSub: 'पानी नहीं, कम पानी, गंदा पानी, रिसाव', myComplaints: 'मेरी शिकायतें', none: 'अभी कोई शिकायत नहीं' },
   report: {
-    title: 'समस्या क्या है?', addPhoto: 'फ़ोटो जोड़ें', replace: 'बदलें', remove: 'हटाएँ', more: 'और बताएं (वैकल्पिक)',
+    title: 'समस्या क्या है?', byPhone: 'स्मार्टफ़ोन नहीं है? मिस्ड कॉल या व्हाट्सऐप से बताएँ', addPhoto: 'फ़ोटो जोड़ें', replace: 'बदलें', remove: 'हटाएँ', more: 'और बताएं (वैकल्पिक)',
     voice: 'आवाज़ संदेश (जल्द)', location: 'अनुमानित स्थान साझा करें', locationHint: 'केवल गाँव का क्षेत्र, लगभग 1 किमी', area: 'क्षेत्र', submit: 'जमा करें',
     already: 'आप इस डेमो में पहले ही #{{code}} दर्ज कर चुके हैं।', pick: 'पहले समस्या चुनें',
     errorType: 'कृपया फ़ोटो चुनें (JPEG, PNG या WebP)।', errorTooLarge: 'फ़ोटो बहुत बड़ी है। 8 MB से छोटी फ़ोटो लगाएँ।',

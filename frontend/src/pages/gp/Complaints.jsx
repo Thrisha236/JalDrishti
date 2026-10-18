@@ -7,6 +7,9 @@ import { apiFetch, photoUrlFor } from '../../data/api';
 import { Card, Chip, EmptyState, PageHeader, SimBadge } from '../../components/ui';
 import Icon from '../../components/Icon';
 
+// Reports that came in without the app, so the GP knows who may not see in-app updates.
+const CHANNEL = { MISSED_CALL: 'Missed call', WHATSAPP: 'WhatsApp' };
+
 /** Complaints for the inbox: from the API (with descriptions and photos) or, offline, the seed fixtures. */
 function useInbox(step, localPhotoUrl) {
   const [state, setState] = useState({ list: [], photos: {}, error: null, loading: dataSource === 'api' });
@@ -108,6 +111,12 @@ export default function Complaints() {
                     <span className="block font-semibold">
                       #{x.public_code} · {labelOf(x.category)}
                       {x.is_simulated && <span className="ml-2 text-xs font-normal text-muted">(fixture)</span>}
+                      {CHANNEL[x.channel] && (
+                        <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 align-middle text-[11px] font-medium text-emerald-800">
+                          <Icon name="phone" className="h-3 w-3" />
+                          {CHANNEL[x.channel]}
+                        </span>
+                      )}
                     </span>
                     <span className="block text-sm text-muted">
                       {areas[x.service_area_id].name} · {fmtTime(x.created_at)}
