@@ -30,6 +30,7 @@ THRESHOLDS = {
     "inconsistent_flow_lpm": 5.0,  # flow above this with the pump off is physically inconsistent
     "flow_gap_min_lpm": 8.0,  # head minus tail flow above max(this, fraction x head) suggests a leak
     "flow_gap_fraction": 0.15,
+    "acoustic_leak_ratio": 1.6,  # acoustic level above this multiple of its normal level suggests leak noise
     "flow_gap_min_head_lpm": 10.0,  # only judge the gap when water is actually being sent
 }
 
@@ -218,6 +219,20 @@ def check(session: Session, now: datetime) -> list[Finding]:
                f"for {PERSIST} readings during supply.") if tp else "",
               {"tail_pressure_bar": tp[0] if tp else None, "normal_band": [tail_pressure.band_low, tail_pressure.band_high],
                "baseline_bar": tail_pressure.baseline})
+
+    # Acoustic leak signature: a piezo clamp on the pipe hears the hiss of escaping water. A reading well above the
+    # sensor's own normal level, held for PERSIST readings during supply, is leak evidence that is independent of flow.
+    for pos in ("head", "tail"):
+        ac = _sensor(session, "acoustic", pos)
+        if ac is None or tail_pressure is None:
+            continue
+        tail_asset = nodes[tail_pressure.node_id].asset_id
+        av = [r.value for r in _latest(session, ac.id, PERSIST)]
+        ratio = (av[0] / ac.baseline) if av and ac.baseline else None
+        water("ACOUSTIC_LEAK_SIGNATURE", tail_asset, ac, [ac],
+              _persist(av, lambda x, base=ac.baseline: x > THRESHOLDS["acoustic_leak_ratio"] * base),
+              (f"Acoustic sensor at the {pos} of P-21 reads {av[0]:.0f} {ac.unit}, {ratio:.1f}x its normal level: leak noise on the pipe.") if av else "",
+              {"acoustic_mv": av[0] if av else None, "baseline_mv": ac.baseline, "ratio": round(ratio, 2) if ratio else None, "position": pos})
 
     from . import ai_alerts  # local import: ai_alerts builds the Finding objects defined above
 

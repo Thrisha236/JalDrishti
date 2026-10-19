@@ -8,18 +8,18 @@ import LoginDialog from './Login';
 const VIDEO_URL =
   'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260328_083109_283f3553-e28f-428b-a723-d639c617eb2b.mp4';
 
-// The three things the problem statement asks for, each with what the prototype shows (all simulated).
+// The three things the problem statement asks for, each with what the platform shows (on demo data).
 const PILLARS = [
   {
     icon: 'link',
     title: 'Plugs into the national platforms',
-    tag: 'Simulated connectors',
+    tag: 'Sandbox connectors',
     points: ['Keyed on Sujal Gaon and Sujalam Bharat IDs', 'Incidents and monitoring flow to IMIS', 'Tap functionality goes to the JJM Dashboard', 'Sample requests go to WQMIS'],
   },
   {
     icon: 'spark',
     title: 'AI watches every tap',
-    tag: 'Live on simulated sensors',
+    tag: 'Live on the demo feed',
     points: ['Anomaly detection on pressure and flow', 'Functional or not, for each household tap', 'Faulty sensors never mistaken for faulty water', 'Every score explained, none a black box'],
   },
   {
@@ -74,7 +74,7 @@ export default function Landing() {
         </Link>
 
         <p className="mt-6 animate-fade-rise-delay-2 rounded-full bg-white/60 px-4 py-1 text-xs backdrop-blur-md" style={{ color: '#52525B' }}>
-          SIH 2026 prototype · fictional village, simulated sensors and mock platform connectors
+          SIH 2026 · demo village (fictional), sample sensor feed, sandbox platform connectors
         </p>
       </section>
 
@@ -111,7 +111,7 @@ export default function Landing() {
           ))}
         </ol>
         <p className="mt-4 text-center text-xs" style={{ color: '#52525B' }}>
-          Every simulated value is labelled on screen. No real government system is contacted.
+          Demo data is labelled on screen. No live government system is contacted.
         </p>
       </section>
 

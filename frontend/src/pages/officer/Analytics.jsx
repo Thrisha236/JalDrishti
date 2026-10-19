@@ -128,7 +128,7 @@ export default function Analytics() {
   return (
     <div>
       <PageHeader title="Analytics — every administrative level" subtitle="Tap functionality, alerts, repairs and water quality, from the zone up to the State. Open any row to drill down.">
-        <SimBadge>Simulated sensors</SimBadge>
+        <SimBadge>Demo sensor feed</SimBadge>
       </PageHeader>
 
       <nav aria-label="Administrative level" className="mb-5 flex flex-wrap items-center gap-2 text-sm">
@@ -161,7 +161,7 @@ export default function Analytics() {
           </Card>
           <Card title="Last 14 days" accent="water">
             <Trend points={data.trend} />
-            <p className="text-[11px] text-muted">Earlier days are simulated history; today is live.</p>
+            <p className="text-[11px] text-muted">Earlier days are sample history; today is live.</p>
           </Card>
         </div>
 

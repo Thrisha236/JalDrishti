@@ -154,7 +154,7 @@ function LiveRestoration({ incidentCode, repaired }) {
   const secondsLeft = ver?.current_window ? Math.max(0, Math.round((new Date(ver.current_window.end) - Date.now()) / 1000)) : null;
 
   return (
-    <Card title="Restoration check" className="lg:col-span-3" action={<SimBadge>Live · simulated sensors</SimBadge>}>
+    <Card title="Restoration check" className="lg:col-span-3" action={<SimBadge>Live · demo sensor feed</SimBadge>}>
       {!repaired ? (
         <p className="text-muted">Available after the repair is recorded. The incident closes only when readings recover.</p>
       ) : !ver ? (

@@ -28,6 +28,8 @@ PHYSICAL_RANGE = {
     "tank_level": (0.0, 10.0),  # m
     "flow": (0.0, 1000.0),  # L/min
     "pressure": (0.0, 16.0),  # bar
+    "acoustic": (0.0, 3300.0),  # mV after the pre-amp (ESP32 ADC range)
+    "chlorine": (0.0, 5.0),  # mg/L free residual chlorine
 }
 MAX_REPLAY_AGE = timedelta(days=7)  # a gateway may replay buffered readings after a network outage
 MAX_CLOCK_SKEW = timedelta(minutes=5)

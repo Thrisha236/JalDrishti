@@ -72,7 +72,7 @@ function Header({ code, data, status }) {
       <div className="flex items-center gap-2">
         <Chip level={PRIORITY_LEVEL[data.priority]}>Priority {data.priority}</Chip>
         {status && <Chip level={status === 'VERIFIED_RESTORED' ? 'normal' : 'info'}>{labelOf(status)}</Chip>}
-        <SimBadge>{dataSource === 'api' ? 'Live evidence · simulated sensors' : 'Simulated data'}</SimBadge>
+        <SimBadge>{dataSource === 'api' ? 'Live evidence · demo sensor feed' : 'Demo data'}</SimBadge>
       </div>
     </PageHeader>
   );

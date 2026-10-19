@@ -5,6 +5,7 @@ Usage (from the repository root, any Python 3.10+; no packages needed):
     python simulator/sim.py --scenario leak      # leak on P-21
     python simulator/sim.py --scenario pump-off
     python simulator/sim.py --scenario node-offline
+    python simulator/sim.py --scenario chlorine-drop   # chlorine probe reading collapses
     python simulator/sim.py --count 3 --interval 1
 
 If the API cannot be reached, batches are kept and replayed with their original timestamps once it is

@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "author": "Team Vistaar",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "board-esp32-devkit-c-v4", "id": "esp", "top": 0, "left": 0, "attrs": {} },
+    { "type": "wokwi-potentiometer", "id": "pot_pressure", "top": -125, "left": 150, "attrs": {} },
+    { "type": "wokwi-potentiometer", "id": "pot_chlorine", "top": -125, "left": 250, "attrs": {} },
+    { "type": "wokwi-potentiometer", "id": "pot_acoustic", "top": -125, "left": 350, "attrs": {} },
+    { "type": "wokwi-potentiometer", "id": "pot_battery", "top": -125, "left": 450, "attrs": {} }
+  ],
+  "connections": [
+    [ "esp:TX", "$serialMonitor:RX", "", [] ],
+    [ "esp:RX", "$serialMonitor:TX", "", [] ],
+    [ "pot_pressure:VCC", "esp:3V3", "red", [ "v20", "h-200" ] ],
+    [ "pot_pressure:GND", "esp:GND.2", "black", [ "v30", "h-210" ] ],
+    [ "pot_pressure:SIG", "esp:33", "green", [ "v40", "h-220" ] ],
+    [ "pot_chlorine:VCC", "esp:3V3", "red", [ "v20", "h-300" ] ],
+    [ "pot_chlorine:GND", "esp:GND.2", "black", [ "v30", "h-310" ] ],
+    [ "pot_chlorine:SIG", "esp:VN", "green", [ "v40", "h-320" ] ],
+    [ "pot_acoustic:VCC", "esp:3V3", "red", [ "v20", "h-400" ] ],
+    [ "pot_acoustic:GND", "esp:GND.2", "black", [ "v30", "h-410" ] ],
+    [ "pot_acoustic:SIG", "esp:35", "green", [ "v40", "h-420" ] ],
+    [ "pot_battery:VCC", "esp:3V3", "red", [ "v20", "h-500" ] ],
+    [ "pot_battery:GND", "esp:GND.2", "black", [ "v30", "h-510" ] ],
+    [ "pot_battery:SIG", "esp:32", "green", [ "v40", "h-520" ] ]
+  ],
+  "dependencies": {}
+}

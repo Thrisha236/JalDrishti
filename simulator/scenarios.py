@@ -8,8 +8,8 @@ import math
 import random
 
 NODE_SENSORS = {
-    "node-a": ["sen-pump-current", "sen-tank-level", "sen-head-flow", "sen-head-pressure"],
-    "node-b": ["sen-tail-flow", "sen-tail-pressure"],
+    "node-a": ["sen-pump-current", "sen-tank-level", "sen-head-flow", "sen-head-pressure", "sen-head-acoustic", "sen-head-chlorine"],
+    "node-b": ["sen-tail-flow", "sen-tail-pressure", "sen-tail-acoustic", "sen-tail-chlorine"],
 }
 
 BASELINE = {
@@ -19,18 +19,22 @@ BASELINE = {
     "sen-head-pressure": 1.8,  # bar
     "sen-tail-flow": 45.0,  # L/min
     "sen-tail-pressure": 1.22,  # bar
+    "sen-head-acoustic": 40.0,  # mV after the pre-amp: normal pipe-flow noise
+    "sen-tail-acoustic": 38.0,  # mV
+    "sen-head-chlorine": 0.80,  # mg/L free residual chlorine leaving the tank
+    "sen-tail-chlorine": 0.45,  # mg/L at the tail end
 }
 
 # Relative noise per sensor (standard deviation as a fraction of the value).
-NOISE = {"sen-pump-current": 0.02, "sen-tank-level": 0.003, "sen-head-flow": 0.02, "sen-head-pressure": 0.01, "sen-tail-flow": 0.02, "sen-tail-pressure": 0.015}
+NOISE = {"sen-pump-current": 0.02, "sen-tank-level": 0.003, "sen-head-flow": 0.02, "sen-head-pressure": 0.01, "sen-tail-flow": 0.02, "sen-tail-pressure": 0.015, "sen-head-acoustic": 0.03, "sen-tail-acoustic": 0.03, "sen-head-chlorine": 0.02, "sen-tail-chlorine": 0.03}
 
 # What each fault does to the network (applied on top of the baseline).
 SCENARIOS = {
     "normal": {},
     # A leak on P-21 downstream of the head: more water leaves the tank, less reaches the tail.
-    "leak": {"sen-head-flow": 54.0, "sen-head-pressure": 1.70, "sen-tail-flow": 30.0, "sen-tail-pressure": 0.72},
+    "leak": {"sen-head-flow": 54.0, "sen-head-pressure": 1.70, "sen-tail-flow": 30.0, "sen-tail-pressure": 0.72, "sen-head-acoustic": 78.0, "sen-tail-acoustic": 96.0},
     # The pump stops: no current, no flow, pressure collapses, the tank slowly empties.
-    "pump-off": {"sen-pump-current": 0.0, "sen-head-flow": 0.0, "sen-head-pressure": 0.05, "sen-tail-flow": 0.0, "sen-tail-pressure": 0.02},
+    "pump-off": {"sen-pump-current": 0.0, "sen-head-flow": 0.0, "sen-head-pressure": 0.05, "sen-tail-flow": 0.0, "sen-tail-pressure": 0.02, "sen-head-acoustic": 6.0, "sen-tail-acoustic": 5.0, "sen-tail-chlorine": 0.12},
     # Node B stops reporting (flat battery, antenna fault). The water may be fine: this is an equipment problem.
     "node-offline": {},
     # A leak that is only starting: tail pressure and flow slide slowly (no alert yet). The early-warning models
@@ -38,11 +42,13 @@ SCENARIOS = {
     "degrading": {},
     # Supply that stops and starts (a valve being rotated, a pump cycling): ten ticks of water, ten ticks dry, repeating.
     "intermittent": {},
+    # The dosing pump runs dry: chlorine leaving the tank and reaching the tail collapses while hydraulics stay normal.
+    "chlorine-drop": {"sen-head-chlorine": 0.10, "sen-tail-chlorine": 0.04},
 }
 
 # Scenarios that repeat a dry spell: after `on_ticks` of normal readings the `off` values apply until the period ends.
 CYCLES = {
-    "intermittent": {"period": 20, "on_ticks": 10, "off": {"sen-head-flow": 4.0, "sen-tail-flow": 0.0, "sen-tail-pressure": 0.15, "sen-head-pressure": 1.75}},
+    "intermittent": {"period": 20, "on_ticks": 10, "off": {"sen-head-flow": 4.0, "sen-tail-flow": 0.0, "sen-tail-pressure": 0.15, "sen-head-pressure": 1.75, "sen-head-acoustic": 8.0, "sen-tail-acoustic": 7.0}},
 }
 
 # Scenarios whose values move gradually: sensor -> (start value, end value, ticks to get there).
@@ -52,6 +58,8 @@ RAMPS = {
         "sen-tail-flow": (45.0, 33.0, 90),
         "sen-head-flow": (48.0, 52.0, 90),
         "sen-head-pressure": (1.80, 1.72, 90),
+        "sen-tail-acoustic": (38.0, 84.0, 90),  # the hiss of a growing leak shows up before the flow gap does
+        "sen-tail-chlorine": (0.45, 0.30, 90),
     },
 }
 

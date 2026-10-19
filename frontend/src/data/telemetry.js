@@ -4,7 +4,7 @@ import { apiFetch } from './api';
 import { dataSource } from './seed';
 
 export const POLL_MS = 5000;
-export const CHART_SENSORS = ['sen-tail-pressure', 'sen-tail-flow', 'sen-head-pressure', 'sen-head-flow', 'sen-pump-current', 'sen-tank-level'];
+export const CHART_SENSORS = ['sen-tail-pressure', 'sen-tail-flow', 'sen-head-pressure', 'sen-head-flow', 'sen-pump-current', 'sen-tank-level', 'sen-tail-chlorine', 'sen-tail-acoustic', 'sen-head-chlorine', 'sen-head-acoustic'];
 
 /** Calls load() now and every `ms`, pausing while the tab is hidden. Returns { data, error, updatedAt }. */
 export function usePolling(load, ms = POLL_MS, enabled = true, refreshKey = 0) {

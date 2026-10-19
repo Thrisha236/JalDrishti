@@ -12,13 +12,17 @@ const NAMES = {
   'sen-head-flow': 'Head flow · tank outlet',
   'sen-pump-current': 'Pump current',
   'sen-tank-level': 'Tank level',
+  'sen-tail-chlorine': 'Residual chlorine · P-21 end (probe)',
+  'sen-tail-acoustic': 'Acoustic leak noise · P-21 end',
+  'sen-head-chlorine': 'Residual chlorine · tank outlet (probe)',
+  'sen-head-acoustic': 'Acoustic leak noise · tank outlet',
 };
 
 const NODE_LEVEL = { online: 'normal', offline: 'neutral', never_reported: 'neutral' };
 const NODE_TEXT = { online: 'Online', offline: 'Offline', never_reported: 'No data yet' };
 
 function value(v, unit) {
-  return v == null ? '—' : `${v.toFixed(unit === 'bar' ? 2 : 1)} ${unit}`;
+  return v == null ? '—' : `${v.toFixed(unit === 'bar' || unit === 'mg/L' ? 2 : unit === 'mV' ? 0 : 1)} ${unit}`;
 }
 
 function SensorCard({ sensor, readings }) {
@@ -75,13 +79,13 @@ export default function WaterStatus() {
   return (
     <div>
       <PageHeader title="Water Status — live sensors" subtitle={`Refreshes every ${POLL_MS / 1000} s${updatedAt ? ` · updated ${updatedAt.toLocaleTimeString()}` : ''}`}>
-        <SimBadge>Simulated sensor data</SimBadge>
+        <SimBadge>Demo sensor feed</SimBadge>
       </PageHeader>
 
       {error && <p className="mb-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">Could not refresh: {error}. Showing the last data received.</p>}
 
       {data && (
-        <Card title="Live alerts" className="mb-5" action={<SimBadge>Rules engine on simulated data</SimBadge>}>
+        <Card title="Live alerts" className="mb-5" action={<SimBadge>Rules engine on the demo feed</SimBadge>}>
           <LiveAlerts alerts={data.alerts} />
           <p className="mt-2 text-xs text-muted">
             An alert needs 3 consecutive readings to raise and 3 to clear. Sensors that are offline, stuck, impossible or contradicting each other are excluded from

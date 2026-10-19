@@ -32,6 +32,7 @@ OPEN_INCIDENT = ("TRIAGED", "TASK_ASSIGNED", "REPAIR_DONE", "VERIFYING")
 
 CAUSE_BY_RULE = {
     "HEAD_TAIL_FLOW_GAP": "Possible leak between the tank outlet and the tail of {pipe} (unconfirmed)",
+    "ACOUSTIC_LEAK_SIGNATURE": "Acoustic sensors hear leak noise on {pipe}: possible leak (unconfirmed)",
     "TAIL_PRESSURE_LOW_IN_SUPPLY": "Possible leak or partial blockage on {pipe} (unconfirmed)",
     "PUMP_OFF_IN_SUPPLY": "Pump not running during supply: power or pump fault (unconfirmed)",
     "NO_FLOW_IN_SUPPLY": "No supply reaching the network: pump, valve or source problem (unconfirmed)",

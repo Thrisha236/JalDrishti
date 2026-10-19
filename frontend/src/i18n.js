@@ -4,7 +4,7 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
 const en = {
-  app: { tagline: 'Your Water. Your Village. Your Voice.', demoLogin: 'Demo login — prototype', simulated: 'Simulated data' },
+  app: { tagline: 'Your Water. Your Village. Your Voice.', demoLogin: 'Demo login — prototype', simulated: 'Demo data' },
   login: { who: 'Who are you?', citizen: 'Villager / Citizen', gp: 'Gram Panchayat', officer: 'Government Officer', continue: 'Continue', citizenHint: 'Water timings, report a problem', gpHint: 'Village water operations', officerHint: 'Multi-village monitoring' },
   nav: { home: 'Home', report: 'Report', complaints: 'My complaints', map: 'Map', switchRole: 'Switch role' },
   level: { normal: 'Normal', warning: 'Warning', problem: 'Problem' },
@@ -55,7 +55,7 @@ const en = {
   category: { NO_WATER: 'No water', LOW_WATER: 'Low water', DIRTY_WATER: 'Dirty water', BAD_SMELL: 'Bad smell', LEAKAGE: 'Leakage', DAMAGED_TAP: 'Damaged tap', OTHER: 'Other' },
   done: {
     checking: 'Checking image…', observation: 'Possible leakage visible near a pipe — inspection recommended.',
-    disclaimer: 'Prototype simulation — not an AI diagnosis. A photo cannot show underground pipe condition.',
+    disclaimer: 'Demo image check — not an AI diagnosis. A photo cannot show underground pipe condition.',
     received: 'Complaint #{{code}} received', track: 'Track my complaint',
   },
   timeline: { received: 'Received', checking: 'Being checked', repairStarted: 'Repair started', restored: 'Water restored — verified', resolvedUnverified: 'Resolved — not verified by sensors' },
@@ -76,7 +76,7 @@ const en = {
 };
 
 const te = {
-  app: { tagline: 'మీ నీరు. మీ గ్రామం. మీ గొంతు.', demoLogin: 'డెమో లాగిన్ — నమూనా', simulated: 'అనుకరణ డేటా' },
+  app: { tagline: 'మీ నీరు. మీ గ్రామం. మీ గొంతు.', demoLogin: 'డెమో లాగిన్ — నమూనా', simulated: 'డెమో డేటా' },
   login: { who: 'మీరు ఎవరు?', citizen: 'గ్రామస్థులు / పౌరులు', gp: 'గ్రామ పంచాయతీ', officer: 'ప్రభుత్వ అధికారి', continue: 'కొనసాగించు', citizenHint: 'నీటి సమయాలు, సమస్యను తెలపండి', gpHint: 'గ్రామ నీటి నిర్వహణ', officerHint: 'అనేక గ్రామాల పర్యవేక్షణ' },
   nav: { home: 'హోమ్', report: 'ఫిర్యాదు', complaints: 'నా ఫిర్యాదులు', map: 'మ్యాప్', switchRole: 'పాత్ర మార్చు' },
   level: { normal: 'సాధారణం', warning: 'హెచ్చరిక', problem: 'సమస్య' },
@@ -148,7 +148,7 @@ const te = {
 };
 
 const hi = {
-  app: { tagline: 'आपका पानी। आपका गाँव। आपकी आवाज़।', demoLogin: 'डेमो लॉगिन — प्रोटोटाइप', simulated: 'सिम्युलेटेड डेटा' },
+  app: { tagline: 'आपका पानी। आपका गाँव। आपकी आवाज़।', demoLogin: 'डेमो लॉगिन — प्रोटोटाइप', simulated: 'डेमो डेटा' },
   login: { who: 'आप कौन हैं?', citizen: 'ग्रामवासी / नागरिक', gp: 'ग्राम पंचायत', officer: 'सरकारी अधिकारी', continue: 'आगे बढ़ें', citizenHint: 'पानी का समय, समस्या बताएं', gpHint: 'गाँव का जल संचालन', officerHint: 'कई गाँवों की निगरानी' },
   nav: { home: 'होम', report: 'शिकायत करें', complaints: 'मेरी शिकायतें', map: 'नक्शा', switchRole: 'भूमिका बदलें' },
   level: { normal: 'सामान्य', warning: 'चेतावनी', problem: 'समस्या' },

@@ -88,7 +88,7 @@ export default function Complaints() {
   return (
     <div>
       <PageHeader title="Complaints" subtitle={loading ? 'Loading…' : `${list.length} open · Ramapuram`}>
-        <SimBadge>{dataSource === 'api' ? 'Live from API · fixtures marked' : 'Simulated data'}</SimBadge>
+        <SimBadge>{dataSource === 'api' ? 'Live from API · fixtures marked' : 'Demo data'}</SimBadge>
       </PageHeader>
       <div className="grid gap-5 lg:grid-cols-5">
         <Card className="lg:col-span-3">
@@ -153,7 +153,7 @@ export default function Complaints() {
             </dl>
             {c.image_analysis?.[0] && (
               <div className="mb-4 rounded-2xl border border-black/[0.08] bg-water-50 p-3 text-sm">
-                <p className="font-semibold">Simulated image observation</p>
+                <p className="font-semibold">Demo image observation</p>
                 <p>{c.image_analysis[0].message}</p>
                 <p className="mt-1 text-xs text-muted">{c.image_analysis[0].disclaimer}</p>
               </div>

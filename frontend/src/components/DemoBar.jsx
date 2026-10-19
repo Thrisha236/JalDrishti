@@ -43,7 +43,7 @@ export default function DemoBar() {
     <div className="fixed inset-x-2 bottom-16 z-40 rounded-3xl bg-black/90 p-4 text-white shadow-card backdrop-blur-md md:inset-x-auto md:bottom-4 md:right-4 md:w-96">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-[11px] uppercase tracking-wide text-white/50">Prototype demo · simulated data</p>
+          <p className="text-[11px] uppercase tracking-wide text-white/50">Demo mode · sample data</p>
           <p className="truncate text-sm">
             Step {step + 1}/{STEPS.length}: {STEPS[step].label}
           </p>

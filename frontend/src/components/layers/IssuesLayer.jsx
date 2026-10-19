@@ -87,7 +87,7 @@ export function useIssuesLayer({ telemetry, predictions, fhtc }, active) {
             ))}
           </ul>
         )}
-        <p className="mt-2 text-xs text-muted">Built from the live sensor readings and the AI models; on simulated data in this prototype. Homes are tinted amber (below 55 L/person/day) or red (very little water).</p>
+        <p className="mt-2 text-xs text-muted">Built from the live sensor readings and the AI models; on the demo sensor feed. Homes are tinted amber (below 55 L/person/day) or red (very little water).</p>
       </div>
     ),
   };

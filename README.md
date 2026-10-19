@@ -681,3 +681,8 @@ The new simulator scenario is `intermittent` (ten ticks of water, ten dry). New 
 - Everything runs on simulated data, and the platform connectors are mock. See `docs/Requirements_Coverage.md` for the full list, including what is not built (native app, SMS delivery, real integration, migrations, load tests).
 - Household status is an estimate plus the villager's own check; there are no household tap sensors.
 - Telugu and Hindi strings for the new villager screens are first drafts and need native-speaker review.
+
+
+## Field hardware, firmware and the new sensor channels
+
+`hardware/` holds the sensor-node firmware (MicroPython for the ESP32), the Raspberry Pi gateway bridge, an ESP32 simulation project for wokwi.com, and a README with the parts list and wiring. The platform now also receives **acoustic (leak noise)** and **residual-chlorine** readings: a leak raises an `ACOUSTIC_LEAK_SIGNATURE` alert that backs up the flow-gap rule, and a measured chlorine value replaces the modelled one in the water-quality outlook. New simulator scenario: `chlorine-drop`. `python -m pytest` now runs 278 tests, including the firmware against the real API. The board layer (`board.py`) has not run on real hardware yet.

@@ -101,7 +101,7 @@ function QualityCard({ q, canLog }) {
   return (
     <Card title="Water-quality outlook" accent="verify" action={<Chip level={LEVEL_TONE[q.level]}>{LEVEL_LABEL[q.level]}</Chip>}>
       <p className="text-sm text-muted">
-        Tail of {q.asset_code} · predicted free chlorine <span className="text-ink">{q.predicted_residual_mg_l} mg/L</span>
+        Tail of {q.asset_code} · {q.basis === 'measured' ? 'measured' : 'predicted'} free chlorine <span className="text-ink">{q.predicted_residual_mg_l} mg/L</span>{q.basis === 'measured' && <span> (model expects {q.model_residual_mg_l})</span>}
       </p>
       <div className="mt-1 mb-4">
         <ChlorineMeter value={q.predicted_residual_mg_l} />
@@ -135,7 +135,7 @@ function QualityCard({ q, canLog }) {
         </span>
       </p>
       <p className="mt-3 text-xs text-muted">
-        Source: {q.data_source}. Assumes {q.assumptions.chlorine_dose_mg_l} mg/L dosed at the tank and {q.assumptions.decay_per_hour}/h decay{q.assumptions.diameter_assumed ? ', and a 100 mm pipe (diameter not recorded)' : ''}. An indicator of where to test, never a safety certificate.
+        Source: {q.data_source}. {q.basis === 'measured' ? 'Read by the residual-chlorine probe at the tail end; the decay model is kept as a cross-check.' : `Assumes ${q.assumptions.chlorine_dose_mg_l} mg/L dosed at the tank and ${q.assumptions.decay_per_hour}/h decay`}{q.assumptions.diameter_assumed && q.basis !== 'measured' ? ', and a 100 mm pipe (diameter not recorded)' : ''}. An indicator of where to test, never a safety certificate.
       </p>
     </Card>
   );
@@ -263,7 +263,7 @@ export default function EarlyWarning() {
   return (
     <div>
       <PageHeader title="AI Early Warning — before villagers notice" subtitle="Four small models read the live sensors and the repair records, and say what is about to go wrong.">
-        <SimBadge>Simulated sensors</SimBadge>
+        <SimBadge>Demo sensor feed</SimBadge>
       </PageHeader>
       {error && !p && <p className="mb-4 text-sm text-rose-700">{error}</p>}
       {!p ? (
@@ -280,7 +280,7 @@ export default function EarlyWarning() {
               icon="gauge"
               note={pressure?.level === 'breach' ? 'already out of band' : 'to leave normal band'}
             />
-            <Kpi label="Chlorine at tail" value={quality ? `${quality.predicted_residual_mg_l}` : '—'} level={quality ? LEVEL_TONE[quality.level] : 'neutral'} icon="flask" note={quality ? `mg/L predicted · ${LEVEL_LABEL[quality.level]}` : 'no data'} />
+            <Kpi label="Chlorine at tail" value={quality ? `${quality.predicted_residual_mg_l}` : '—'} level={quality ? LEVEL_TONE[quality.level] : 'neutral'} icon="flask" note={quality ? `mg/L ${quality.basis === 'measured' ? 'measured' : 'predicted'} · ${LEVEL_LABEL[quality.level]}` : 'no data'} />
           </div>
 
           <div className="grid gap-5 xl:grid-cols-2">

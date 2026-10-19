@@ -1,0 +1,41 @@
+flowchart LR
+  subgraph S0["FIELD & VILLAGE"]
+    direction TB
+    n0_0["Pump & tank node<br/>level · pump current"]
+    n0_1["Head / tail nodes<br/>pressure · flow<br/>acoustic · chlorine"]
+    n0_2["Water-quality kits<br/>IS 10500 tests"]
+    n0_3["Villager mobile app<br/>EN · TE · HI<br/>photo · geo-tag"]
+  end
+  subgraph S1["GATEWAY + API"]
+    direction TB
+    n1_0["LoRa link to<br/>Raspberry Pi gateway"]
+    n1_1["4G / MQTT<br/>offline buffer"]
+    n1_2["Secure ingestion API<br/>validate · rate-limit"]
+    n1_3["Complaint & feedback API<br/>GPS stripped · RBAC"]
+  end
+  subgraph S2["AI / ML"]
+    direction TB
+    n2_0["Rules + sensor-health gate"]
+    n2_1["Anomaly detection<br/>Isolation Forest"]
+    n2_2["Forecast: pressure,<br/>chlorine, failure window"]
+    n2_3["Complaint clusters<br/>DBSCAN"]
+    n2_4["Evidence fusion<br/>household tap status"]
+  end
+  subgraph S3["ALERT & ACT"]
+    direction TB
+    n3_0["Alert Center<br/>supply · quality · pressure<br/>leak · infrastructure"]
+    n3_1["Maintenance planner<br/>risk-ranked tasks"]
+    n3_2["Task → repair →<br/>verified restoration"]
+    n3_3["Villager advisories<br/>status updates"]
+  end
+  subgraph S4["USERS & PLATFORMS"]
+    direction TB
+    n4_0["VWSC · Gram Panchayat<br/>dashboard"]
+    n4_1["District · State<br/>GIS + analytics"]
+    n4_2["IMIS · Sujal Gaon IDs<br/>JJM Dashboard · WQMIS"]
+    n4_3["Open-data export<br/>CSV · GeoJSON"]
+  end
+  S0 --> S1
+  S1 --> S2
+  S2 --> S3
+  S3 --> S4

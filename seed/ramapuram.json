@@ -159,7 +159,11 @@
     { "id": "sen-head-flow", "node_id": "node-a", "kind": "flow", "position": "head", "unit": "L/min", "baseline": 48.0, "normal_band": [40.0, 56.0], "is_simulated": true },
     { "id": "sen-head-pressure", "node_id": "node-a", "kind": "pressure", "position": "head", "unit": "bar", "baseline": 1.8, "normal_band": [1.6, 2.0], "is_simulated": true },
     { "id": "sen-tail-flow", "node_id": "node-b", "kind": "flow", "position": "tail", "unit": "L/min", "baseline": 45.0, "normal_band": [38.0, 52.0], "is_simulated": true },
-    { "id": "sen-tail-pressure", "node_id": "node-b", "kind": "pressure", "position": "tail", "unit": "bar", "baseline": 1.22, "normal_band": [1.05, 1.40], "is_simulated": true }
+    { "id": "sen-tail-pressure", "node_id": "node-b", "kind": "pressure", "position": "tail", "unit": "bar", "baseline": 1.22, "normal_band": [1.05, 1.40], "is_simulated": true },
+    { "id": "sen-head-acoustic", "node_id": "node-a", "kind": "acoustic", "position": "head", "unit": "mV", "baseline": 40.0, "normal_band": [25.0, 60.0], "is_simulated": true },
+    { "id": "sen-tail-acoustic", "node_id": "node-b", "kind": "acoustic", "position": "tail", "unit": "mV", "baseline": 38.0, "normal_band": [25.0, 60.0], "is_simulated": true },
+    { "id": "sen-head-chlorine", "node_id": "node-a", "kind": "chlorine", "position": "head", "unit": "mg/L", "baseline": 0.8, "normal_band": [0.5, 1.0], "is_simulated": true },
+    { "id": "sen-tail-chlorine", "node_id": "node-b", "kind": "chlorine", "position": "tail", "unit": "mg/L", "baseline": 0.45, "normal_band": [0.3, 0.8], "is_simulated": true }
   ],
 
   "supply_schedules": [

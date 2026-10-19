@@ -144,7 +144,7 @@ export default function NetworkMap({ step, mode = 'gp', selected, onSelect, tele
               </span>
             ))}
             <span>Drag to pan · right-drag or two fingers to tilt</span>
-            <span>Pipes, zones, homes and sensors are simulated</span>
+            <span>Demo village: pipes, zones, homes and sensors are sample data</span>
           </div>
         </>
       ) : (

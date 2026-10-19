@@ -50,6 +50,8 @@ def network_sensors(session: Session) -> dict[str, m.Sensor]:
         "head_flow": ("flow", "head"), "head_pressure": ("pressure", "head"),
         "tail_flow": ("flow", "tail"), "tail_pressure": ("pressure", "tail"),
         "pump": ("pump_current", None), "tank": ("tank_level", None),
+        "head_acoustic": ("acoustic", "head"), "tail_acoustic": ("acoustic", "tail"),
+        "head_chlorine": ("chlorine", "head"), "tail_chlorine": ("chlorine", "tail"),
     }
     return {k: by_key[v] for k, v in wanted.items() if v in by_key}
 
@@ -253,15 +255,19 @@ def quality_outlook(session: Session, now: datetime | None = None) -> list[dict]
     flow = flow_live if flow_live is not None else tail_f.baseline
     pressure = pressure_live if pressure_live is not None else tail_p.baseline
     age_h = volume_m3 / (max(flow, 1.0) * 0.06)  # L/min -> m3/h
-    residual = CHLORINE["dose_mg_l"] * math.exp(-CHLORINE["decay_per_hour"] * age_h)
+    model_residual = CHLORINE["dose_mg_l"] * math.exp(-CHLORINE["decay_per_hour"] * age_h)
+    cl = sensors.get("tail_chlorine")
+    measured = live_median(session, cl, now, trusted) if cl is not None else None
+    residual = measured if measured is not None else model_residual
+    lab = "Measured" if measured is not None else "Predicted"
     reasons = []
     level = "OK"
     if residual < CHLORINE["at_risk_below"]:
         level = "AT_RISK"
-        reasons.append(f"Predicted residual chlorine {residual:.2f} mg/L is below the commonly used minimum of {CHLORINE['at_risk_below']} mg/L")
+        reasons.append(f"{lab} residual chlorine {residual:.2f} mg/L is below the commonly used minimum of {CHLORINE['at_risk_below']} mg/L")
     elif residual < CHLORINE["watch_below"]:
         level = "WATCH"
-        reasons.append(f"Predicted residual chlorine {residual:.2f} mg/L is getting low")
+        reasons.append(f"{lab} residual chlorine {residual:.2f} mg/L is getting low")
     if pressure < INGRESS_PRESSURE_BAR:
         level = "AT_RISK"
         reasons.append(f"Tail pressure {pressure:.2f} bar is very low: dirty water can be drawn in through leaks")
@@ -275,8 +281,8 @@ def quality_outlook(session: Session, now: datetime | None = None) -> list[dict]
     }[level]
     return [{
         "asset_id": asset.id, "asset_code": asset.code, "service_area_id": asset.service_area_id, "level": level,
-        "predicted_residual_mg_l": round(residual, 2), "water_age_hours": round(age_h, 1), "tail_pressure_bar": round(pressure, 2),
-        "tail_flow_lpm": round(flow, 1), "data_source": "live sensors" if flow_live is not None and pressure_live is not None else "recorded baseline (no live data)",
+        "predicted_residual_mg_l": round(residual, 2), "basis": "measured" if measured is not None else "model", "model_residual_mg_l": round(model_residual, 2), "measured_residual_mg_l": round(measured, 2) if measured is not None else None, "water_age_hours": round(age_h, 1), "tail_pressure_bar": round(pressure, 2),
+        "tail_flow_lpm": round(flow, 1), "data_source": ("chlorine probe + live sensors" if measured is not None else "live sensors") if flow_live is not None and pressure_live is not None else "recorded baseline (no live data)",
         "reasons": reasons, "action": action,
         "assumptions": {
             "chlorine_dose_mg_l": CHLORINE["dose_mg_l"], "decay_per_hour": CHLORINE["decay_per_hour"],

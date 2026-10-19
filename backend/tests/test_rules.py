@@ -64,7 +64,7 @@ def test_normal_operation_raises_nothing(client, as_gp):
 def test_leak_raises_flow_gap_and_low_tail_pressure(client, as_gp):
     run(client, "leak", 4)
     alerts = active(client, as_gp)
-    assert codes(alerts) == {"HEAD_TAIL_FLOW_GAP", "TAIL_PRESSURE_LOW_IN_SUPPLY"}
+    assert codes(alerts) == {"HEAD_TAIL_FLOW_GAP", "TAIL_PRESSURE_LOW_IN_SUPPLY", "ACOUSTIC_LEAK_SIGNATURE"}
     assert {a["kind"] for a in alerts} == {"WATER_SERVICE"}
     gap = next(a for a in alerts if a["rule_code"] == "HEAD_TAIL_FLOW_GAP")
     assert gap["asset_id"] == "ast-p21" and gap["service_area_id"] == "sa-north"
@@ -90,7 +90,7 @@ def test_alerts_clear_after_recovery_and_stay_in_history(client, as_gp):
     run(client, "normal", rules.PERSIST, start=4)
     assert active(client, as_gp) == []
     recent = client.get("/api/v1/alerts/recent", headers=as_gp).json()
-    assert {a["rule_code"] for a in recent} == {"HEAD_TAIL_FLOW_GAP", "TAIL_PRESSURE_LOW_IN_SUPPLY"}
+    assert {a["rule_code"] for a in recent} == {"HEAD_TAIL_FLOW_GAP", "TAIL_PRESSURE_LOW_IN_SUPPLY", "ACOUSTIC_LEAK_SIGNATURE"}
     assert all(a["cleared_at"] for a in recent)
 
 

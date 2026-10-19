@@ -85,7 +85,7 @@ export default function Overview() {
                   </li>
                 ))}
               </ul>
-              <p className="mt-3 text-xs text-muted">Simulated connectors. No real system is contacted.</p>
+              <p className="mt-3 text-xs text-muted">Sandbox connectors. No live government system is contacted.</p>
             </Card>
           )}
         </div>

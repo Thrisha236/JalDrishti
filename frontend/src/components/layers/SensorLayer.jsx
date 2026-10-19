@@ -39,7 +39,7 @@ function SensorCard({ sensor, onClose }) {
         </div>
         <div className="col-span-2">
           <dt className="text-white/55">Data</dt>
-          <dd>{sensor.isLive ? `Live from ${sensor.live.node === 'node-a' ? 'Node A' : 'Node B'} (simulated device)` : 'Demo record (fictional sensor)'}</dd>
+          <dd>{sensor.isLive ? `Live from ${sensor.live.node === 'node-a' ? 'Node A' : 'Node B'} (demo node)` : 'Demo record (fictional sensor)'}</dd>
         </div>
       </dl>
     </MapCard>

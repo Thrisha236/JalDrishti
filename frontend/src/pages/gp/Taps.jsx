@@ -74,7 +74,7 @@ export default function Taps() {
   return (
     <div>
       <PageHeader title="Tap Connections — live functionality" subtitle="Is every household tap delivering enough water right now? Estimated from live pressure and flow.">
-        <SimBadge>Simulated sensors</SimBadge>
+        <SimBadge>Demo sensor feed</SimBadge>
       </PageHeader>
 
       <div className="grid gap-5 xl:grid-cols-3">
@@ -97,7 +97,7 @@ export default function Taps() {
             <div className="min-w-[240px] flex-1">
               <p className="mb-1 text-xs uppercase tracking-wide text-muted">Last 14 days</p>
               <Trend points={f.history} />
-              <p className="text-[11px] text-muted">Earlier days are simulated history</p>
+              <p className="text-[11px] text-muted">Earlier days are sample history</p>
             </div>
           </div>
           <p className="mt-4 text-xs text-muted">{f.definition}</p>

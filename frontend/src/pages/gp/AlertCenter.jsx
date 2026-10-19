@@ -99,7 +99,7 @@ export default function AlertCenter() {
   return (
     <div>
       <PageHeader title="Alert Center — every alert, one place" subtitle="Supply, pressure and leaks; equipment faults; AI predictions; water quality; and what villagers report.">
-        <SimBadge>Simulated sensors</SimBadge>
+        <SimBadge>Demo sensor feed</SimBadge>
       </PageHeader>
 
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">

@@ -47,7 +47,7 @@ const SCRIPT = {
       'The caller’s area comes from their registered mobile number, so nothing needs typing.',
       'The complaint lands in the same Gram Panchayat inbox as app reports, marked with how it came in.',
     ],
-    demoNote: 'Simulated on screen: no real call or message is sent. The complaint itself is real in the demo database.',
+    demoNote: 'Shown on screen only: no real call or message is sent. The complaint itself is real in the demo database.',
   },
   te: {
     title: 'ఫోన్ ద్వారా ఫిర్యాదు',
@@ -206,7 +206,7 @@ function MissedCall({ s, area, voice }) {
   };
 
   return (
-    <Phone label="Simulated feature phone">
+    <Phone label="Demo feature phone">
       {state === 'idle' && (
         <div className="flex flex-1 flex-col items-center justify-center gap-6 p-6 text-center">
           <p className="text-sm text-muted">{s.dial}</p>
@@ -309,7 +309,7 @@ function WhatsApp({ s, area }) {
   };
 
   return (
-    <Phone label="Simulated WhatsApp chat">
+    <Phone label="Demo WhatsApp chat">
       <div className="flex items-center gap-2 bg-[#075E54] px-4 py-3 text-white">
         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20">
           <Icon name="drop" className="h-4 w-4" />

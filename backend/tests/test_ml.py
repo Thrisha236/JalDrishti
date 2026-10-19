@@ -110,7 +110,7 @@ def test_forecast_needs_enough_readings(session):
 def test_quality_outlook_ok_watch_and_at_risk(session):
     feed(session, "normal", 30)
     ok = ml.quality_outlook(session, now_())[0]
-    assert ok["level"] == "OK" and ok["data_source"] == "live sensors" and ok["predicted_residual_mg_l"] >= 0.4 and ok["asset_code"] == "P-21"
+    assert ok["level"] == "OK" and ok["data_source"] == "chlorine probe + live sensors" and ok["basis"] == "measured" and ok["predicted_residual_mg_l"] >= 0.4 and ok["asset_code"] == "P-21"
     assert "never certifies" in ok["disclaimer"] and ok["assumptions"]["diameter_assumed"] is True
 
     session.query(m.Reading).delete()
