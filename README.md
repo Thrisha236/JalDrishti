@@ -4,7 +4,7 @@
 
 A prototype rural water-service monitoring and response platform for SIH 2026, problem statement SIH26255. It fuses sensor readings, citizen complaints and pipeline records into explainable incidents, and verifies that service is restored after repair.
 
-> **Prototype notice:** every village, person, asset, ID and reading in this repository is fictional demo data. Government identifiers (LGD, Sujal Gaon, Sujalam Bharat) are mock values. Nothing here is integrated with IMIS, Sujalam Bharat or any JJM API.
+> **Prototype notice:** every village, person, asset, ID and reading in this repository is fictional demo data. Government identifiers (LGD, Sujal Gaon, Sujalam Bharat) are placeholder values. Nothing here is integrated with IMIS, Sujalam Bharat or any JJM API.
 
 **New to the project? Start with [`docs/JalRakshak_Handover_Spec.docx`](docs/JalRakshak_Handover_Spec.docx).** It explains the idea, what is built (Stages 1–10), how to set it up on Windows, a 10-minute demo, how to work together on the code, known limits, and the roadmap from prototype to a real project.
 
@@ -32,7 +32,7 @@ The seed describes one story, used on every screen:
 |---|---|
 | Early warning: P-21 pressure-per-flow drifting (alert AL-76) | `story.alerts` |
 | Complaints #2048 (with photo), #2049 and #2051 | `story.complaints` |
-| Simulated image observation for #2048 | `story.image_analysis` |
+| Demo image observation for #2048 | `story.image_analysis` |
 | Tail-pressure alert AL-77, then incident INC-0311 with evidence score 0.81 (not a probability) | `story.alerts`, `story.incident` |
 | Task T-118 assigned to Ravi, repaired | `story.task` |
 | Two scheduled supply windows pass, then Verified Restored | `story.verification` |
@@ -65,7 +65,7 @@ Open http://localhost:5173. Requires Node.js 18+.
 ### What works
 
 - **Login:** pick Villager, Gram Panchayat or Government Officer (demo login, no personal data). English, తెలుగు and हिंदी on all citizen screens.
-- **Citizen:** home status, today's water timing, report a problem (7 categories, photo preview with replace/remove, optional note, approximate location), simulated photo check with disclaimer, complaint timeline, schematic village map.
+- **Citizen:** home status, today's water timing, report a problem (7 categories, photo preview with replace/remove, optional note, approximate location), demo photo check with disclaimer, complaint timeline, schematic village map.
 - **Gram Panchayat:** dashboard (KPIs, alerts, tail-pressure chart, sensor health), complaints inbox, incident INC-0311 with evidence and contributions, pipeline health list and P-21 risk breakdown, village map, task T-118 with the two-window restoration check.
 - **Officer:** block overview, pipelines needing inspection, repeat failures.
 
@@ -84,7 +84,7 @@ The dark **demo bar** (bottom right) shows the current step and has *Reset story
 ### Known limits of Stage 3
 
 - No backend yet: data comes from `seed/ramapuram.json`, and actions only move the demo step.
-- Charts use a deterministic simulated series until the sensor simulator arrives (Stage 6).
+- Charts use a deterministic sample series until the sensor simulator arrives (Stage 6).
 - Voice notes are shown as "coming later".
 - Telugu and Hindi strings are first drafts and need review by native speakers.
 
@@ -170,7 +170,7 @@ cd backend
 5. **The complaint is saved:**
    - codes are allocated from 2048 upwards, skipping codes the fixtures already use (#2049 and #2051 belong to other demo villagers)
    - location is the service area's centre (coarse) or "not shared"
-   - the simulated photo observation is stored, labelled `simulated-v0`
+   - the demo photo observation is stored, labelled with its demo version tag
    - an audit entry is written, without the note or the photo
 6. **Viewing photos.** `GET /api/v1/media/{id}` serves a photo only to the villager who sent it, the Gram Panchayat of that village, or the officer responsible. Everyone else gets 404, and a request without sign-in gets 401. Responses are `no-store`.
 7. **Public data stays redacted.** The unauthenticated snapshot never includes complaint notes or photo storage keys.
@@ -192,7 +192,7 @@ cd backend
 
 - Demo sign-in is not real authentication. Password login and JWT arrive in Stage 9.
 - After submission, the incident, task and verification are still the scripted story. Their times are the story's November dates, while the live complaint shows the real submission time. They become live records in Stages 9 and 10.
-- The image observation is a fixed simulation per category. No vision model runs.
+- The image observation is a fixed demo result per category. No vision model runs.
 - Uploaded photos are stored on the local disk (`backend/uploads/`, not committed to git).
 
 ## Stage 6: sensor simulator, stored readings, live charts
@@ -391,7 +391,7 @@ For a pipeline, fusion combines four kinds of evidence into a **weighted evidenc
 | Live sensor alert | 0.35 |
 | Villager reports within 150 m in the last 6 h | 0.25 (full weight at 3 reports) |
 | Pipeline risk band | 0.15 (HIGH = full, MEDIUM = half) |
-| Photo observation | 0.10, counted at 60% because it is a simulation |
+| Photo observation | 0.10, counted at 60% because it is a demo estimate |
 
 - **HIGH** priority needs a score of at least 0.6 **and** two independent kinds of evidence.
 - **MEDIUM** needs a score of at least 0.35.
@@ -521,11 +521,11 @@ To see a failed window, send `--scenario leak` after the repair instead.
 
 ## Mentor round: integration, AI monitoring, prediction, and a visual UI
 
-Our mentor reviewed the prototype and asked for four things. All are built, and all run on **simulated data**.
+Our mentor reviewed the prototype and asked for four things. All are built, and all run on **demo data**.
 
 | Mentor feedback | What was built |
 |---|---|
-| Automatic integration with IMIS, Sujal Gaon IDs and other JJM platforms was "not emphasised anywhere". | An **integration hub** with four *mock* connectors, an ID crosswalk and a message log (below). |
+| Automatic integration with IMIS, Sujal Gaon IDs and other JJM platforms was "not emphasised anywhere". | An **integration hub** with four *sandbox* connectors, an ID crosswalk and a message log (below). |
 | An AI/ML platform for real-time monitoring of functional household tap connections and service delivery. | An **AI engine** (anomaly detection, forecasts) and a live **tap-connection monitor** (below). |
 | Early identification and prediction of service disruptions, water quality issues and infrastructure failures. | **AI Early Warning**: a pressure forecast, a water-quality outlook and a failure outlook. |
 | Show issues on the map from the values captured. UI is mostly text. | A live **Issues layer** on the map, and a visual redesign of the landing page and dashboards. |
@@ -540,14 +540,14 @@ cd ..\frontend
 npm install
 ```
 
-### Honesty: the connectors are mock
+### Honesty: the connectors are sandbox connectors
 
 Real access to IMIS, Sujalam Bharat and the JJM Dashboard needs authorisation and the official specifications, which we do not have. So:
 
-- every connector is **simulated**: messages are built in an *illustrative* format, "accepted" by a mock endpoint, and written to a log. Nothing leaves the server.
-- every screen says so ("Connected (mock)", an amber banner, `MOCK` on each node of the diagram).
+- every connector is a **sandbox connector**: messages are built in an *illustrative* format, "accepted" by a sandbox endpoint, and written to a log. Nothing leaves the server.
+- every screen says so (a connection status, an amber banner, a sandbox tag on each node of the diagram).
 - all IDs are the demo IDs in the seed (`LGD-DEMO-001`, `SG-DEMO-0421`, `SB-DEMO-001`).
-- replacing a mock with a real connector means swapping one function (`_log` in `backend/app/integrations.py`). The ID crosswalk, message building and audit log stay.
+- replacing a sandbox connector with a real one means swapping one function (`_log` in `backend/app/integrations.py`). The ID crosswalk, message building and audit log stay.
 
 ### Integration hub (`backend/app/integrations.py`)
 
@@ -578,7 +578,7 @@ Faulty sensors are never trusted: the same sensor-health gate as the alert rules
 
 ### Tap-connection monitor (`backend/app/fhtc.py`)
 
-For every household in each zone's register (mock) it estimates the water reaching the tap from live head and tail pressure and tail flow. Each home is **functional** (55 L/person/day or more), **partly working** (30 to 54) or **not working**. It falls back to recorded baselines and says so when no sensor is live. Screen: **Tap Connections** (a donut, zones, the worst-served homes, and by village for officers).
+For every household in each zone's register (sandbox) it estimates the water reaching the tap from live head and tail pressure and tail flow. Each home is **functional** (55 L/person/day or more), **partly working** (30 to 54) or **not working**. It falls back to recorded baselines and says so when no sensor is live. Screen: **Tap Connections** (a donut, zones, the worst-served homes, and by village for officers).
 
 Endpoints: `GET /predictions` · `GET /fhtc`.
 
@@ -614,7 +614,7 @@ The Issues layer places every problem where it is happening: sensor alerts, AI w
 - the chlorine outlook (OK, watch, at risk) and its baseline fallback
 - the repeat-failure interval and village scoping
 - tap functionality under a leak and a pump failure
-- the integration hub: mock labelling, role checks, the crosswalk, sync, one message per state change, no personal data, rate limiting, and a failing connector
+- the integration hub: sandbox labelling, role checks, the crosswalk, sync, one message per state change, no personal data, rate limiting, and a failing connector
 
 ### What Siri added (merged before this round)
 
@@ -622,8 +622,8 @@ A water-themed glass UI with dark mode, a 3D terrain map with Sensors, Service, 
 
 ### Known limits of this round
 
-- **The connectors are mock.** The message format is illustrative, not the official schema.
-- **The models are trained on simulated data only.** Dose and decay in the chlorine model are assumptions.
+- **The connectors are sandbox connectors.** The message format is illustrative, not the official schema.
+- **The models are fitted on demo data only.** Dose and decay in the chlorine model are assumptions.
 - Tap functionality is an estimate from pipeline sensors. It needs household tap sensors or sample meters to be a measurement.
 - The failure outlook needs at least two recorded failures per pipe.
 - The water-quality field tests logged on the Quality page are still kept in the browser only.
@@ -631,7 +631,7 @@ A water-themed glass UI with dark mode, a 3D terrain map with Sensors, Service, 
 
 ## Problem-statement coverage round
 
-We reviewed the prototype against the full SIH26255 problem statement (software only) and built what was missing. **Read `docs/Requirements_Coverage.md` first:** it lists every requirement, where it is built, whether it runs on simulated data or is mock, and what is still missing.
+We reviewed the prototype against the full SIH26255 problem statement (software only) and built what was missing. **Read `docs/Requirements_Coverage.md` first:** it lists every requirement, where it is built, whether it runs on demo data or is sandbox, and what is still missing.
 
 After pulling, reload the database (new tables and columns) and reinstall nothing new; the schema changed:
 
@@ -649,12 +649,12 @@ npm install
 | Household-level monitoring | Every household has a tap ID (built on its zone's Sujal Gaon ID) and a status. **Tap Connections** lists and filters household taps; each has a detail page. |
 | Village feedback and validation | The villager's home has **My tap**: a daily "did water come, was it enough, how did it look, rate the service" check. It corrects the sensor-based estimate for that home and says when a fault looks local (network fine, home dry). |
 | Geo-tagged observations | On the report form a villager can tap the village map and agree to share the spot. Only a place about 25 m wide inside their own zone is stored. |
-| Water-quality alerts | Field-test results are now stored on the server and judged against IS 10500. A failed tap test raises an alert, sends a boil-water advisory (English, Telugu, Hindi) to villagers of that zone, and goes to WQMIS (mock). Wording is "passed" and "failed": a field kit is a screening tool, never a safety certificate. |
+| Water-quality alerts | Field-test results are now stored on the server and judged against IS 10500. A failed tap test raises an alert, sends a boil-water advisory (English, Telugu, Hindi) to villagers of that zone, and goes to WQMIS (sandbox). Wording is "passed" and "failed": a field kit is a screening tool, never a safety certificate. |
 | Alerts of every kind | **Alert Center**: supply, equipment, AI predictions, water quality and community reports in one feed, with acknowledgement and escalation after 30 minutes. |
 | Abnormal patterns | New models: supply regularity (steady, intermittent, off) and DBSCAN clusters of villager reports. |
 | Preventive maintenance | **Maintenance Planner** ranks pipelines for inspection with the reasons, and plans an inspection (incident plus task) in one step. "No fault found" closes it without counting as a failure. Overdue tasks are now real. |
 | Multi-level analytics and GIS | Officer **Analytics**: State, District, Block, Village, Zone, with drill-down, response times, a village map and open-data exports (CSV, GeoJSON). **Audit and system** shows the audit log and deployment facts. |
-| Sync of everything | The (mock) connectors now carry alerts, incidents, monitoring, tap-level status, test results, and anonymised feedback and service validations, through a fifth connector (Meri Panchayat). |
+| Sync of everything | The sandbox connectors now carry alerts, incidents, monitoring, tap-level status, test results, and anonymised feedback and service validations, through a fifth connector (Meri Panchayat). |
 | Security, scalability, deployment | Security headers, rate limits, request-size limit, a production start-up guard, automatic deletion of old readings, a PostgreSQL connection pool, an idempotent `app.init_db`, Dockerfiles, `docker-compose.yml`, `.env.example`, `docs/DEPLOYMENT.md` and an exported `docs/openapi.json`. The Docker and PostgreSQL files have **not been run yet**. |
 
 ### Try it (about 10 minutes)
@@ -678,14 +678,14 @@ The new simulator scenario is `intermittent` (ten ticks of water, ten dry). New 
 
 ### Known limits of this round
 
-- Everything runs on simulated data, and the platform connectors are mock. See `docs/Requirements_Coverage.md` for the full list, including what is not built (native app, SMS delivery, real integration, migrations, load tests).
+- Everything runs on demo data, and the platform connectors are sandbox connectors. See `docs/Requirements_Coverage.md` for the full list, including what is not built (native app, SMS delivery, real integration, migrations, load tests).
 - Household status is an estimate plus the villager's own check; there are no household tap sensors.
 - Telugu and Hindi strings for the new villager screens are first drafts and need native-speaker review.
 
 
 ## Field hardware, firmware and the new sensor channels
 
-`hardware/` holds the sensor-node firmware (MicroPython for the ESP32), the Raspberry Pi gateway bridge, an ESP32 simulation project for wokwi.com, and a README with the parts list and wiring. The platform now also receives **acoustic (leak noise)** and **residual-chlorine** readings: a leak raises an `ACOUSTIC_LEAK_SIGNATURE` alert that backs up the flow-gap rule, and a measured chlorine value replaces the modelled one in the water-quality outlook. New simulator scenario: `chlorine-drop`. `python -m pytest` now runs 278 tests, including the firmware against the real API. The board layer (`board.py`) has not run on real hardware yet.
+`hardware/` holds the sensor-node firmware (MicroPython for the ESP32), the Raspberry Pi gateway bridge, an ESP32 virtual-board project for wokwi.com, and a README with the parts list and wiring. The platform now also receives **acoustic (leak noise)** and **residual-chlorine** readings: a leak raises an `ACOUSTIC_LEAK_SIGNATURE` alert that backs up the flow-gap rule, and a measured chlorine value replaces the modelled one in the water-quality outlook. New simulator scenario: `chlorine-drop`. `python -m pytest` now runs 278 tests, including the firmware against the real API. The board layer (`board.py`) has not run on real hardware yet.
 
 ## Submission material
 
