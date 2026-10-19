@@ -686,3 +686,7 @@ The new simulator scenario is `intermittent` (ten ticks of water, ten dry). New 
 ## Field hardware, firmware and the new sensor channels
 
 `hardware/` holds the sensor-node firmware (MicroPython for the ESP32), the Raspberry Pi gateway bridge, an ESP32 simulation project for wokwi.com, and a README with the parts list and wiring. The platform now also receives **acoustic (leak noise)** and **residual-chlorine** readings: a leak raises an `ACOUSTIC_LEAK_SIGNATURE` alert that backs up the flow-gap rule, and a measured chlorine value replaces the modelled one in the water-quality outlook. New simulator scenario: `chlorine-drop`. `python -m pytest` now runs 278 tests, including the firmware against the real API. The board layer (`board.py`) has not run on real hardware yet.
+
+## Submission material
+
+`docs/submission/` holds the SIH idea deck (`JalRakshak_SIH26255_Idea_v8.pptx` and `.pdf`) and the architecture and circuit diagrams (`architecture/`: `.drawio`, `.mmd`, `.svg`, `.png`). `docs/Requirements_Coverage.md` maps every point of the problem statement to what is built, and `hardware/README.md` explains the node firmware, gateway and the ESP32 simulation project.

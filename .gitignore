@@ -18,3 +18,6 @@ Thumbs.db
 
 # Duplicate draft decks
 docs/*DRAFT*
+
+# Office lock files anywhere
+~$*

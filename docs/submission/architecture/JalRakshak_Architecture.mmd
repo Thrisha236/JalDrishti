@@ -1,41 +1,49 @@
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"Arial","lineColor":"#475569"}}}%%
 flowchart LR
-  subgraph S0["FIELD & VILLAGE"]
+  subgraph S_in["WHERE DATA STARTS"]
     direction TB
-    n0_0["Pump & tank node<br/>level · pump current"]
-    n0_1["Head / tail nodes<br/>pressure · flow<br/>acoustic · chlorine"]
-    n0_2["Water-quality kits<br/>IS 10500 tests"]
-    n0_3["Villager mobile app<br/>EN · TE · HI<br/>photo · geo-tag"]
+    in1["Villager phone"]
+    in2["Solar sensor node"]
   end
-  subgraph S1["GATEWAY + API"]
+  subgraph S0["SENSE & CAPTURE"]
     direction TB
-    n1_0["LoRa link to<br/>Raspberry Pi gateway"]
-    n1_1["4G / MQTT<br/>offline buffer"]
-    n1_2["Secure ingestion API<br/>validate · rate-limit"]
-    n1_3["Complaint & feedback API<br/>GPS stripped · RBAC"]
+    s0_0["Sensors<br/>pressure · flow · acoustic · chlorine"]
+    s0_1["ESP32 + ADS1115<br/>4-20 mA loops · MicroPython firmware"]
+    s0_2["Villager app<br/>React PWA · EN / TE / HI"]
+    s0_3["Feedback<br/>photo · geo-tag · daily tap check"]
+    o0["→ READINGS + REPORTS"]
   end
-  subgraph S2["AI / ML"]
+  subgraph S1["TRANSMIT & INGEST"]
     direction TB
-    n2_0["Rules + sensor-health gate"]
-    n2_1["Anomaly detection<br/>Isolation Forest"]
-    n2_2["Forecast: pressure,<br/>chlorine, failure window"]
-    n2_3["Complaint clusters<br/>DBSCAN"]
-    n2_4["Evidence fusion<br/>household tap status"]
+    s1_0["LoRa SX1276<br/>865-867 MHz, node to gateway"]
+    s1_1["Raspberry Pi gateway<br/>store-and-forward buffer"]
+    s1_2["4G · MQTT / HTTPS<br/>device key per node"]
+    s1_3["FastAPI ingestion<br/>validation · rate limit · JWT"]
+    o1["→ TRUSTED DATA"]
   end
-  subgraph S3["ALERT & ACT"]
+  subgraph S2["AI / ML ANALYSIS"]
     direction TB
-    n3_0["Alert Center<br/>supply · quality · pressure<br/>leak · infrastructure"]
-    n3_1["Maintenance planner<br/>risk-ranked tasks"]
-    n3_2["Task → repair →<br/>verified restoration"]
-    n3_3["Villager advisories<br/>status updates"]
+    s2_0["Rules + sensor-health gate<br/>offline is not 'no water'"]
+    s2_1["Isolation Forest · Theil-Sen<br/>anomaly + pressure forecast"]
+    s2_2["Chlorine outlook<br/>repeat-failure window"]
+    s2_3["DBSCAN + evidence fusion<br/>complaint clusters · tap status"]
+    o2["→ TAP STATUS + RISK RANK"]
   end
-  subgraph S4["USERS & PLATFORMS"]
+  subgraph S3["ALERT, ACT & SYNC"]
     direction TB
-    n4_0["VWSC · Gram Panchayat<br/>dashboard"]
-    n4_1["District · State<br/>GIS + analytics"]
-    n4_2["IMIS · Sujal Gaon IDs<br/>JJM Dashboard · WQMIS"]
-    n4_3["Open-data export<br/>CSV · GeoJSON"]
+    s3_0["Alert Center<br/>acknowledge · escalate"]
+    s3_1["Maintenance planner<br/>task · repair · verified restoration"]
+    s3_2["Dashboards + GIS<br/>VWSC → District → State"]
+    s3_3["Auto-sync<br/>IMIS · Sujal Gaon IDs · JJM · WQMIS"]
+    o3["→ ACTION + REPORTING"]
   end
-  S0 --> S1
-  S1 --> S2
-  S2 --> S3
-  S3 --> S4
+  S0 -->|"LoRa"| S1
+  S1 -->|"MQTT"| S2
+  S2 -->|"REST"| S3
+  S_in --> S0
+  STACK["TECHNOLOGY STACK<br/>App: React · Vite · Tailwind · MapLibre<br/>Backend: Python · FastAPI<br/>Data: PostgreSQL + PostGIS<br/>AI/ML: scikit-learn · NumPy<br/>Field: ESP32 · LoRa · MQTT<br/>Deploy: Docker · Nginx"]
+  S2 -.-> STACK
+  DB["BACKEND AND DATA<br/>PostgreSQL + PostGIS · JWT · photo store · audit log"]
+  BUF["GATEWAY BUFFER<br/>store-and-forward fallback"]
+  S1 --- BUF
+  S2 --- DB
