@@ -689,4 +689,4 @@ The new simulator scenario is `intermittent` (ten ticks of water, ten dry). New 
 
 ## Submission material
 
-`docs/submission/` holds the SIH idea deck (`JalRakshak_SIH26255_Idea_v13.pptx` and `.pdf`) and the architecture and circuit diagrams (`architecture/`: `.drawio`, `.mmd`, `.svg`, `.png`). `docs/Requirements_Coverage.md` maps every point of the problem statement to what is built, and `hardware/README.md` explains the node firmware, gateway and the ESP32 simulation project.
+`docs/submission/` holds the SIH idea deck (`JalRakshak_SIH26255_Idea_v14.pptx` and `.pdf`) and the architecture and circuit diagrams (`architecture/`: `.drawio`, `.mmd`, `.svg`, `.png`). `docs/Requirements_Coverage.md` maps every point of the problem statement to what is built, and `hardware/README.md` explains the node firmware, gateway and the ESP32 simulation project.
