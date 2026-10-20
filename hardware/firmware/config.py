@@ -23,7 +23,7 @@ PINS = {
     "lora_sck": 18, "lora_miso": 19, "lora_mosi": 23, "lora_nss": 5, "lora_rst": 14, "lora_dio0": 26,
     "acoustic": 35,  # pre-amp + band-pass output
     "ct_clamp": 36,  # SCT-013 on the pump cable (node A)
-    "flow_pulse": 34,  # hall flow meter, 10 k pull-up to 3V3
+    "flow_pulse": 34,  # pulse-output water meter, 10 k pull-up to 3V3
     "us_trig": 25, "us_echo": 27,  # JSN-SR04T (echo through a 1 k / 2 k divider)
     "battery": 32,  # battery through a 2:1 divider
     "adc0": 33, "adc1": 39,  # only used when ADC_MODE = "native" (Wokwi / quick bench): pressure and chlorine loop voltages

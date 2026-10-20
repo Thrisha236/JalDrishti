@@ -18,8 +18,8 @@ sensors ──► ESP32 node ──LoRa──► Raspberry Pi gateway ──4G /
 | ADS1115 16-bit ADC | Accurate reading of the 4-20 mA loops | I2C: SDA 21, SCL 22, address 0x48 |
 | Pressure transmitter, 4-20 mA, 0-10 bar | Head / tail pressure | 24 V loop, 150 Ω shunt, ADS1115 A0 |
 | Residual chlorine probe with 4-20 mA transmitter, in a flow cell | Measured free chlorine at the tail end | 24 V loop, 150 Ω shunt, ADS1115 A1 |
-| Piezo contact sensor + LM358 pre-amp and 100 Hz-2 kHz band-pass | Leak noise on the pipe | ESP32 ADC pin 35 |
-| Hall flow meter | Head / tail flow | Pulse to pin 34 with a 10 kΩ pull-up to 3V3 |
+| Piezo contact sensor + MCP6002 rail-to-rail pre-amp (3.3 V) and 100 Hz-2 kHz band-pass | Leak noise on the pipe | ESP32 ADC pin 35 |
+| Pulse-output bulk water meter (reed switch) | Head / tail flow | Pulse to pin 34 with a 10 kΩ pull-up to 3V3 |
 | JSN-SR04T ultrasonic (pump-house node) | Tank level | TRIG 25, ECHO 27 through a 1 kΩ / 2 kΩ divider |
 | SCT-013-030 CT clamp (pump-house node) | Pump current | ESP32 ADC pin 36, biased to mid-rail |
 | SX1276 / RFM95W LoRa module | Link to the gateway | SPI: SCK 18, MISO 19, MOSI 23, NSS 5, RST 14, DIO0 26 |
